@@ -167,6 +167,26 @@ for (const row of rows) {
   }
 }
 
+const readme = fs.readFileSync(path.join(root, "README.md"), "utf8")
+const changelog = fs.readFileSync(path.join(root, "CHANGELOG.md"), "utf8")
+const design = fs.readFileSync(path.join(root, "Game Design Document.md"), "utf8")
+const liveHost = "https://sell-the-system.vercel.app/"
+const oldHost = "sell-the-system-harsh-s-projects-17430105.vercel.app"
+const remeasure = "unchanged on this branch; remeasure after integration"
+const handRule = "Pressing Ship while it is held, selecting a client, opening it, and Start do not increment the hand counter."
+for (const [name, text] of [["README.md", readme], ["CHANGELOG.md", changelog]]) {
+  if (!text.includes(liveHost)) fail(`${name} is missing ${liveHost}`)
+  if (text.includes(oldHost)) fail(`${name} still names the old Vercel host`)
+  if (!text.includes(remeasure)) fail(`${name} is missing "${remeasure}"`)
+}
+if (!parameters.includes("saveVersion 5")) fail("Game Parameters.md is missing saveVersion 5")
+if (!parameters.includes("1000ms")) fail("Game Parameters.md is missing 1000ms")
+if (!parameters.includes(handRule)) fail("Game Parameters.md is missing the hand-touch rule")
+if (!design.includes(handRule)) fail("Game Design Document.md is missing the hand-touch rule")
+if (!parameters.toLowerCase().includes("round 5 target")) fail("Game Parameters.md is missing round 5 target")
+if (engine.saveVersion !== 5) fail(`saveVersion is ${engine.saveVersion}`)
+if (engine.saveThrottleMs !== 1000) fail(`saveThrottleMs is ${engine.saveThrottleMs}`)
+
 if (failures.length) {
   console.error("check-params: failed")
   for (const message of failures) console.error(" - " + message)

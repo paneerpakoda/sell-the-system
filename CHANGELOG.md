@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-25 — round 5 track D
+
+Autosave writes on events and at most once a second. The save carries saveVersion 5. A save from another version is discarded, and the studio gate says so. The client list, the To Ship rows, and the grade rows redraw when their contents change. The week bars, the client clocks, and payroll keep ticking without redrawing those rows.
+
+Ship exposes `data-ship-held` and `data-ship-reason`. Scripts match those attributes. `shipCheck(clientId)` is the round 5 function for the button, the To Ship list, and the fee. This branch still derives the attributes from the current label.
+
+Pressing Ship while it is held, selecting a client, opening it, and Start do not increment the hand counter. Take-back counts as a hand touch only when it changes a value back. This branch still records select, open, Start, held Ship, and take-back.
+
+The live host is https://sell-the-system.vercel.app/ and it auto-deploys from main. The earlier month-2, gap-0 sim is historical: unchanged on this branch; remeasure after integration.
+
 ## 2026-10-25 — fix list v4
 
 Ship, the To Ship list, and the fee use one check. When Ship is held, the button names the screen and the property, and the list does not say Clear. A wrong radius or contrast on a judged line holds Ship. The radius target is shown, a typed value in range is graded before the Radius variable is bought, Background no longer starts at 0, and Editorial's industry radius of 0 is not Wrong. The radius stops include 8.
@@ -24,7 +34,7 @@ Win rules and fees were left as written.
 
 Added `play/scripts/check-params.mjs`. It reads the month, week, deadline, arrival, and attempt values from `play/src/engine.js` and exits non-zero if the Game Design Document, Game Parameters, or CONTEXT still describe the old clock. That keeps the doc fix from drifting the next time the engine constants change.
 
-Added `play/scripts/simulate.mjs` so a hands-off win, a run that never buys the process steps, and a late firing can be checked without playing. The policy buys the three process steps when that is what gets a month shipped with no hand touch, and it does not change prices. The steps are $24 each, $72 in total. Seeds 1 through 11 each reach a first win in month 2. The same policy without those steps wins none of the 11 by month 36. Firing the Intern about one second before month end pays $9.96 against $10 for keeping them, which is that last second of the wage. The sim leaves `WIN_HAND_TOUCH` at `"strict"` and `gameFlags.specialtyMix` off.
+Added `play/scripts/simulate.mjs` so a hands-off win, a run that never buys the process steps, and a late firing can be checked without playing. The policy buys the three process steps when that is what gets a month shipped with no hand touch, and it does not change prices. The steps are $24 each, $72 in total. An earlier run of seeds 1 through 11 reported a first win in month 2. That figure is historical. Unchanged on this branch; remeasure after integration. The same policy without those steps had won none of the 11 by month 36 in that earlier run. Firing the Intern about one second before month end pays $9.96 against $10 for keeping them, which is that last second of the wage. The sim leaves `WIN_HAND_TOUCH` at `"strict"` and `gameFlags.specialtyMix` off.
 
 ### Payroll wording
 
@@ -60,8 +70,8 @@ The win reads one hand-touch constant, `WIN_HAND_TOUCH`. The default stays `"str
 
 A specialty mix can hold arrivals to one industry, so a specialist and a generalist can win in different months. `gameFlags.specialtyMix` defaults to off, which keeps the current mix.
 
-The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. After it, `node play/scripts/win-month-choice.mjs` reports a specialist median of month 2 and a generalist median of month 2, a gap of 0. That month-2, gap-0 line is the sim of that opening. The specialty flag stays off.
+The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. An earlier `node play/scripts/win-month-choice.mjs` reported a specialist median of month 2 and a generalist median of month 2, a gap of 0. That month-2, gap-0 line is historical. Unchanged on this branch; remeasure after integration. The specialty flag stays off.
 
 All grades hid empty Radius and Contrast headings on those colour-only clients. The queue chip named the first screen for each person, so it stayed on the lead after a later screen was the one holding Ship. A finished edit waited for the next clock tick before Ship could pay, so the button read "Ship held" for a moment after the last line was fixed. The chip now names the screens that still block Ship, and the edit updates the Ship offer immediately.
 
-The source stays private. Hosting is Vercel, at https://sell-the-system-harsh-s-projects-17430105.vercel.app/. `vercel.json` builds `play/` from the repo root. GitHub Pages is not used.
+The source stays private. Hosting is Vercel, at https://sell-the-system.vercel.app/, and it auto-deploys from main. `vercel.json` builds `play/` from the repo root. GitHub Pages is not used.

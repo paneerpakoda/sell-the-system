@@ -85,7 +85,7 @@ A Loose client pays the full fee when every named line is Bare minimum or better
 
 On time is 300 seconds for the first Project and until an Intern is hired, 180 seconds after a hire with no Permanent, and 120 seconds while a Permanent is employed. That clock is its own. It is not the month, and it is not the gap before the next arrival. Both clocks keep running while the Wiki is open. The queue shows the seconds while they remain. When they run out, the Sound reward closes and the Project stays. A later ship still pays by the fee rule. For a Sound client, an on-time Fit sets the miss rate to 20% for the Intern who attempted that Project. If no Intern has been hired, the next hire starts at 20%, once, and later hires roll again. A Sour client does not change a miss rate. An on-time Fit does not raise the fee, and it does not speed the queue.
 
-You press Ship. The control shows the fee this Screen would pay. A Loose ship at Bare minimum or better pays $6, including when you fixed an Intern's miss. An Exacting Fit pays $6. Once Stage 3 is active, that same full fee is $10. An Exacting Screen that is not a Fit, and is not held, pays the auto-ship fee. A big client pays $36, or $48 while Stage 3 is active, when that fee rule says the full fee is due. While a line holds Ship, the control says it is held.
+You press Ship. One function, shipCheck(clientId), feeds the Ship button, the To Ship list, and the fee. The control exposes data-ship-held and data-ship-reason. On this branch those attributes are read from the current label until shipCheck lands. The control shows the fee this Screen would pay. A Loose ship at Bare minimum or better pays $6, including when you fixed an Intern's miss. An Exacting Fit pays $6. Once Stage 3 is active, that same full fee is $10. An Exacting Screen that is not a Fit, and is not held, pays the auto-ship fee. A big client pays $36, or $48 while Stage 3 is active, when that fee rule says the full fee is due. While a line holds Ship, the control says it is held. The big-client card still says a ship pays $6. Showing $36 or $48 on that card is a round 5 target.
 
 A Head start can be bought after the first Fit you finish for a client who was not Sour, for one hand fee. It offers the Background colour from that ship. A rough ship does not change it, and a Sour ship does not change it. You still set the value. The offered colour can fail the brief in front of you. It does not cover the line, and it does not pre-fill the next arrival. The tokens do that later.
 
@@ -105,7 +105,7 @@ Fire is immediate, for an Intern or a Permanent. Future pay stops. The month sti
 
 Promote that Intern after 3 of their own clean ships. Promote has no fee. They become a Permanent: $30 a month, that same attempt clock, and a 0% miss on any property the design system, a codified language, or the design process covers. The miss rate on their card still applies to an uncovered property that is judged.
 
-If the balance cannot cover payroll, unpaid Permanents leave first, then unpaid Interns. Stop when the people who remain are affordable, pay them, and keep them. The balance does not go below $0.
+If the balance cannot cover payroll, an Intern leaves first only when that Intern's pay covers the shortfall. Otherwise a Permanent leaves. Stop when the people who remain are affordable, pay them, and keep them. The balance does not go below $0. A $1 shortfall must not fire the Permanent, and short-term Late debt is allowed with a warning. That Late debt is a round 5 target. This branch still floors the balance at $0 and still fires a Permanent when the Interns do not cover the shortfall.
 
 ### Design system
 
@@ -155,7 +155,7 @@ Coverage stacks. Base Colour, Base Radius, and Base Contrast cover vague colour,
 
 ## Win
 
-The win is one full month of 240 seconds, four weeks of 60 seconds, that began only after Stage 3 was already active. In that month at least one big client shipped. You never opened or fixed a Project by hand: no select, no element click, no requirement click, no value edit, and no Ship. Opening the Wiki does not count. Month-end payroll for the time staff were employed was paid in full. The banner does not block. Play continues.
+The win is one full month of 240 seconds, four weeks of 60 seconds, that began only after Stage 3 was already active. In that month at least one big client shipped. Pressing Ship while it is held, selecting a client, opening it, and Start do not increment the hand counter. Only a real value change does. Take-back counts as a hand touch only when it changes a value back. Opening the Wiki does not count. This branch still records select, open, Start, held Ship, and take-back. Month-end payroll for the time staff were employed was paid in full. The banner does not block. Play continues.
 
 ## Form
 
@@ -163,7 +163,7 @@ A browser page with a fixed viewport. The page does not scroll: `html, body { he
 
 Three regions share that window.
 
-The left HUD shows money, the 240-second month as four 60-second weeks, the payroll countdown, status, the project queue, and the open client's requirements. The requirements are grouped under Colour, Radius, and Contrast. A named row has a checkbox that fills at that client's full-fee grade. Choosing a row selects that element and does not write a value. A control on the requirements heading opens the Wiki beside the list. The same HUD holds the team, the design system, the design process, and Ship. Ship shows the fee this Screen would pay, or that it is held.
+The left HUD shows money, the 240-second month as four 60-second weeks, the payroll countdown, status, the project queue, and the open client's requirements. The requirements are grouped under Colour, Radius, and Contrast. A named row has a checkbox that fills at that client's full-fee grade. Choosing a row selects that element and does not write a value. A control on the requirements heading opens the Wiki beside the list. The same HUD holds the team, the design system, the design process, and Ship. Ship shows the fee this Screen would pay, or that it is held. The Ship control exposes data-ship-held and data-ship-reason.
 
 The center is the phone: Background, Title, Card A, Card B, and Save. The tool popup floats beside the phone. It does not cover the right panel.
 

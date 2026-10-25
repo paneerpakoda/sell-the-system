@@ -1,24 +1,28 @@
-import { useLayoutEffect, useRef } from "react"
+import { memo, useLayoutEffect, useRef } from "react"
 import {
   continueMonth,
   deadlineLength,
   sellAgency,
   handShip,
+  listStamp,
   openProject,
   payrollDue,
   projectWatch,
   playerJob,
   resetView,
   shipButtonLabel,
+  shipControl,
   startClient,
   stage,
   state,
   timeLabel,
   weekState
 } from "../engine.js"
+import { useClock } from "../useGame.js"
 import { TargetChip, guidingFirst, moneyText, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
 
 function Weeks() {
+  useClock()
   const { week, into } = weekState()
   const clock = weekClock(into)
   return (
@@ -56,6 +60,7 @@ export function WeekPause() {
 }
 
 function DeadlineClock({ project, alert }) {
+  useClock()
   const waiting = !project.started
   const left = Math.max(0, project.onTimeLeft)
   const total = project.onTimeTotal || deadlineLength
@@ -80,6 +85,40 @@ function DeadlineClock({ project, alert }) {
         />
       </svg>
       <b>{label}</b>
+    </div>
+  )
+}
+
+const ClientWidget = memo(function ClientWidget({ project, stamp, line, needsYou, open, waiting, target }) {
+  void stamp
+  return (
+    <button
+      type="button"
+      data-id={project.id}
+      className={"client-widget" + (open ? " on" : "") + (needsYou ? " call" : "") + (target ? " has-target" : "")}
+      aria-current={open ? "true" : undefined}
+      aria-label={project.client + (target ? ", target " + target : "") + ", " + line}
+      data-tip={needsYou ? line : waiting ? "Start this client. The clock begins when you do." : "On time if you ship within " + timeLabel(project.onTimeTotal) + "."}
+      onClick={() => { resetView(); if (waiting) startClient(project); else openProject(project, null) }}
+    >
+      <span className="widget-copy">
+        <span className="widget-client">{project.client}</span>
+        <TargetChip project={project} />
+        <span className={"widget-meta" + (needsYou ? " call" : "")}>{line}</span>
+      </span>
+      <DeadlineClock project={project} alert={needsYou} />
+    </button>
+  )
+})
+
+function PayrollMeter() {
+  useClock()
+  const due = payrollDue()
+  if (!(due > 0)) return null
+  return (
+    <div className="meter" data-tip="Due when week 4 ends. If the balance is short, people leave.">
+      <div className="meter-k">Payroll</div>
+      <div className={"meter-v" + (state.money < due ? " urgent" : "")}>${moneyText(due)}</div>
     </div>
   )
 }
@@ -141,28 +180,18 @@ function ClientWidgets() {
     <div className="widget-rail" ref={railRef}>
       <div className="widget-track" ref={trackRef} onPointerDown={onPointerDown}>
         {state.queue.map((project) => {
-          const open = project.id === state.openId
-          const waiting = !project.started
           const watch = projectWatch(project)
-          const target = targetFor(project)
           return (
-            <button
+            <ClientWidget
               key={project.id}
-              type="button"
-              data-id={project.id}
-              className={"client-widget" + (open ? " on" : "") + (watch.needsYou ? " call" : "") + (target ? " has-target" : "")}
-              aria-current={open ? "true" : undefined}
-              aria-label={project.client + (target ? ", target " + target : "") + ", " + watch.line}
-              data-tip={watch.needsYou ? watch.line : waiting ? "Start this client. The clock begins when you do." : "On time if you ship within " + timeLabel(project.onTimeTotal) + "."}
-              onClick={() => { resetView(); if (waiting) startClient(project); else openProject(project, null) }}
-            >
-              <span className="widget-copy">
-                <span className="widget-client">{project.client}</span>
-                <TargetChip project={project} />
-                <span className={"widget-meta" + (watch.needsYou ? " call" : "")}>{watch.line}</span>
-              </span>
-              <DeadlineClock project={project} alert={watch.needsYou} />
-            </button>
+              project={project}
+              stamp={listStamp(project)}
+              line={watch.line}
+              needsYou={watch.needsYou}
+              open={project.id === state.openId}
+              waiting={!project.started}
+              target={targetFor(project)}
+            />
           )
         })}
       </div>
@@ -171,14 +200,14 @@ function ClientWidgets() {
 }
 
 export function Hud() {
-  const due = payrollDue()
   const open = state.queue.find((item) => item.id === state.openId)
   const waiting = open && !open.started
   const project = waiting ? open : playerJob() || open || state.queue[0]
   const live = shipClickEnabled(!!waiting, waiting ? open : project)
+  const control = shipControl(project)
   const offered = waiting ? "Start" : shipButtonLabel(project)
   const shipLabel = !waiting && !live && offered.indexOf("held") === -1 && offered.indexOf("$") !== -1 ? "Ship held" : offered
-  const held = shipLabel.indexOf("held") !== -1
+  const held = !waiting && (control.held === "true" || shipLabel.indexOf("held") !== -1)
   const guide = guidingFirst()
   const guideStart = !!(guide && !guide.started && waiting && open && open.id === guide.project.id)
   const guideShip = !!(guide && guide.shipLive && !waiting && project && project.id === guide.project.id)
@@ -197,12 +226,7 @@ export function Hud() {
               <div className="meter-k">{state.everHired ? "Ships" : "Hand"}</div>
               <div className="meter-v">{state.everHired ? state.accepted : Math.min(state.handShips, 3) + "/3"}</div>
             </div>
-            {due > 0 && (
-              <div className="meter" data-tip="Due when week 4 ends. If the balance is short, people leave.">
-                <div className="meter-k">Payroll</div>
-                <div className={"meter-v" + (state.money < due ? " urgent" : "")}>${moneyText(due)}</div>
-              </div>
-            )}
+            <PayrollMeter />
           </div>
           <p className="goal-strip">
             <span className="goal-win">Win a Stage 3 month with a big client, no hand touch, and payroll paid.</span>
@@ -216,6 +240,8 @@ export function Hud() {
         className={"ship" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
         disabled={!live}
         aria-disabled={!live}
+        data-ship-held={waiting ? "false" : control.held}
+        data-ship-reason={waiting ? "" : control.reason}
         data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : held ? shipLabel : "Full fee $6, or $10 in Stage 3. Short fee $3, or $6. A ship does not pay $12."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >

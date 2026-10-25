@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "scripts": {
+    "scripts": "npm run scripts --prefix play",
+    "build": "npm run build --prefix play"
+  }
+}

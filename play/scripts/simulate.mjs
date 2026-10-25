@@ -250,7 +250,7 @@ function purchase(api, opts, bag) {
 
 function shipNow(api, project, bag) {
   const label = api.shipButtonLabel(project)
-  if (label === "Ship held") return false
+  if (api.shipControl(project).held === "true") return false
   const clean = api.state.staff.find((staff) => staff.role === "intern")
   api.handShip()
   note(bag, "ship " + label + " -> $" + api.state.money + " clean " + (clean ? clean.clean : "-"))
@@ -493,6 +493,7 @@ async function main() {
   console.log("state.specialty = " + (flags.specialty || "not defined") + " (left unset)")
   console.log("seeds: " + seeds.join(" "))
   console.log("win check: month started qualified, a big client shipped, handTouch is false, payroll fully paid")
+  console.log("win month: unchanged on this branch; remeasure after integration")
 
   if (only === "all" || only === "win") {
     const competent = []

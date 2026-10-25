@@ -66,6 +66,7 @@ export function shipClickEnabled(waiting, project) {
     if (state.staff.some((staff) => staff.projectId === project.id)) return false
     return true
   }
+  if (project && typeof engine.shipControl === "function" && engine.shipControl(project).held === "true") return false
   if (typeof state.shipDisabled === "boolean") return !state.shipDisabled
   if (typeof state.canShip === "boolean") return state.canShip
   const exposed = readValue(SHIP_FIELDS, project)

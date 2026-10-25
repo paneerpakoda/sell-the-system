@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { memo, useState } from "react"
 import {
   NAMES,
   describe,
@@ -8,6 +8,7 @@ import {
   buyToken,
   buyTool,
   hire,
+  listStamp,
   openParts,
   openProject,
   openScreen,
@@ -17,6 +18,7 @@ import {
   queueState,
   radiusHint,
   shipButtonLabel,
+  shipControl,
   shownGrade,
   stageProgress,
   staffTask,
@@ -30,6 +32,7 @@ import {
   state,
   studioOpen
 } from "../engine.js"
+import { useClock } from "../useGame.js"
 import { TargetChip, guidingFirst, moneyText, payrollFacts } from "./guidance.jsx"
 
 const GROUPS = [
@@ -47,6 +50,59 @@ function wordOf(project, req) {
   return "Open"
 }
 
+const ClientTime = memo(function ClientTime({ project }) {
+  useClock()
+  const clock = !project.started ? " due" : project.onTimeLeft <= 0 ? " late" : project.onTimeLeft <= 30 ? " urgent" : ""
+  return <span className={"time" + clock}>{queueState(project)}</span>
+})
+
+const ClientRow = memo(function ClientRow({ project, stamp, line, needsYou, open }) {
+  void stamp
+  return (
+    <li>
+      <button
+        type="button"
+        className={"client" + (open ? " on" : "") + (needsYou ? " call" : "")}
+        data-tip={needsYou ? line : project.started ? "Open this client. Opening does not take a frame back." : "Start this client. The clock begins when you do."}
+        onClick={() => { resetView(); if (!project.started) startClient(project); else openProject(project, null) }}
+      >
+        <span className="who">{project.client}</span>
+        <span className={"meta" + (needsYou ? " call" : "")}>{line}</span>
+        <TargetChip project={project} />
+        <ClientTime project={project} />
+      </button>
+    </li>
+  )
+})
+
+const ShipPartRow = memo(function ShipPartRow({ project, group, stamp }) {
+  void stamp
+  const req = group.open[0]
+  const name = req.group[0].toUpperCase() + req.group.slice(1)
+  return (
+    <li>
+      <button type="button" className="more" onClick={() => { if (group.screenId) openScreen(project, group.screenId); openProject(project, group.id) }}>
+        <span>{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
+        <span className="count">{name}{group.open.length > 1 ? " +" + (group.open.length - 1) : ""}</span>
+      </button>
+    </li>
+  )
+})
+
+const GradeRow = memo(function GradeRow({ project, req, group, stamp }) {
+  void stamp
+  const word = wordOf(project, req)
+  const target = group === "radius" ? " · " + radiusHint(project, req.element) : ""
+  return (
+    <li>
+      <button type="button" onClick={() => openProject(project, req.focus || req.element)}>
+        <span>{NAMES[req.element]}</span>
+        <span className={tone(word)}>{word}{target}</span>
+      </button>
+    </li>
+  )
+})
+
 function tone(word) {
   if (word === "Not judged") return "tone-bare"
   if (word === "Wrong" || word === "Clear intent" || (word && (word.startsWith("Fix ") || word.startsWith("Hierarchy ")))) return "tone-wrong"
@@ -59,7 +115,7 @@ export function Dock() {
   const [gradesOpen, setGradesOpen] = useState(false)
   const project = playerJob() || state.queue.find((item) => item.id === state.openId) || state.queue[0]
   const parts = openParts(project)
-  const heldShip = !!(project && shipButtonLabel(project).indexOf("held") !== -1)
+  const heldShip = !!(project && shipControl(project).held === "true")
   const blocked = project && radiusNeedsBackground(project)
   const lead = blocked ? { id: "background", open: [{ group: "radius", prop: "radius", element: "background" }] } : parts[0]
   const rest = parts.filter((group) => !lead || group.id !== lead.id)
@@ -78,21 +134,15 @@ export function Dock() {
         <ul className="clients">
             {state.queue.map((item) => {
               const watch = projectWatch(item)
-              const clock = !item.started ? " due" : item.onTimeLeft <= 0 ? " late" : item.onTimeLeft <= 30 ? " urgent" : ""
               return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  className={"client" + (item.id === state.openId ? " on" : "") + (watch.needsYou ? " call" : "")}
-                  data-tip={watch.needsYou ? watch.line : item.started ? "Open this client. Opening does not take a frame back." : "Start this client. The clock begins when you do."}
-                  onClick={() => { resetView(); if (!item.started) startClient(item); else openProject(item, null) }}
-                >
-                  <span className="who">{item.client}</span>
-                  <span className={"meta" + (watch.needsYou ? " call" : "")}>{watch.line}</span>
-                  <TargetChip project={item} />
-                  <span className={"time" + clock}>{queueState(item)}</span>
-                </button>
-              </li>
+                <ClientRow
+                  key={item.id}
+                  project={item}
+                  stamp={listStamp(item)}
+                  line={watch.line}
+                  needsYou={watch.needsYou}
+                  open={item.id === state.openId}
+                />
               )
             })}
         </ul>
@@ -114,18 +164,14 @@ export function Dock() {
         )}
           {rest.length > 0 && (
             <ul className="more-list">
-              {rest.map((group) => {
-                const req = group.open[0]
-                const name = req.group[0].toUpperCase() + req.group.slice(1)
-                return (
-                  <li key={(group.screenId || "") + group.id + name}>
-                    <button type="button" className="more" onClick={() => { if (group.screenId) openScreen(project, group.screenId); openProject(project, group.id) }}>
-                      <span>{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
-                      <span className="count">{name}{group.open.length > 1 ? " +" + (group.open.length - 1) : ""}</span>
-                    </button>
-                  </li>
-                )
-              })}
+              {rest.map((group) => (
+                <ShipPartRow
+                  key={(group.screenId || "") + group.id + group.open[0].group}
+                  project={project}
+                  group={group}
+                  stamp={listStamp(project)}
+                />
+              ))}
             </ul>
           )}
           <button type="button" className="grades-toggle" aria-expanded={gradesOpen} data-tip="Colour, radius, and contrast on this screen." onClick={() => setGradesOpen((open) => !open)}>
@@ -143,18 +189,15 @@ export function Dock() {
                   <div key={group}>
                     <h3>{label}</h3>
                     <ul>
-                      {reqs.map((req) => {
-                        const word = wordOf(project, req)
-                        const target = group === "radius" ? " · " + radiusHint(project, req.element) : ""
-                        return (
-                          <li key={req.element + group}>
-                            <button type="button" onClick={() => openProject(project, req.focus || req.element)}>
-                              <span>{NAMES[req.element]}</span>
-                              <span className={tone(word)}>{word}{target}</span>
-                            </button>
-                          </li>
-                        )
-                      })}
+                      {reqs.map((req) => (
+                        <GradeRow
+                          key={req.element + group}
+                          project={project}
+                          req={req}
+                          group={group}
+                          stamp={listStamp(project)}
+                        />
+                      ))}
                     </ul>
                   </div>
                 )
@@ -172,6 +215,7 @@ export function Dock() {
 }
 
 function People() {
+  useClock()
   const { due, next, unpayable, reason, lines } = payrollFacts()
   const locked = state.handShips < 3
   const internOnStaff = state.staff.some((staff) => staff.role === "intern")

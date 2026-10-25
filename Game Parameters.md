@@ -1,6 +1,6 @@
 # Game Parameters
 
-Decided 24 October 2026. These numbers are the `PARAMS` object in `prototype-sell-the-system.html`. The telemetry panel lists them so they cannot drift from this file. Rules live in [[Game Design Document]]. Words live in [[CONTEXT]].
+Decided 24 October 2026. These numbers are the constants in `play/src/engine.js`. `play/scripts/check-params.mjs` reads them so they cannot drift from this file. Rules live in [[Game Design Document]]. Words live in [[CONTEXT]].
 
 Starting money is $24. There is one balance. It never goes below $0.
 
@@ -84,7 +84,7 @@ On time is 300 seconds for the first Project and until an Intern is hired, 180 s
 | Permanent miss, covered | 0% | Properties covered by a token, a codified language, or the design process |
 | Permanent miss, uncovered | The rolled rate | Still applies to a judged property nothing covers |
 | Fire | Immediate | Intern or Permanent. Pay already spent stays spent |
-| Insolvency | Permanents, then Interns | Unpaid Permanents leave first. If the rest fit the balance, pay them and keep them |
+| Insolvency | Intern when they cover | An Intern leaves first only when that pay covers the shortfall. Otherwise a Permanent leaves. The balance floors at $0 |
 
 A fully covered brief is always clean. People miss only uncovered properties.
 
@@ -141,7 +141,7 @@ Stage 3 UX, on later arrivals:
 
 ## Palette
 
-These are the swatches already on the phone in `prototype-sell-the-system.html`. Calm colours are Paper, White, Ink, Sand, and Stone. Hot and Lime are not calm.
+These are the swatches in `play/src/engine.js`. Calm colours are Paper, White, Ink, Sand, and Stone. Hot and Lime are not calm.
 
 | Name | Hex | Calm |
 | --- | --- | --- |
@@ -155,7 +155,24 @@ These are the swatches already on the phone in `prototype-sell-the-system.html`.
 
 ## Win
 
-A full month is 240 seconds, four weeks of 60 seconds. It began only after Stage 3 was already active. In that month at least one big client shipped. You never selected a Project, clicked an element, clicked a requirement, edited a value, or pressed Ship. Month-end payroll for the time staff were employed was paid in full. The banner does not block. Play continues.
+A full month is 240 seconds, four weeks of 60 seconds. It began only after Stage 3 was already active. In that month at least one big client shipped. Pressing Ship while it is held, selecting a client, opening it, and Start do not increment the hand counter. Only a real value change does. Take-back counts as a hand touch only when it changes a value back. This branch still records select, open, Start, held Ship, and take-back. Month-end payroll for the time staff were employed was paid in full. The banner does not block. Play continues.
+
+## Persistence
+
+The browser save is `sell-the-system-v4` and carries saveVersion 5. Writes happen on events and on a 1000ms throttle, and again when the month breaks, the tab hides, or the page hides. A save whose version is not 5 is discarded. The studio gate says "A saved game from another version was not loaded." A save that cannot be read says "A saved game could not be read and was not loaded." The same note is copied into the status line when that new game starts.
+
+## Round 5 target
+
+These rows are the round 5 target. Where this branch still differs, the code column is what `play/src/engine.js` does today.
+
+| Rule | In the code on this branch | Round 5 target |
+| --- | --- | --- |
+| Big-client card | Decisions.jsx says a ship pays $6. shipPay is $36, or $48 in Stage 3 | The card shows $36 or $48 |
+| $1 shortfall | settlePayroll fires a Permanent when Intern pay does not cover the shortfall. The balance floors at $0 | A $1 shortfall must not fire the Permanent. Short-term Late debt is allowed with a warning |
+| Hire | hire() rolls a miss rate even when money is $0. The Hire label disables for the 3-ship lock and while an Intern is already on staff | hire() does not get a free miss-rate reroll. The Hire label is disabled when unaffordable |
+| Cents | roundMoney is used for payroll and ship pay | Money in state is rounded to cents |
+| First Intern | Intern pay stays $10. Payback within a month was not retuned | The first Intern should pay back within about a month |
+| Extra Interns | hire() caps the studio at one Intern until that Intern is promoted | Extra Interns stay capped, or get a real job. This branch keeps the cap |
 
 ## Related
 

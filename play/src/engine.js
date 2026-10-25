@@ -107,6 +107,7 @@ const state = {
   openId: null,
   selectedEl: null,
   status: "",
+  saveNote: "",
   renderKey: "",
   nextHireFloor: null,
   headOffer: null,
@@ -143,6 +144,8 @@ export const gameFlags = {
 const internWage = 10
 const permanentWage = 30
 let payrollLedger = []
+export const saveVersion = 5
+export const saveThrottleMs = 1000
 
 function cap(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : "" }
 function teach(id, title, body) {
@@ -695,6 +698,41 @@ function shipButtonLabel(project) {
   const fee = projectFee(project)
   if (fee == null) return "Ship held"
   return "Ship · $" + fee
+}
+// Selector for the Ship control. Track A replaces this with shipCheck(clientId)
+// for the button, the To Ship list, and the fee. Until then the attributes
+// follow the same label the button already shows.
+export function shipControl(project) {
+  const label = shipButtonLabel(project)
+  const held = typeof label === "string" && label.indexOf("held") !== -1
+  let reason = ""
+  if (held) {
+    reason = label.replace(/^Ship held\s*·?\s*/, "").trim()
+    if (!reason) reason = "Still needs work"
+  }
+  return { held: held ? "true" : "false", reason }
+}
+export function listStamp(project) {
+  if (!project) return ""
+  const screens = project.screens && project.screens.length ? project.screens : []
+  return screens.map((screen) => {
+    const elements = screen.elements || {}
+    const look = Object.keys(elements).map((id) => {
+      const item = elements[id] || {}
+      return id + ":" + (item.colour || "") + ":" + (item.radius ?? "") + ":" + (item.hierarchy || "") + ":" + (item.copy || "") + ":" + (item.contrast ?? "")
+    }).join(",")
+    const flow = project.flow || {}
+    return [
+      screen.id,
+      screen.owner || "",
+      screen.qc || "",
+      screen.held ? 1 : 0,
+      look,
+      flow.showing || "",
+      flow.emptyFixed ? 1 : 0,
+      flow.errorFixed ? 1 : 0
+    ].join("|")
+  }).join(";")
 }
 function isCovered(project, req) {
   if (req.prop === "copy") return state.process.research
@@ -1520,27 +1558,21 @@ function settlePayroll() {
 function refreshQualified() {
   if (!stage3Active()) state.month.qualified = false
 }
-// How a Ship press counts toward the win.
+// How a hand touch counts toward the win.
 //
-// GDD, Win: you never opened or fixed a Project by hand. That list is no
-// select, no element click, no requirement click, no value edit, and no Ship.
-// Game Parameters, Win: you never selected a Project, clicked an element,
-// clicked a requirement, edited a value, or pressed Ship.
-// Those two win paragraphs agree. Pressing Ship counts as a hand touch.
+// Round 5 target: pressing Ship while it is held, selecting a client, opening
+// it, and Start do not increment the hand counter. Only a real value change
+// does. Take-back counts as a hand touch only when it changes a value back.
+// This branch still calls noteHand on select, open, Start, held Ship, and
+// take-back. Track A makes those call sites match the target.
 //
-// Both docs also define hands-free, and that rule is only the big-client cap:
-// a clean auto-ship, or Ship pressed with nothing edited because tokens, a
-// language, or the design process already met every judged requirement.
-// That press does not count as a hand ship for the cap. It is not the win rule.
-//
-// A hand touch is recorded on select, on an element click, on Start, on a
-// value edit, and on Ship. That is the list in both win paragraphs. Taking a
-// screen back and stealing a project from staff record one too.
+// Hands-free is only the big-client cap: a clean auto-ship, or Ship pressed
+// with nothing edited because tokens, a language, or the design process
+// already met every judged requirement. That press does not count as a hand
+// ship for the cap.
 //
 // WIN_HAND_TOUCH selects the win rule.
-// "strict" (default): any recorded hand touch blocks the win. A Ship press,
-// a select, an element click, and Start each count. This is what both win
-// paragraphs say.
+// "strict" (default): any recorded hand touch blocks the win.
 // "one": a single hand action in the win month still wins. A second one blocks it.
 //
 // Simulation evidence, not a reason to change the default: allowing one hand
@@ -1918,16 +1950,29 @@ function tick(dt) {
         }
       }
     }
-    if (state.monthLeft <= 0) openBreak()
+    if (state.monthLeft <= 0 && !state.break) {
+      openBreak()
+      saveNow()
+    }
   }
   refreshQualified()
-  commit()
+  const stamp = structuralStamp()
+  if (stamp !== lastStamp) {
+    lastStamp = stamp
+    refreshPayrollOffer()
+    refreshShipOffer()
+    notify()
+  }
+  if (!worldPaused()) notifyClock()
+  scheduleSave()
 }
 
 export const view = { z: 0.64, x: 0, y: 0, stretch: 0, springing: false }
 const ZMIN = 0.2
 const ZMAX = 2.4
-function notifyView() { notify() }
+function notifyView() {
+  viewListeners.forEach((fn) => fn())
+}
 export function resetView() {
   view.z = 0.64
   view.x = 0
@@ -2052,37 +2097,160 @@ export function blockingScreen(project) {
 }
 
 const listeners = new Set()
+const clockListeners = new Set()
+const viewListeners = new Set()
+let lastStamp = ""
+let saveTimer = null
+let lastSaveAt = 0
+
 function notify() {
   listeners.forEach((fn) => fn())
+}
+function notifyClock() {
+  refreshPayrollOffer()
+  clockListeners.forEach((fn) => fn())
 }
 export function subscribe(fn) {
   listeners.add(fn)
   return () => listeners.delete(fn)
 }
+export function subscribeClock(fn) {
+  clockListeners.add(fn)
+  return () => clockListeners.delete(fn)
+}
+export function subscribeView(fn) {
+  viewListeners.add(fn)
+  return () => viewListeners.delete(fn)
+}
+
+function timeBucket(project) {
+  if (!project || !project.started) return "wait"
+  if (project.onTimeLeft <= 0) return "late"
+  if (project.onTimeLeft <= 30) return "urgent"
+  return "ok"
+}
+function structuralStamp() {
+  const queue = state.queue.map((project) => [
+    project.id,
+    project.started ? 1 : 0,
+    project.client,
+    project.claimedBy || "",
+    project.flagged ? 1 : 0,
+    project.missNote || "",
+    project.screenId || "",
+    timeBucket(project),
+    listStamp(project)
+  ].join("~")).join("#")
+  const staff = state.staff.map((member) => [
+    member.id,
+    member.role,
+    member.pay,
+    member.projectId || "",
+    member.screenId || "",
+    member.clean,
+    member.miss,
+    member.name
+  ].join(":")).join(",")
+  return [
+    queue,
+    staff,
+    state.money,
+    state.status,
+    state.saveNote,
+    state.openId || "",
+    state.selectedEl || "",
+    state.break ? 1 : 0,
+    state.studioName,
+    state.monthIndex,
+    state.wins,
+    state.handShips,
+    state.accepted,
+    state.canShip ? 1 : 0,
+    state.shipDisabled ? 1 : 0,
+    state.shipFee ?? "",
+    state.notices.length,
+    state.showBanner ? 1 : 0,
+    state.month.handTouches,
+    state.month.qualified ? 1 : 0,
+    state.month.bigShipped ? 1 : 0,
+    state.everHired ? 1 : 0,
+    state.wikiOpen ? 1 : 0,
+    state.headUnlocked ? 1 : 0,
+    state.sold,
+    state.specialty || "",
+    JSON.stringify(state.tokens),
+    JSON.stringify(state.process),
+    JSON.stringify(state.codified),
+    JSON.stringify(state.tools),
+    JSON.stringify(state.bigDone)
+  ].join("||")
+}
 
 let started = false
 const SAVE_KEY = "sell-the-system-v4"
 
-function persist() {
+function writeSave() {
   if (!started || typeof localStorage === "undefined") return
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ state, ledger: payrollLedger }))
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ saveVersion, state, ledger: payrollLedger }))
+    lastSaveAt = Date.now()
   } catch (error) {
     void error
   }
 }
+function scheduleSave() {
+  if (!started) return
+  const now = Date.now()
+  if (now - lastSaveAt >= saveThrottleMs) {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+    }
+    writeSave()
+    return
+  }
+  if (saveTimer) return
+  const wait = Math.max(0, saveThrottleMs - (now - lastSaveAt))
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    writeSave()
+  }, wait)
+  if (saveTimer && typeof saveTimer.unref === "function") saveTimer.unref()
+}
+function saveNow() {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  writeSave()
+}
+export function acceptSave(data) {
+  if (!data || typeof data !== "object") return { ok: false, reason: "corrupt" }
+  if (data.saveVersion !== saveVersion) return { ok: false, reason: "version" }
+  if (!data.state || !data.state.studioName) return { ok: false, reason: "empty" }
+  return { ok: true }
+}
 function restore() {
   if (typeof localStorage === "undefined") return false
+  let raw = null
   try {
-    const raw = localStorage.getItem(SAVE_KEY)
+    raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return false
     const data = JSON.parse(raw)
-    if (!data || !data.state || !data.state.studioName) return false
+    const accepted = acceptSave(data)
+    if (!accepted.ok) {
+      state.saveNote = accepted.reason === "version"
+        ? "A saved game from another version was not loaded."
+        : "A saved game could not be read and was not loaded."
+      return false
+    }
     Object.assign(state, data.state)
+    state.saveNote = ""
     payrollLedger = Array.isArray(data.ledger) ? data.ledger : []
     return true
   } catch (error) {
     void error
+    if (raw) state.saveNote = "A saved game could not be read and was not loaded."
     return false
   }
 }
@@ -2093,11 +2261,19 @@ export function start() {
   if (!restored) {
     spawn("start")
     state.arrivalLeft = interval()
-    state.status = ""
+    state.status = state.saveNote || ""
   }
+  refreshPayrollOffer()
+  refreshShipOffer()
+  lastStamp = structuralStamp()
   notify()
   if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => commit())
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) saveNow()
+    })
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", () => saveNow())
   }
   let last = performance.now()
   const frame = (now) => {
@@ -2111,7 +2287,8 @@ export function start() {
 function commit() {
   refreshPayrollOffer()
   refreshShipOffer()
-  persist()
+  lastStamp = structuralStamp()
+  scheduleSave()
   notify()
 }
 
