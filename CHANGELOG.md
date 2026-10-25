@@ -6,6 +6,8 @@ The nine-seed specialty check is confirmed. Specialist months are all 2. General
 
 `check-params.mjs` also requires `data-ship-held` and `data-ship-reason` on the Ship control. The host line stays https://sell-the-system.vercel.app/
 
+The `play` Vercel project builds with its root already set to `play/`. `play/vercel.json` installs and builds there. The repo-root `vercel.json` still builds `play/` for https://sell-the-system.vercel.app/
+
 ## 2026-10-25 — round 6 batch 5
 
 After a hire and 3 ships, the game asks you to chase big clients or keep a steady book. Chasing makes a big client a 1 in 2 arrival and costs $8 now and at each new month. The winning month is still one big client. A steady book stops big clients and adds $4 to a small ship. That winning month is four small ships. Until you pick, the month cannot be won. `gameFlags.midgameChoice` defaults to on.
