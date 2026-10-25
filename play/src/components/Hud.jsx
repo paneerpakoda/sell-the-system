@@ -271,7 +271,7 @@ export function Hud() {
     <>
       <header className="hud">
         <div className="score">
-          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $10, or $16 in Stage 3. A short ship is $6, or $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3.">${moneyText(state.money)}</div>
+          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $10, or $16 in Stage 3. A short ship is $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3.">${moneyText(state.money)}</div>
           <div className="meters">
             <Weeks />
             <MonthClock />
@@ -304,7 +304,7 @@ export function Hud() {
         aria-disabled={!live}
         data-ship-held={held ? "true" : "false"}
         data-ship-reason={check && check.reason ? check.reason : ""}
-        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee $10, or $16 in Stage 3. A short ship is $6, or $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3."}
+        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee $10, or $16 in Stage 3. A short ship is $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >
         {shipLabel}

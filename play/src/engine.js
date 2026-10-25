@@ -149,11 +149,12 @@ export const gameFlags = {
 }
 const internWage = 10
 const permanentWage = 30
-// Was $6 / $3, and $10 / $6 in Stage 3. A careful month of hand ships at $10
-// and clean ships at $6 covers the first Intern's $10. Big fees stay $36 / $48.
+// Was $6 / $3, and $10 / $6 in Stage 3. A clean ship now pays $10 before Stage 3,
+// the same as the Intern's wage, so one clean ship covers that month. Stage 3
+// leaves the clean ship at $10 and raises a full ship to $16. Big fees stay $36 / $48.
 const handFee = 10
 const handFeeStage3 = 16
-const autoFee = 6
+const autoFee = 10
 const autoFeeStage3 = 10
 const bigFee = 36
 const bigFeeStage3 = 48

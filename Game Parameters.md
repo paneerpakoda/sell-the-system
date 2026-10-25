@@ -28,8 +28,8 @@ Stage 3 is active while at least one Permanent is employed and at least one lang
 | --- | --- | --- |
 | Hand fee | $10 | You press Ship, including after you fix a miss |
 | Hand fee, Stage 3 | $16 | Same ship, completed while Stage 3 is active |
-| Auto-ship fee | $6 | An Intern or Permanent finishes a clean ship |
-| Auto-ship fee, Stage 3 | $10 | Same clean auto-ship, completed while Stage 3 is active |
+| Auto-ship fee | $10 | A clean ship. Equals the Intern's $10 wage, so one clean ship covers that month |
+| Auto-ship fee, Stage 3 | $10 | The clean ship stays $10 while Stage 3 is active. A full ship rises to $16 |
 | Big fee | $36 | One big client |
 | Big fee, Stage 3 | $48 | One big client, shipped while Stage 3 is active |
 | Big short ship, before Stage 3 | $3 | Less than the $6 for turning a big client down |
@@ -69,7 +69,7 @@ Every arrival is Exacting or Loose, and Sound or Sour. Those rolls are independe
 | On time, until a hire | 300s | The first Project, and every Project until an Intern has been hired |
 | On time, after a hire | 180s | After a hire, while no Permanent is employed |
 | On time, with a Permanent | 120s | While a Permanent is employed. Separate from the month. A Sound client's Fit inside the window sets one miss rate to 20%. At zero the reward closes and the Project stays. The clock keeps running while the Wiki is open |
-| Exacting, not Best practice | The short fee | $6, or $10 while Stage 3 is active. A big client pays $3 before Stage 3, less than the $6 for turning it down, and $10 in Stage 3. The Screen must be Bare minimum or better. Wrong holds Ship |
+| Exacting, not Best practice | The short fee | $10. A big client pays $3 before Stage 3, less than the $6 for turning it down, and $10 in Stage 3. The Screen must be Bare minimum or better. Wrong holds Ship |
 | Radius step | 4 | How far a component radius sits inside its container |
 
 On time is 300 seconds for the first Project and until an Intern is hired, 180 seconds after a hire with no Permanent, and 120 seconds while a Permanent is employed. A Loose client pays the full fee when every named line is Bare minimum or better. An Exacting client pays the full fee only for Best practice on the whole Screen. An on-time Fit does not add money and does not shorten the arrival gap.
@@ -172,8 +172,8 @@ These round 5 targets are what the code does now.
 | Late cap | A gap up to $2.50, one week of intern pay, is Late. The permanent is not fired for a shortfall |
 | Hire | hire() does not reroll the miss rate. The Hire label is disabled when unaffordable |
 | Cents | Money in state is rounded to cents |
-| First Intern | A full ship pays $10, which covers the $10 wage |
-| Extra Interns | Hire stops at one Intern |
+| First Intern | One clean ship pays $10, the wage for that month |
+| Extra Interns | Hire stops at one Intern. That is the one who can be busy on a screen already started. Interns do not start clients |
 
 ## Related
 

@@ -208,7 +208,10 @@ await check("a big screen that is not best practice pays the short fee", async (
   project.size = "big"
   project.standard = "exacting"
   state.event = { projectId: project.id, client: project.client }
-  // Before Stage 3 a short big-client ship pays $3, less than turning it down for $6.
+  project.size = "small"
+  // A clean ship pays $10, the Intern's wage, before Stage 3.
+  assert.equal(feeFor(project), 10)
+  project.size = "big"
   assert.equal(feeFor(project), 3)
   assert.equal(bigClientOffer().short, 3)
   assert.equal(bigClientOffer().decline, 6)

@@ -57,7 +57,7 @@ The queue. Projects that have arrived and are not shipped. The left HUD shows it
 _Avoid_: backlog, board, a roster
 
 **Intern**:
-A hire unlocked after 3 hand ships. No hire fee. Pay is $10 at the end of the month, including when idle. Their miss rate is set once from 20% to 50% and shown on their card. Firing and hiring does not roll a new rate. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%. It does not go below that. If no Intern has been hired, the next hire starts at 20%. An Intern does not start a client. Hire stops at one Intern. Only a Permanent starts a client you have not started. A big client stays unpulled until at least one token has been bought. You can claim that big client yourself before then. An attempt takes 1.4 seconds, minus 0.12 seconds for each counted system, and never under 0.4 seconds. Interns and Permanents use that same clock. They miss only an uncovered property. A clean ship pays less than a ship you finish.
+A hire unlocked after 3 hand ships. No hire fee. Pay is $10 at the end of the month, including when idle. Their miss rate is set once from 20% to 50% and shown on their card. Firing and hiring does not roll a new rate. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%. It does not go below that. If no Intern has been hired, the next hire starts at 20%. An Intern does not start a client. Hire stops at one Intern, the one who can be busy on a screen already started. Only a Permanent starts a client you have not started. A big client stays unpulled until at least one token has been bought. You can claim that big client yourself before then. An attempt takes 1.4 seconds, minus 0.12 seconds for each counted system, and never under 0.4 seconds. Interns and Permanents use that same clock. They miss only an uncovered property. A clean ship pays $10, the same as the wage. In Stage 3 a full ship pays $16 and a clean ship stays $10.
 _Avoid_: a free pair of hands, a property specialist from the day you hire them
 
 **Permanent**:
@@ -97,7 +97,7 @@ One per accepted ship. An accepted ship is a successful hand ship or a clean aut
 _Avoid_: a second currency, a score beside money
 
 **Sale**:
-Payment for a Project that shipped. You finish a ship, someone finishes one clean, or a big client pays the higher fee. Stage 3 raises those three fees for ships completed while it is active. An Exacting client pays the full fee only when the Screen's grade is Best practice. Acceptable or Bare minimum pays the clean auto-ship fee. A Loose client pays the full fee when every named line is Bare minimum or better. Wrong holds Ship. The client is paying for the design.
+Payment for a Project that shipped. You finish a ship, someone finishes one clean, or a big client pays the higher fee. Stage 3 raises the full fee and the big fee for ships completed while it is active. The clean fee stays $10. An Exacting client pays the full fee only when the Screen's grade is Best practice. Acceptable or Bare minimum pays the clean auto-ship fee. A Loose client pays the full fee when every named line is Bare minimum or better. Wrong holds Ship. The client is paying for the design.
 _Avoid_: selling a token, a pitch, a contract you negotiate, a bonus for finishing faster
 
 **Month**:

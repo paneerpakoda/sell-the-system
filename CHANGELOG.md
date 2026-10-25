@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-25 — round 6 batch 4
+
+A clean ship pays $10, the same as the Intern's wage, before Stage 3 and during it. One clean ship covers that month. A full ship stays $10, or $16 in Stage 3. A big client stays $36, or $48.
+
+Hire stays capped at one Intern. That is the person who can be busy on a screen already started. An Intern does not start a small client. Hire stays disabled when the wage cannot be paid.
+
+Seeds 0–199, after the change: instant 200/200 in month 2, stage 3 at 0.6 min. A 4 second edit is 200/200, 156 of them in month 3, median month 3, stage 3 at 4.7 min. A player who spends 100 seconds on a finished screen is 200/200, median month 6, stage 3 at 16 min. Before this batch that slow player also won 200/200, median month 8, stage 3 at 27.5 min. Hands-off months stay 200/200 in month 2.
+
+Cutting the hand fee and the big fee far enough that some slow runs never bank the process bill also moved the 4 second win from month 3 to month 4. Those fees stay, so the 4 second table stays. Stage 3 at minute 16 is as close as that table allows. Promoting before the process bill is saved qualifies the slow player sooner and drops the 4 second wins.
+
+By the end of month 3 the slow player who hired has shipped two or three more clients than the same player who did not. That covers the $10 wage. Cash on hand is lower by the $36 of tokens.
+
+Simpler choice: cap Hire at one Intern, rather than letting Interns start clients. A clean ship pays $10, the same number as the wage, rather than a separate intern bonus.
+
 ## 2026-10-25 — round 6 batch 3
 
 Wrong and the hire warning use #ff7d5c, which is at least 4.5:1 on the side panel and on a raised row. On a selected row the warning is #ffd8cc. The Start and Ship buttons use #0870c4 so white text clears 4.5:1. A lime-on-lime card and a hot-on-hot Save say Wrong, and To Ship does not say Clear while Save is hidden. Save stays above the cards, and Title, Card A, Card B, and Save each have a button when the shape itself is hard to see.

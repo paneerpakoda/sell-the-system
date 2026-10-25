@@ -127,10 +127,20 @@ function applyLook(screen, look, ids) {
   }
 }
 
+let pace = { edit: 0, screen: 0 }
+const pacedScreens = new Set()
+
+function spend(api, seconds) {
+  if (!(seconds > 0) || api.state.break) return
+  api.advance(seconds)
+}
+
 function paintScreen(api, project, screen, look) {
   // The intern claims the next screen as soon as an edit lands. Take it back
   // between elements, then write the finished look again so a half-step cannot
-  // leave hot ink on a card.
+  // leave hot ink on a card. Screen time is spent after the look lands, so an
+  // intern can copy a finished lead during that time.
+  const screenKey = project.id + ":" + screen.id
   for (const id of api.ELEMENT_IDS) {
     if (screen.owner && screen.owner !== "player") api.takeScreen(project, screen.id)
     api.openScreen(project, screen.id)
@@ -141,6 +151,8 @@ function paintScreen(api, project, screen, look) {
       item.contrast = 21
       if (id !== "background") item.ink = null
     })
+    spend(api, pace.edit)
+    if (api.state.break) return
   }
   if (screen.owner && screen.owner !== "player") api.takeScreen(project, screen.id)
   applyLook(screen, look, api.ELEMENT_IDS)
@@ -155,6 +167,10 @@ function paintScreen(api, project, screen, look) {
     screen.elements.save.copy = copy.action
     if (project.flow.demand === "empty") project.flow.emptyFixed = true
     if (project.flow.demand === "error") project.flow.errorFixed = true
+  }
+  if (pace.screen > 0 && !pacedScreens.has(screenKey) && !api.state.break) {
+    pacedScreens.add(screenKey)
+    spend(api, pace.screen)
   }
 }
 
@@ -203,7 +219,7 @@ function staffLine(state) {
 function purchase(api, opts, bag) {
   const state = api.state
   let did = false
-  if (state.handShips >= 3 && state.staff.length === 0 && state.money >= prices.internPay && !(opts.fireInterns && bag.fired)) {
+  if (!opts.noHire && state.handShips >= 3 && state.staff.length === 0 && state.money >= prices.internPay && !(opts.fireInterns && bag.fired)) {
     api.hire()
     note(bag, "hire " + staffLine(state) + " $" + state.money)
     did = true
@@ -387,6 +403,8 @@ function finishPayrollMonth(api, bag, opts) {
 
 async function runGame(seed, opts) {
   const nonce = opts.name + "-" + seed + "-" + (++nonceSerial)
+  pace = { edit: Number(opts.editSeconds) || 0, screen: Number(opts.screenSeconds) || 0 }
+  pacedScreens.clear()
   const api = await loadEngine(seed, nonce)
   const bag = { trace: [], wins: 0, fired: false, payrollDone: false, waits: 0 }
   api.nameStudio("Studio")
@@ -416,8 +434,13 @@ async function runGame(seed, opts) {
       }
       if (state.monthIndex >= MAX_MONTHS) break
       note(bag, "month " + state.monthIndex + " end $" + state.money + " " + state.break.note + " | " + staffLine(state))
+      if (opts.untilMonth && state.monthIndex >= opts.untilMonth) break
       api.continueMonth()
       continue
+    }
+    if (bag.qualifiedAt == null && api.stage() >= 3) {
+      const spent = (state.monthIndex - 1) * 240 + (240 - state.monthLeft)
+      bag.qualifiedAt = Math.round(spent)
     }
     rememberPayroll(api, bag, opts)
     purchase(api, opts, bag)
@@ -426,7 +449,10 @@ async function runGame(seed, opts) {
       finishPayrollMonth(api, bag, opts)
       break
     }
-    if (!handsOff(api, opts) && manual(api, opts, bag)) continue
+    if (!handsOff(api, opts) && manual(api, opts, bag)) {
+      if (opts.actionSeconds) spend(api, opts.actionSeconds)
+      continue
+    }
     const stride = state.monthLeft <= 2 ? 0.25 : 1
     api.advance(stride)
   }
@@ -444,6 +470,7 @@ async function runGame(seed, opts) {
     staff: staffLine(api.state),
     process: prices.processKeys.filter((key) => api.state.process[key]).join(",") || "none",
     qualified: api.state.month.qualified,
+    qualifiedAt: bag.qualifiedAt ?? null,
     trace: bag.trace
   }
 }
@@ -481,7 +508,80 @@ function payrollPaid(result) {
   return result.payroll.note
 }
 
+function paceLine(label, results) {
+  const wins = results.filter((result) => result.winMonth != null)
+  const months = wins.map((result) => result.winMonth)
+  const qualify = results.map((result) => result.qualifiedAt).filter((value) => value != null)
+  const minute = qualify.length ? Math.round(median(qualify) / 60 * 10) / 10 : null
+  const monthCount = {}
+  months.forEach((month) => { monthCount[month] = (monthCount[month] || 0) + 1 })
+  const peak = Object.entries(monthCount).sort((a, b) => b[1] - a[1])[0]
+  console.log(label + ": wins " + wins.length + "/" + results.length + (peak ? " month " + peak[0] + " " + peak[1] + "/" + results.length : "") + " median month " + (months.length ? median(months) : "n/a") + " stage 3 median " + (minute == null ? "n/a" : minute + " min"))
+  const lost = results.filter((result) => result.winMonth == null)
+  if (lost.length) console.log("  lost " + lost.map((result) => result.seed + " mo" + result.month + " $" + result.money + " st" + result.stage + " " + result.process).join(" | "))
+}
+
+async function paceTable() {
+  const limit = Number(process.env.SIM_PACE_LIMIT || 200)
+  const seeds = []
+  for (let seed = 0; seed < limit; seed++) seeds.push(seed)
+  const allModes = [
+    ["instant", 0, 0],
+    ["4s/edit", 4, 0],
+    ["100s/screen", 0, 100]
+  ]
+  const picked = process.env.SIM_PACE_MODE
+  const modes = picked ? allModes.filter((mode) => mode[0] === picked) : allModes
+  for (const [name, editSeconds, screenSeconds] of modes) {
+    const started = Date.now()
+    const results = []
+    for (const seed of seeds) {
+      results.push(await runGame(seed, {
+        name: "pace-" + name,
+        buyProcess: true,
+        stopOnWin: true,
+        editSeconds,
+        screenSeconds,
+        untilMonth: process.env.SIM_UNTIL ? Number(process.env.SIM_UNTIL) : 0
+      }))
+    }
+    paceLine(name, results)
+    console.log("  " + ((Date.now() - started) / 1000).toFixed(1) + "s")
+  }
+}
+
+async function payback() {
+  const limit = Number(process.env.SIM_PACE_LIMIT || 12)
+  const until = Number(process.env.SIM_UNTIL || 3)
+  const modes = [
+    ["instant", 0, 0],
+    ["4s/edit", 4, 0],
+    ["100s/screen", 0, 100]
+  ]
+  const picked = process.env.SIM_PACE_MODE
+  const list = picked ? modes.filter((mode) => mode[0] === picked) : modes
+  for (const [name, editSeconds, screenSeconds] of list) {
+    let sum = 0
+    for (let seed = 0; seed < limit; seed++) {
+      const hired = await runGame(seed, { name: "pb-h-" + name, buyProcess: false, untilMonth: until, editSeconds, screenSeconds, actionSeconds: name === "instant" ? 1 : 0 })
+      const solo = await runGame(seed, { name: "pb-s-" + name, buyProcess: false, noHire: true, untilMonth: until, editSeconds, screenSeconds, actionSeconds: name === "instant" ? 1 : 0 })
+      const delta = hired.money - solo.money
+      sum += delta
+      console.log(name + " seed " + seed + " hire $" + hired.money + " ships " + hired.accepted + " solo $" + solo.money + " ships " + solo.accepted + " delta " + delta.toFixed(2) + " | " + hired.staff)
+    }
+    console.log(name + " mean delta $" + (sum / limit).toFixed(2) + " at month " + until)
+  }
+}
+
 async function main() {
+  if (process.env.SIM_PAYBACK === "1") {
+    await payback()
+    return
+  }
+  if (process.env.SIM_PACE === "1") {
+    await paceTable()
+    return
+  }
   const digest = createHash("sha256").update(source).digest("hex").slice(0, 12)
   const asked = process.env.SIM_SEEDS
   const seeds = asked ? asked.split(",").map((value) => Number(value)) : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
