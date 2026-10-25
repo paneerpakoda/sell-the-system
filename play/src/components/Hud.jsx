@@ -173,7 +173,7 @@ function PayrollMeter() {
   const due = payrollDue()
   if (!(due > 0)) return null
   return (
-    <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap of $1 or less is Late: nobody leaves, and it comes out of the next fee."}>
+    <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap up to $2.50, one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down."}>
       <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
       <div className={"meter-v" + (state.money + 0.001 < due ? " urgent" : "")}>${moneyText(due)}</div>
     </div>
@@ -260,9 +260,9 @@ export function Hud() {
   const due = payrollDue()
   const open = state.queue.find((item) => item.id === state.openId) || null
   const waiting = !!(open && !open.started)
-  const check = !waiting && open ? shipCheck(open.id) : null
+  const check = waiting ? null : shipCheck(open ? open.id : null)
   const live = shipClickEnabled(waiting, open)
-  const shipLabel = waiting ? "Start" : check ? check.label : "Ship"
+  const shipLabel = waiting ? "Start" : check.label
   const held = !!(check && check.held)
   const guide = guidingFirst()
   const guideStart = !!(guide && !guide.started && waiting && open && open.id === guide.project.id)
@@ -271,7 +271,7 @@ export function Hud() {
     <>
       <header className="hud">
         <div className="score">
-          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $10, or $16 in Stage 3. A short ship is $6, or $10. A big client is $36, or $48 in Stage 3.">${moneyText(state.money)}</div>
+          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $10, or $16 in Stage 3. A short ship is $6, or $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3.">${moneyText(state.money)}</div>
           <div className="meters">
             <Weeks />
             <MonthClock />
@@ -284,7 +284,7 @@ export function Hud() {
               <div className="meter-v">{state.everHired ? state.accepted : Math.min(state.handShips, 3) + "/3"}</div>
             </div>
             {due > 0 && (
-              <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap of $1 or less is Late: nobody leaves, and it comes out of the next fee."}>
+              <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap up to $2.50, one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down."}>
                 <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
                 <div className={"meter-v" + (state.money + 0.001 < due ? " urgent" : "")}>${moneyText(due)}</div>
               </div>
@@ -303,8 +303,8 @@ export function Hud() {
         disabled={!live}
         aria-disabled={!live}
         data-ship-held={held ? "true" : "false"}
-        data-ship-reason={held && check ? check.reason : ""}
-        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : held ? shipLabel : "Full fee $10, or $16 in Stage 3. Short fee $6, or $10. A big client is $36, or $48 in Stage 3."}
+        data-ship-reason={check && check.reason ? check.reason : ""}
+        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee $10, or $16 in Stage 3. A short ship is $6, or $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >
         {shipLabel}

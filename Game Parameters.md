@@ -32,6 +32,8 @@ Stage 3 is active while at least one Permanent is employed and at least one lang
 | Auto-ship fee, Stage 3 | $10 | Same clean auto-ship, completed while Stage 3 is active |
 | Big fee | $36 | One big client |
 | Big fee, Stage 3 | $48 | One big client, shipped while Stage 3 is active |
+| Big short ship, before Stage 3 | $3 | Less than the $6 for turning a big client down |
+| Big short ship, Stage 3 | $10 | The Stage 3 auto-ship fee. Already more than turning it down |
 | Intern pay | $10 per month | Pro-rated for time employed, including idle time and time before a firing |
 | Permanent pay | $30 per month | Pro-rated for time employed, including idle time and time before a firing |
 | Hire fee | None | No upfront charge for an Intern or for Promote |
@@ -67,7 +69,7 @@ Every arrival is Exacting or Loose, and Sound or Sour. Those rolls are independe
 | On time, until a hire | 300s | The first Project, and every Project until an Intern has been hired |
 | On time, after a hire | 180s | After a hire, while no Permanent is employed |
 | On time, with a Permanent | 120s | While a Permanent is employed. Separate from the month. A Sound client's Fit inside the window sets one miss rate to 20%. At zero the reward closes and the Project stays. The clock keeps running while the Wiki is open |
-| Exacting, not Best practice | The auto-ship fee | $6, or $10 while Stage 3 is active. Same for a big client. The Screen must be Bare minimum or better. Wrong holds Ship |
+| Exacting, not Best practice | The short fee | $6, or $10 while Stage 3 is active. A big client pays $3 before Stage 3, less than the $6 for turning it down, and $10 in Stage 3. The Screen must be Bare minimum or better. Wrong holds Ship |
 | Radius step | 4 | How far a component radius sits inside its container |
 
 On time is 300 seconds for the first Project and until an Intern is hired, 180 seconds after a hire with no Permanent, and 120 seconds while a Permanent is employed. A Loose client pays the full fee when every named line is Bare minimum or better. An Exacting client pays the full fee only for Best practice on the whole Screen. An on-time Fit does not add money and does not shorten the arrival gap.
@@ -84,7 +86,7 @@ On time is 300 seconds for the first Project and until an Intern is hired, 180 s
 | Permanent miss, covered | 0% | Properties covered by a token, a codified language, or the design process |
 | Permanent miss, uncovered | The rolled rate | Still applies to a judged property nothing covers |
 | Fire | Immediate | Intern or Permanent. Pay already spent stays spent |
-| Insolvency | Intern if they cover, else Late | An intern leaves only when their pay covers a gap above $1. A gap of $1 or less is Late debt and comes out of the next fee. The last person stays |
+| Insolvency | Intern if they cover, else Late | An intern leaves only when their pay covers the whole gap and the gap is above $2.50, one week of intern pay. The permanent is not fired. A larger gap stays Late. Ship the next screen to pay it down. The last person stays |
 A fully covered brief is always clean. People miss only uncovered properties.
 
 ## Design system
@@ -105,14 +107,14 @@ The Screen's grade is the lowest of colour, radius, and contrast. A Loose client
 | --- | --- | --- | --- |
 | Best practice | That element's Industry colour | Industry radius on Title, both cards, and Save. Background is 4 larger | 7 to 1 or higher |
 | Acceptable | None. Any other calm swatch is Bare minimum | Components match and the Background is 4 larger, at a radius other than the Industry pair | 4.5 to 1, under 7 to 1 |
-| Bare minimum | Any calm swatch | 12–24 on that element | 3 to 1, under 4.5 to 1 |
-| Wrong | Hot or Lime | A component rounder than the Background, or a radius outside 12–24 that is not the Industry pair | Under 3 to 1 |
+| Bare minimum | Any calm swatch | 8–24 on that element | 3 to 1, under 4.5 to 1 |
+| Wrong | Hot or Lime | A component rounder than the Background, or a radius outside 8–24 that is not the Industry pair | Under 3 to 1 |
 
 Contrast is the painted text against the colour behind it. Title against the Background. A card's label against that card. Save's label against Save.
 
 ## Industries
 
-Every Project has one. A big client names every element. Codify Language is $15, unlocked by shipping a big client in that Industry. Later Projects in that Industry arrive with the language applied, in place of the token pre-fill for colour, corner radius, and contrast. The language covers that Industry's colour, corner radius, and contrast, and those values also pass a vague check in that Industry. Component radius 0 or 4, and Background radius 4 or 8, still pass a vague 12–24 ask once the language is on the Project. Title, both cards, and Save use the component radius. The Background is that radius plus 4.
+Every Project has one. A big client names every element. Codify Language is $15, unlocked by shipping a big client in that Industry. Later Projects in that Industry arrive with the language applied, in place of the token pre-fill for colour, corner radius, and contrast. The language covers that Industry's colour, corner radius, and contrast, and those values also pass a vague check in that Industry. Component radius 0 or 4, and Background radius 4 or 8, still pass a vague 8–24 ask once the language is on the Project. Title, both cards, and Save use the component radius. The Background is that radius plus 4.
 
 | Industry | Language | Background | Cards | Title | Save | Components | Background radius | Contrast |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -158,7 +160,7 @@ A full month is 240 seconds, four weeks of 60 seconds. It began only after Stage
 
 ## Persistence
 
-The browser save is `sell-the-system-v4` and carries saveVersion 5. Writes happen on events and on a 1000ms throttle, and again when the month breaks, the tab hides, or the page hides. A save whose version is not 5 is discarded. The studio gate says "A saved game from another version was not loaded." A save that cannot be read says "A saved game could not be read and was not loaded." The same note is copied into the status line when that new game starts.
+The browser save is `sell-the-system-v4` and carries saveVersion 5. Writes happen on events and on a 1000ms throttle, and again when the month breaks, the tab hides, or the page hides. A save whose version is not 5 is discarded. The studio gate says "Old save from an earlier version was discarded." The old save is kept in sessionStorage under `sell-the-system-discarded` for that browser session. A save that cannot be read says "A saved game could not be read and was not loaded." The same note is copied into the status line when that new game starts.
 
 ## Round 5 target
 
@@ -167,7 +169,7 @@ These round 5 targets are what the code does now.
 | Rule | In the code |
 | --- | --- |
 | Big-client card | The card shows $36, or $48 in Stage 3 |
-| $1 shortfall | A gap of $1 or less is Late. It does not fire the Permanent |
+| Late cap | A gap up to $2.50, one week of intern pay, is Late. The permanent is not fired for a shortfall |
 | Hire | hire() does not reroll the miss rate. The Hire label is disabled when unaffordable |
 | Cents | Money in state is rounded to cents |
 | First Intern | A full ship pays $10, which covers the $10 wage |

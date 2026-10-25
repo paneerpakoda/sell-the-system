@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "scripts": "node scripts/check-params.mjs && node scripts/engine-correctness.mjs && node scripts/simulate.mjs && node scripts/win-month-choice.mjs"
+    "scripts": "node scripts/check-params.mjs && node scripts/engine-correctness.mjs && node scripts/ship-agree.mjs && node scripts/simulate.mjs && node scripts/win-month-choice.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

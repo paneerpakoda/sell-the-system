@@ -157,8 +157,11 @@ const autoFeeStage3 = 10
 const bigFee = 36
 const bigFeeStage3 = 48
 const declineFee = 6
-// A gap of $1 does not cut anyone. It becomes Late debt.
-const trivialShortfall = 1
+// Before Stage 3 a short big-client ship used to pay $6, the same as turning it down.
+// $3 is less than that decline, so the two choices are not the same money.
+const bigShortFee = 3
+// One week of intern pay. A gap this small is Late and cuts nobody.
+const lateCapWeeks = 1
 // Interns do not start clients. Only a Permanent calls takeUnclaimed.
 // One Intern is the number who can be busy on screens already started.
 const internCap = 1
@@ -352,11 +355,12 @@ function refreshPayrollOffer() {
   const unpayable = bill - money > 0.001
   const gap = roundMoney(Math.max(0, preview.atEnd - money))
   const debt = debtOf()
-  const late = debt > 0 || (gap > 0.001 && gap <= trivialShortfall)
+  const cap = lateCapAmount()
+  const late = debt > 0 || gap > 0.001
   let lateNote = ""
-  if (debt > 0) lateNote = "Late means $" + moneyText(debt) + " of payroll is still owed. It comes out of the next fee. Your people stay."
-  else if (gap > 0.001 && gap <= trivialShortfall) lateNote = "Late means payroll is short by $" + moneyText(gap) + ". That stays unpaid until the next fee. Your people stay."
-  else if (gap > trivialShortfall) lateNote = "Payroll is short by $" + moneyText(gap) + ". An intern leaves only when their pay covers that gap. A $" + moneyText(trivialShortfall) + " gap is Late and keeps everyone."
+  if (debt > 0) lateNote = "Late means $" + moneyText(debt) + " of payroll is still owed. Ship the next screen. That fee pays it down. Your people stay."
+  else if (gap > 0.001 && gap <= cap) lateNote = "Late means payroll is short by $" + moneyText(gap) + ". A gap up to $" + moneyText(cap) + ", one week of intern pay, keeps everyone. Ship the next screen. That fee pays it down."
+  else if (gap > cap) lateNote = "Payroll is short by $" + moneyText(gap) + ". An intern leaves only when their pay covers that gap. The permanent stays. Ship the next screen. That fee pays it down."
   state.payroll = {
     due: preview.due,
     lines: preview.lines,
@@ -377,6 +381,9 @@ function refreshPayrollOffer() {
 function payrollDue() {
   return payrollPreview(monthElapsed()).atEnd
 }
+function lateCapAmount() {
+  return roundMoney(internWage * lateCapWeeks / 4)
+}
 function rememberPay(staff, until) {
   const amount = employmentAmount(staff, until)
   if (amount > 0) payrollLedger.push({ name: staff.name, amount })
@@ -385,20 +392,22 @@ function formatPeople(lines) {
   return (lines || []).filter((line) => line && line.amount > 0).map((line) => line.name + " ($" + moneyText(line.amount) + ")").join(", ")
 }
 function payrollNote(result) {
-  const owed = formatPeople(result.paidLines)
+  const owedPeople = formatPeople(result.paidLines)
+  const owedSum = roundMoney((result.paidLines || []).reduce((sum, line) => sum + line.amount, 0))
   const gone = formatPeople(result.left)
-  let note
-  if (!result.fullyPaid) {
-    const paidBit = "Paid $" + moneyText(result.paid) + (result.paid > 0 && owed ? ": " + owed : "") + "."
-    if (gone) note = gone + " left unpaid. Payroll was short. " + paidBit
-    else note = "Payroll was short. " + paidBit
-  } else if (result.paid > 0) note = "Payroll paid $" + moneyText(result.paid) + ": " + owed + "."
-  else note = "No payroll due."
+  const parts = []
+  if (gone) parts.push(gone + " left unpaid.")
+  if (owedSum > 0 && result.late <= 0.001 && result.paid + 0.001 >= owedSum) {
+    parts.push("Payroll paid $" + moneyText(result.paid) + ": " + owedPeople + ".")
+  } else if (owedSum > 0) {
+    parts.push("Owed $" + moneyText(owedSum) + ": " + owedPeople + ". Paid $" + moneyText(result.paid) + ".")
+  } else if (!gone) parts.push("No payroll due.")
+  let note = parts.join(" ")
   if (result.late > 0) {
     const kept = formatPeople(result.kept)
-    note += " Late means $" + moneyText(result.late) + " is still owed. It comes out of the next fee."
+    note += " Late means $" + moneyText(result.late) + " is still owed. Ship the next screen. That fee pays it down."
     if (kept) note += " " + kept + (result.kept.length === 1 ? " stays." : " stay.")
-    else note += " Ship the next screen yourself. That fee pays what is Late."
+    else note += " Your people stay."
   }
   return note
 }
@@ -428,12 +437,17 @@ function blankElement(partial) {
   return Object.assign({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "body", copy: "" }, partial)
 }
 function blankElements() {
+  // Fills stay Hot and Lime so the brief's colour lines still fail.
+  // Title and the cards use Ink, which clears contrast 3 on Hot, Lime, and the
+  // light industry fills. Save uses White: it clears Hot, and it still clears
+  // Ink, which is the colour the brief asks Save to become. Matching the ink
+  // to the fill still fails, and the hold names that part and the ratio.
   return {
-    background: blankElement({ colour: "hot", radius: 24, contrast: 1.6, hierarchy: "body" }),
-    title: blankElement({ colour: "lime", radius: 0, contrast: 1.6, hierarchy: "primary", copy: "" }),
-    cardA: blankElement({ colour: "lime", radius: 0, contrast: 1.6, hierarchy: "body", ink: "lime" }),
-    cardB: blankElement({ colour: "hot", radius: 32, contrast: 1.6, hierarchy: "body", ink: "hot" }),
-    save: blankElement({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "primary", copy: "", ink: "hot" })
+    background: blankElement({ colour: "hot", radius: 24, contrast: 21, hierarchy: "body" }),
+    title: blankElement({ colour: "lime", radius: 0, contrast: 21, hierarchy: "primary", copy: "", ink: "ink" }),
+    cardA: blankElement({ colour: "lime", radius: 0, contrast: 21, hierarchy: "body", ink: "ink" }),
+    cardB: blankElement({ colour: "hot", radius: 32, contrast: 21, hierarchy: "body", ink: "ink" }),
+    save: blankElement({ colour: "hot", radius: 0, contrast: 21, hierarchy: "primary", copy: "", ink: "white" })
   }
 }
 function makeReq(project, spec) {
@@ -442,7 +456,7 @@ function makeReq(project, spec) {
   if (spec.prop === "colour" && spec.mode === "strict") base = "Colour " + COLOURS[lang.colour[spec.element]].name
   else if (spec.prop === "colour") base = "Calm colour"
   else if (spec.prop === "radius" && spec.mode === "strict") base = "Radius " + targetRadius(lang, spec.element)
-  else if (spec.prop === "radius") base = "Radius 12–24 · target " + targetRadius(lang, spec.element)
+  else if (spec.prop === "radius") base = "Radius 8–24 · target " + targetRadius(lang, spec.element)
   else if (spec.prop === "contrast" && spec.mode === "strict") base = "Contrast ≥ " + lang.contrast.toFixed(1)
   else if (spec.prop === "contrast") base = "Contrast ≥ 4.5"
   else if (spec.prop === "hierarchy") base = "Hierarchy " + cap(spec.value)
@@ -531,7 +545,7 @@ function passes(project, req) {
     const target = targetRadius(lang, req.element)
     if (req.mode === "strict") return el.radius === target
     if (codified && el.radius === target) return true
-    return el.radius >= 12 && el.radius <= 24
+    return el.radius >= 8 && el.radius <= 24
   }
   if (req.prop === "contrast") {
     const ratio = paintedContrast(project, req.element)
@@ -611,10 +625,10 @@ function radiusFault(project, elementId) {
   const background = project.elements.background.radius
   if (reached === "best") return "Industry radius."
   if (reached === "acceptable") return "The parts share a radius. Background is 4 larger."
-  if (radius > 24) return "Too round. Drag this corner back between 12 and 24."
+  if (radius > 24) return "Too round. Drag this corner back between 8 and 24."
   if (radius === 0) return "Square. Drag this corner inward."
   if (elementId !== "background" && radius > background) return "Rounder than the Background. Raise that corner first."
-  if (radius < 12) return "Too sharp. Drag this corner inward."
+  if (radius < 8) return "Too sharp. Drag this corner inward."
   if (reached === "bare") return "In range. Title, both cards, and Save still need the same radius."
   return "Title, both cards, and Save need the same radius. Background is 4 larger."
 }
@@ -629,7 +643,7 @@ function radiusNeedsBackground(project) {
 function radiusHint(project, elementId) {
   const target = targetRadius(LANG[project.industry], elementId)
   const reached = radiusGrade(project, elementId)
-  const base = "Target " + target + ". Stops include 8. A loose client also passes 12–24. Selected " + project.elements[elementId].radius + "."
+  const base = "Target " + target + ". Stops include 8. A loose client also passes 8–24. Selected " + project.elements[elementId].radius + "."
   if (reached === "best" || reached === "acceptable") return base
   return base + " " + radiusFault(project, elementId)
 }
@@ -649,7 +663,7 @@ function radiusGrade(project, elementId) {
   // Exact target is Best practice on this element. Editorial's 0 is that number, so it is not Wrong.
   if (radius === industry) return "best"
   if (elementId !== "background" && radius > B) return "wrong"
-  if (radius < 12 || radius > 24) return "wrong"
+  if (radius < 8 || radius > 24) return "wrong"
   return "bare"
 }
 function grade(project, elementId, prop) {
@@ -695,6 +709,12 @@ function holdsShip(project, req) {
   if (req.group === "type" || req.group === "flow") return !passes(project, req)
   return false
 }
+function contrastHoldText(project, elementId) {
+  const id = elementId === "background" ? "title" : elementId
+  const ratio = paintedContrast(project, id)
+  const shown = (Math.round(ratio * 10) / 10).toFixed(1)
+  return (NAMES[elementId] || "Text") + " contrast " + shown + ", under 3"
+}
 function blockingReqs(project) {
   const rows = []
   const seen = new Set()
@@ -702,6 +722,10 @@ function blockingReqs(project) {
     const key = (req.focus || req.element) + ":" + req.prop
     if (seen.has(key)) return
     seen.add(key)
+    if (req.prop === "contrast") {
+      rows.push(Object.assign({}, req, { base: contrastHoldText(project, req.element) }))
+      return
+    }
     rows.push(req)
   }
   project.reqs.forEach((req) => {
@@ -716,7 +740,7 @@ function blockingReqs(project) {
       prop: "contrast",
       group: "contrast",
       title: NAMES[id],
-      base: "Contrast under 3",
+      base: contrastHoldText(project, id),
       named: false
     })
   })
@@ -729,7 +753,6 @@ function holdingLine(project) {
 function feeFor(project) {
   if (holdingLine(project)) return null
   const full = shipPay(project)
-  const shortFee = autoPay()
   const uxMet = typeFlowMet(project)
   if (project.standard === "loose") {
     const namedOk = project.reqs.every((req) => !isVisualReq(req) || !req.named || meetsBar(grade(project, req.element, req.prop), "bare"))
@@ -737,7 +760,11 @@ function feeFor(project) {
     return null
   }
   if (screenGrade(project) === "best" && uxMet) return full
-  return shortFee
+  return shortPay(project)
+}
+function shortPay(project) {
+  if (project && project.size === "big" && !stage3Active()) return bigShortFee
+  return autoPay()
 }
 function using(project, elements, fn) {
   const previous = project.elements
@@ -787,9 +814,15 @@ function reasonProp(req) {
   if (req.prop === "colour" || req.prop === "radius" || req.prop === "contrast") return req.prop
   return "part"
 }
-function problemReason(problem) {
+function problemReason(project, problem) {
   const part = NAMES[problem.req.element] || problem.req.title || "Part"
-  return problem.screen.name + " · " + part + " " + reasonProp(problem.req)
+  const screen = problem.screen.name
+  if (problem.req.prop === "contrast") return screen + " · " + (problem.req.base || contrastHoldText(project, problem.req.element))
+  if (problem.req.prop === "radius") {
+    const target = targetRadius(LANG[project.industry], problem.req.element)
+    return screen + " · " + part + " radius, target " + target
+  }
+  return screen + " · " + part + " " + reasonProp(problem.req)
 }
 function clientById(clientId) {
   if (clientId == null) return null
@@ -797,17 +830,24 @@ function clientById(clientId) {
 }
 // The only Ship gate. Button, To Ship, and the fee all read this.
 export function shipCheck(clientId) {
+  if (state.break) {
+    return { held: true, reason: "The month is paused", fee: null, label: "Ship held · The month is paused", problems: [] }
+  }
   const project = clientById(clientId)
-  if (!project) return { held: false, reason: "", fee: null, label: "Ship", problems: [] }
+  if (!project) {
+    const reason = state.queue.length ? "Select a client" : "No client to ship"
+    return { held: true, reason, fee: null, label: "Ship held · " + reason, problems: [] }
+  }
   const problems = shipProblems(project)
-  const fee = problems.length ? null : projectFee(project)
-  const held = problems.length > 0 || fee == null
+  let fee = problems.length ? null : projectFee(project)
+  let held = problems.length > 0 || fee == null
   let reason = ""
-  if (problems.length) reason = problemReason(problems[0])
+  if (problems.length) reason = problemReason(project, problems[0])
   else if (fee == null) {
     const screen = blockingScreen(project)
     reason = (screen ? screen.name : "Screen") + " · still needs work"
   }
+  if (held && !reason) reason = "Still needs work"
   const label = held ? "Ship held · " + reason : "Ship · $" + fee
   return { held, reason, fee, label, problems }
 }
@@ -819,14 +859,8 @@ function shipButtonLabel(project) {
 // for the button, the To Ship list, and the fee. Until then the attributes
 // follow the same label the button already shows.
 export function shipControl(project) {
-  const label = shipButtonLabel(project)
-  const held = typeof label === "string" && label.indexOf("held") !== -1
-  let reason = ""
-  if (held) {
-    reason = label.replace(/^Ship held\s*·?\s*/, "").trim()
-    if (!reason) reason = "Still needs work"
-  }
-  return { held: held ? "true" : "false", reason }
+  const check = shipCheck(project ? project.id : null)
+  return { held: check.held ? "true" : "false", reason: check.reason || "" }
 }
 export function listStamp(project) {
   if (!project) return ""
@@ -1532,16 +1566,20 @@ export function startClient(project) {
   state.status = project.client + " started. " + timeLabel(project.onTimeLeft) + " on the clock."
   commit()
 }
-function completeShip(project, method, staff) {
-  const pay = projectFee(project)
-  if (pay == null) return
+function wouldBeHandsFree(project) {
+  if (!project || project.playerEdited) return false
   const named = project.reqs.filter((req) => req.named)
-  const pressedFree = !project.playerEdited && named.length > 0 && named.every((req) => {
+  if (!named.length) return false
+  return named.every((req) => {
     if (!isCovered(project, req)) return false
     if (isVisualReq(req)) return meetsBar(grade(project, req.element, req.prop), clientBar(project))
     return (req.group === "type" || req.group === "flow") && passes(project, req)
   })
-  const handsFree = method === "auto" || pressedFree
+}
+function completeShip(project, method, staff) {
+  const pay = projectFee(project)
+  if (pay == null) return
+  const handsFree = method === "auto" || wouldBeHandsFree(project)
   const firstFree = handsFree && !state.handsFreeEver
   credit(pay)
   state.lastIndustry = project.industry
@@ -1636,42 +1674,23 @@ function settlePayroll() {
     active.reduce((sum, line) => sum + line.amount, 0)
   )
   const left = []
-  const dismiss = (role) => {
-    for (let i = active.length - 1; i >= 0; i--) {
-      if (active[i].staff.role !== role) continue
-      const gone = active.splice(i, 1)[0]
-      const index = state.staff.findIndex((staff) => staff.id === gone.staff.id)
-      if (index >= 0) {
-        const removed = state.staff.splice(index, 1)[0]
-        releaseStaff(removed)
-      }
-      if (gone.amount > 0) left.push({ name: gone.name, amount: gone.amount })
-      return true
-    }
-    return false
-  }
-  // $1 or less is Late: nobody leaves. Cut one Intern only when the gap is
-  // larger and that Intern's pay covers it. Do not fire a Permanent for $1.
-  // The last person stays, so payroll cannot end at $0 with nobody.
+  // Cut one Intern only when their pay covers the whole gap and the gap is
+  // above one week of intern pay. Never fire a Permanent for a shortfall.
+  // The last person stays. Anything left is Late, with a recovery line,
+  // so the month cannot end at $0 with nobody and no guidance.
   let guard = active.length + 2
-  while (guard-- > 0 && active.length && owed() - state.money > 0.001) {
+  while (guard-- > 0 && active.length > 1) {
     const shortfall = roundMoney(owed() - state.money)
-    if (shortfall <= trivialShortfall) break
+    if (shortfall <= lateCapAmount() + 0.001) break
     const covering = active
       .filter((item) => item.staff.role === "intern" && item.amount + 0.001 >= shortfall)
       .sort((a, b) => a.amount - b.amount)[0]
-    if (covering) {
-      if (active.length === 1) break
-      const at = active.indexOf(covering)
-      active.splice(at, 1)
-      const staffIndex = state.staff.findIndex((staff) => staff.id === covering.staff.id)
-      if (staffIndex >= 0) releaseStaff(state.staff.splice(staffIndex, 1)[0])
-      if (covering.amount > 0) left.push({ name: covering.name, amount: covering.amount })
-      continue
-    }
-    if (active.length === 1) break
-    if (!active.some((item) => item.staff.role === "permanent")) break
-    if (!dismiss("permanent")) break
+    if (!covering) break
+    const at = active.indexOf(covering)
+    active.splice(at, 1)
+    const staffIndex = state.staff.findIndex((staff) => staff.id === covering.staff.id)
+    if (staffIndex >= 0) releaseStaff(state.staff.splice(staffIndex, 1)[0])
+    if (covering.amount > 0) left.push({ name: covering.name, amount: covering.amount })
   }
   const kept = active.map((item) => ({ name: item.name, amount: item.amount }))
   const paidLines = combineLines(departed.concat(kept))
@@ -2382,9 +2401,15 @@ function restore() {
     const data = JSON.parse(raw)
     const accepted = acceptSave(data)
     if (!accepted.ok) {
-      state.saveNote = accepted.reason === "version"
-        ? "A saved game from another version was not loaded."
-        : "A saved game could not be read and was not loaded."
+      if (accepted.reason === "version") {
+        try {
+          if (typeof sessionStorage !== "undefined") sessionStorage.setItem("sell-the-system-discarded", raw)
+          localStorage.removeItem(SAVE_KEY)
+        } catch (error) {
+          void error
+        }
+        state.saveNote = "Old save from an earlier version was discarded."
+      } else state.saveNote = "A saved game could not be read and was not loaded."
       return false
     }
     Object.assign(state, data.state)
@@ -2461,7 +2486,7 @@ function hiddenWrongs(project, held) {
         prop,
         group: prop,
         title: NAMES[id],
-        base: prop === "radius" ? radiusHint(project, id) : prop === "contrast" ? "Contrast under 3" : "Hot colour",
+        base: prop === "radius" ? radiusHint(project, id) : prop === "contrast" ? contrastHoldText(project, id) : "Hot colour",
         named: false
       })
     })
@@ -2548,7 +2573,7 @@ export function bigClientOffer() {
     client: state.event.client,
     projectId: state.event.projectId,
     payout,
-    short: autoPay(),
+    short: shortPay(project && project.size === "big" ? project : { size: "big" }),
     decline: declineFee
   }
 }

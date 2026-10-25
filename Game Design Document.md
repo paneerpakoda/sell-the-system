@@ -76,12 +76,12 @@ The Screen's grade is the lowest of colour, radius, and contrast.
 | --- | --- | --- | --- |
 | Best practice | That element's Industry colour | Title, both cards, and Save at the Industry radius. Background is 4 larger | Painted text at 7 to 1 or higher |
 | Acceptable | A calm swatch is Bare minimum. Colour has no Acceptable step | The four components match, and the Background is 4 larger, at some other radius | Painted text at 4.5 to 1, under 7 to 1 |
-| Bare minimum | Any calm swatch. Calm is Paper, White, Ink, Sand, and Stone | That element's radius is 12–24 | Painted text at 3 to 1, under 4.5 to 1 |
-| Wrong | Hot or Lime | A component rounder than the Background, or a radius outside 12–24 that is not the Industry pair | Painted text under 3 to 1 |
+| Bare minimum | Any calm swatch. Calm is Paper, White, Ink, Sand, and Stone | That element's radius is 8–24 | Painted text at 3 to 1, under 4.5 to 1 |
+| Wrong | Hot or Lime | A component rounder than the Background, or a radius outside 8–24 that is not the Industry pair | Painted text under 3 to 1 |
 
 Contrast compares the painted text with the colour behind it. Title is compared with the Background. Each card's label is compared with that card. Save's label is compared with Save. Card colour against the Background is not a contrast grade.
 
-A Loose client pays the full fee when every named line is Bare minimum or better. A Wrong named line holds Ship. An Exacting client pays the full fee only when the whole Screen is Best practice, including a line the brief left unnamed, and any Wrong line holds Ship. Acceptable or Bare minimum pays the clean auto-ship fee: $6, or $10 once Stage 3 is active. That short fee is the same for a big client. Editorial radius 0 inside 4 is Best practice and pays the full fee for an Exacting client, even though 0 and 4 sit outside 12–24.
+A Loose client pays the full fee when every named line is Bare minimum or better. A Wrong named line holds Ship. An Exacting client pays the full fee only when the whole Screen is Best practice, including a line the brief left unnamed, and any Wrong line holds Ship. Acceptable or Bare minimum pays the clean auto-ship fee: $6, or $10 once Stage 3 is active. A big client pays that same short fee in Stage 3. Before Stage 3 a short big-client ship pays $3, which is less than the $6 for turning it down. Editorial radius 0 inside 4 is Best practice and pays the full fee for an Exacting client, even though 0 and 4 sit outside 8–24.
 
 On time is 300 seconds for the first Project and until an Intern is hired, 180 seconds after a hire with no Permanent, and 120 seconds while a Permanent is employed. That clock is its own. It is not the month, and it is not the gap before the next arrival. Both clocks keep running while the Wiki is open. The queue shows the seconds while they remain. When they run out, the Sound reward closes and the Project stays. A later ship still pays by the fee rule. For a Sound client, an on-time Fit sets the miss rate to 20% for the Intern who attempted that Project. If no Intern has been hired, the next hire starts at 20%. That rate is kept. Later hires do not roll again. A Sour client does not change a miss rate. An on-time Fit does not raise the fee, and it does not speed the queue.
 
@@ -104,7 +104,7 @@ Fire is immediate, for an Intern or a Permanent. Future pay stops. The month sti
 
 Promote that Intern after 3 of their own clean ships. Promote has no fee. They become a Permanent: $30 a month, that same attempt clock, and a 0% miss on any property the design system, a codified language, or the design process covers. The miss rate on their card still applies to an uncovered property that is judged.
 
-If the balance cannot cover payroll, an Intern is cut only when that Intern's pay covers a gap above $1. A gap of $1 or less is Late. It is shown before the month ends, and it comes out of the next fee. The last person stays. The balance does not go below $0.
+If the balance cannot cover payroll, an Intern is cut only when that Intern's pay covers the whole gap and the gap is above $2.50, one week of Intern pay. The Permanent is not fired for a shortfall. A gap up to $2.50 is Late. A larger gap that an Intern cannot cover stays Late too. The warning is on screen before the month ends. Ship the next screen. That fee pays the debt. The last person stays. The balance does not go below $0. The month-end note lists amounts that add up to the figure it names.
 ### Design system
 
 Three tokens, $12 each. They unlock once an Intern has been hired and accepted ships are at least 3. The hire stays counted if that Intern later leaves.
@@ -121,7 +121,7 @@ Those defaults satisfy a vague small-client UI ask. An Intern and a Permanent ca
 
 Shipping a big client in an Industry unlocks Codify Language for that Industry, for $15. Later Projects in that Industry arrive with the language applied, in place of the token pre-fill for colour, corner radius, and contrast. The language covers that Industry's colour, corner radius, and contrast.
 
-A codified language also satisfies a vague small-client check in that Industry. Component radius 0 or 4, and Background radius 4 or 8, still pass a vague 12–24 ask once that language is on the Project.
+A codified language also satisfies a vague small-client check in that Industry. Component radius 0 or 4, and Background radius 4 or 8, still pass a vague 8–24 ask once that language is on the Project.
 
 A big client names every element. An Exacting one pays the big fee only for Best practice. A Loose one pays the big fee when every named line is Bare minimum or better.
 

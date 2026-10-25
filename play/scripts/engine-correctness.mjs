@@ -201,17 +201,21 @@ await check("bought process steps apply to projects already queued", async () =>
 })
 
 await check("a big screen that is not best practice pays the short fee", async () => {
-  const { state, nameStudio, spawn, feeFor } = await load()
+  const { state, nameStudio, spawn, feeFor, bigClientOffer } = await load()
   nameStudio("Fee")
   const project = spawn("start")
   paintLoose(project)
   project.size = "big"
   project.standard = "exacting"
-  // Rebalance: auto-ship is $6, or $10 in Stage 3. Was $3 and $6.
-  assert.equal(feeFor(project), 6)
+  state.event = { projectId: project.id, client: project.client }
+  // Before Stage 3 a short big-client ship pays $3, less than turning it down for $6.
+  assert.equal(feeFor(project), 3)
+  assert.equal(bigClientOffer().short, 3)
+  assert.equal(bigClientOffer().decline, 6)
   state.staff = [permanent(1, "Ada")]
   state.codified.editorial = true
   assert.equal(feeFor(project), 10)
+  assert.equal(bigClientOffer().short, 10)
 })
 
 function close(actual, expected, label) {
@@ -644,6 +648,7 @@ await check("an intern is cut only when their pay covers the gap", async () => {
   tiny.state.monthLeft = 0.2
   tiny.advance(1)
   assert.equal(tiny.state.staff.some((staff) => staff.role === "intern"), true, "intern pay does not cover the gap")
+  assert.equal(tiny.state.staff.some((staff) => staff.role === "permanent"), true, "permanent stays when the intern cannot cover")
 })
 
 await check("the big client card shows the ship payout", async () => {
@@ -766,20 +771,33 @@ await check("saveVersion 5 rejects an older save and says so", async () => {
   const store = new Map()
   const previousStorage = globalThis.localStorage
   const previousFrame = globalThis.requestAnimationFrame
+  const sessions = new Map()
+  const previousSession = globalThis.sessionStorage
   globalThis.localStorage = {
     getItem: (key) => (store.has(key) ? store.get(key) : null),
-    setItem: (key, value) => store.set(key, value)
+    setItem: (key, value) => store.set(key, value),
+    removeItem: (key) => store.delete(key)
+  }
+  globalThis.sessionStorage = {
+    getItem: (key) => (sessions.has(key) ? sessions.get(key) : null),
+    setItem: (key, value) => sessions.set(key, value),
+    removeItem: (key) => sessions.delete(key)
   }
   globalThis.requestAnimationFrame = () => 0
   try {
-    store.set("sell-the-system-v4", JSON.stringify({ saveVersion: 4, state: { studioName: "Old" }, ledger: [] }))
+    const raw = JSON.stringify({ saveVersion: 4, state: { studioName: "Old" }, ledger: [] })
+    store.set("sell-the-system-v4", raw)
     engine.start()
     assert.equal(engine.state.studioName, "")
-    assert.match(engine.state.saveNote, /another version/)
-    assert.match(engine.state.status, /another version/)
+    assert.equal(engine.state.saveNote, "Old save from an earlier version was discarded.")
+    assert.match(engine.state.status, /Old save from an earlier version was discarded/)
+    assert.equal(sessions.get("sell-the-system-discarded"), raw)
+    assert.equal(store.has("sell-the-system-v4"), false)
   } finally {
     if (previousStorage === undefined) delete globalThis.localStorage
     else globalThis.localStorage = previousStorage
+    if (previousSession === undefined) delete globalThis.sessionStorage
+    else globalThis.sessionStorage = previousSession
     if (previousFrame === undefined) delete globalThis.requestAnimationFrame
     else globalThis.requestAnimationFrame = previousFrame
   }
@@ -789,6 +807,185 @@ await check("the Ship control exposes held and reason attributes", async () => {
   const hud = fs.readFileSync(path.join(path.dirname(engineFile), "components/Hud.jsx"), "utf8")
   assert.match(hud, /data-ship-held=/)
   assert.match(hud, /data-ship-reason=/)
+})
+
+function mulberry32(seed) {
+  let state = seed >>> 0
+  return function random() {
+    state = (state + 0x6D2B79F5) | 0
+    let t = Math.imul(state ^ (state >>> 15), 1 | state)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+await check("brief-only fixes enable Ship on clients 1 to 3", async () => {
+  const api = await load()
+  api.nameStudio("Defaults")
+  const random = Math.random
+  try {
+    for (let seed = 0; seed < 200; seed++) {
+      Math.random = mulberry32(seed)
+      api.state.projectSeq = 0
+      api.state.queue = []
+      api.state.openId = null
+      api.state.accepted = 0
+      for (let n = 1; n <= 3; n++) {
+        const project = api.spawn("start")
+        const lang = api.LANG[project.industry]
+        for (const screen of project.screens) {
+          for (const req of project.reqs) {
+            if (!req.named || req.prop !== "colour") continue
+            screen.elements[req.element].colour = lang.colour[req.element]
+          }
+        }
+        const check = api.shipCheck(project.id)
+        assert.equal(check.held, false, "seed " + seed + " client " + n + " " + check.label)
+      }
+    }
+  } finally {
+    Math.random = random
+  }
+  const project = api.state.queue[0]
+  for (const screen of project.screens) screen.elements.cardA.ink = screen.elements.cardA.colour
+  const bad = api.shipCheck(project.id)
+  assert.equal(bad.held, true)
+  assert.match(bad.reason, /Card A contrast \d/)
+  assert.match(bad.reason, /under 3/)
+  assert.doesNotMatch(bad.reason, /^Contrast under 3$/)
+})
+
+await check("stop 8 is inside bare minimum and a miss names the target", async () => {
+  const api = await load()
+  api.nameStudio("Band")
+  const random = Math.random
+  let named = 0
+  try {
+    for (let seed = 0; seed < 50; seed++) {
+      Math.random = mulberry32(seed + 20)
+      api.state.projectSeq = 3
+      api.state.queue = []
+      api.state.openId = null
+      const project = api.spawn("start")
+      assert.equal(project.id, 4)
+      const lang = api.LANG[project.industry]
+      for (const screen of project.screens) {
+        for (const id of Object.keys(lang.colour)) {
+          screen.elements[id].colour = lang.colour[id]
+          if (id === "title") screen.elements[id].ink = "ink"
+          else if (id !== "background") screen.elements[id].ink = lang.colour[id] === "ink" ? "paper" : "ink"
+        }
+        screen.elements.background.radius = 24
+        for (const id of ["title", "cardA", "cardB", "save"]) screen.elements[id].radius = 8
+      }
+      for (const id of ["title", "cardA", "cardB", "save"]) {
+        assert.notEqual(api.grade(project, id, "radius"), "wrong", "seed " + seed + " " + id)
+      }
+      const req = project.reqs.find((item) => item.prop === "radius")
+      if (!req) continue
+      for (const screen of project.screens) screen.elements[req.element].radius = 0
+      if (api.grade(project, req.element, "radius") !== "wrong") continue
+      api.startClient(project)
+      const check = api.shipCheck(project.id)
+      assert.equal(check.held, true)
+      assert.match(check.reason, /target \d+/)
+      named += 1
+    }
+  } finally {
+    Math.random = random
+  }
+  assert.ok(named > 0, "expected some client 4 radius holds")
+})
+
+await check("a $1.01 shortfall with a late intern keeps the permanent", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("Penny")
+  state.staff = [
+    { id: 1, name: "Ada", role: "intern", pay: 10, miss: 0.2, clean: 0, projectId: null, screenId: null, workLeft: 0, startedAt: 230.4 },
+    { id: 2, name: "Ben", role: "permanent", pay: 30, miss: 0.2, clean: 3, projectId: null, screenId: null, workLeft: 0, startedAt: 0 }
+  ]
+  state.money = 29.39
+  state.monthLeft = 30
+  nameStudio("Penny")
+  assert.match(state.payroll.lateNote, /Ship the next screen/)
+  state.monthLeft = 0.2
+  advance(1)
+  assert.equal(state.staff.length, 2)
+  assert.equal(state.staff.some((staff) => staff.role === "permanent"), true)
+  close(state.debt, 1.01)
+  assert.match(state.break.note, /Owed \$30\.40: Ada \(\$0\.40\), Ben \(\$30\)/)
+  assert.match(state.break.note, /Paid \$29\.39/)
+  assert.doesNotMatch(state.break.note, /Paid \$29\.39:/)
+  assert.match(state.break.note, /Ship the next screen/)
+})
+
+await check("a $15 shortfall does not fire the permanent", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("Fifteen")
+  state.staff = [intern(1, "Ada"), permanent(2, "Ben")]
+  state.nextStaffId = 3
+  state.money = 25
+  state.monthLeft = 0.2
+  advance(1)
+  assert.equal(state.staff.length, 2)
+  assert.equal(state.staff.some((staff) => staff.role === "permanent"), true)
+  assert.match(state.break.note, /Owed \$40: Ada \(\$10\), Ben \(\$30\)\. Paid \$25/)
+  assert.match(state.break.note, /Ship the next screen/)
+  assert.notEqual(state.money === 0 && state.staff.length === 0, true)
+})
+
+await check("shipping the next screen pays a Late debt", async () => {
+  const api = await load()
+  api.nameStudio("Recover")
+  api.state.staff = [intern(1, "Ada"), permanent(2, "Ben")]
+  api.state.nextStaffId = 3
+  api.state.money = 25
+  api.state.monthLeft = 0.2
+  api.advance(1)
+  assert.ok(api.state.debt >= 15)
+  api.continueMonth()
+  api.state.queue = []
+  api.state.projectSeq = 0
+  const project = api.spawn("start")
+  paintLoose(project)
+  api.startClient(project)
+  const before = api.state.debt
+  api.handShip()
+  assert.ok(api.state.debt < before, "debt " + api.state.debt + " from " + before)
+})
+
+await check("an enabled Ship press does not spend a hands-off month", async () => {
+  const api = await load()
+  api.nameStudio("Trap")
+  const project = api.spawn("start")
+  api.startClient(project)
+  paintLoose(project)
+  project.playerEdited = true
+  api.state.month.qualified = true
+  api.state.month.handTouch = false
+  api.state.month.handTouches = 0
+  const check = api.shipCheck(project.id)
+  assert.equal(check.held, false, check.label)
+  assert.equal(typeof check.fee, "number")
+  api.handShip()
+  assert.equal(api.state.month.handTouches || 0, 0)
+  assert.equal(api.state.month.handTouch, false)
+})
+
+await check("a disabled Ship names a reason when no client is open", async () => {
+  const api = await load()
+  api.nameStudio("NoOpen")
+  const project = api.spawn("start")
+  api.state.openId = null
+  const check = api.shipCheck(null)
+  assert.equal(check.held, true)
+  assert.match(check.label, /^Ship held · /)
+  assert.ok(check.reason.length > 0)
+  assert.notEqual(check.label, "Ship")
+  api.state.openId = project.id
+  const named = api.shipCheck(project.id)
+  assert.match(named.label, /^Ship held · /)
+  assert.ok(named.reason.length > 0)
 })
 
 if (failures.length) {

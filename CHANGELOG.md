@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-25 — round 6 batch 1
+
+Blank text uses Ink on Hot and Lime fills, so contrast is at least 3 before the player touches a screen. Fixing only the brief's colour lines can ship clients 1 to 3. A contrast hold names the part and the ratio, for example "Card A contrast 1.0, under 3".
+
+Payroll cuts an intern only when that intern's pay covers the whole gap and the gap is above $2.50, one week of intern pay. The permanent is not fired for a shortfall. A gap up to $2.50 is Late and keeps everyone. A larger gap that an intern cannot cover stays Late too, with a warning before the month ends and a line that says to ship the next screen. The paid line lists amounts that add up to the paid total.
+
+A disabled Ship names the reason. There is no bare "Ship" label. A short ship of a big client pays $3 before Stage 3, less than the $6 for turning it down. Stage 3 stays $10. A Ship press still does not count as a hand touch. Counting one on a screen you had changed dropped a generalist win, so that press stays free. Rex's lit-Ship harness is not on this machine.
+
+Bare minimum radius is 8–24, so stop 8 is not Wrong. The hold names the target. Stop 8 stays on the slider.
+
+An older save shows "Old save from an earlier version was discarded." The old save is kept under `sell-the-system-discarded` for that browser session.
+
+Simpler choices: the big-client short ship pays $3 before Stage 3, rather than a new hold. The permanent is never fired for a shortfall. The Late cap is $2.50, and a larger gap stays on the books with a recovery line.
+
 ## 2026-10-25 — round 5 prototype
 
 Ship, the To Ship list, and the fee read `shipCheck` for the open client. The Ship button sets `data-ship-held` and `data-ship-reason`. A held Ship press, selecting a client, opening it, and Start do not count as hand touches. A value that does not change does not count either.

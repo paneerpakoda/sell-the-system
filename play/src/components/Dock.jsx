@@ -158,7 +158,7 @@ export function Dock() {
           <h2>To Ship</h2>
           <span>{parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") : heldShip ? "Held" : "Clear"}</span>
         </header>
-        {project && !parts.length && <p className="ready">{heldShip ? check.label : "Clear"}</p>}
+        {project && !parts.length && <p className="ready">{check && check.reason ? check.label : "Clear"}</p>}
         {parts.length > 0 && (
           <ul className="more-list">
             {parts.map((group, index) => {
