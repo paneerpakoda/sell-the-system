@@ -744,6 +744,9 @@ button.node:disabled { opacity: 0.45; }
 .figma-frame.on .frame-body { box-shadow: 0 0 0 2px var(--blue); }
 .screen.on, .part.on { outline: 2px solid var(--blue); outline-offset: 2px; }
 .part { font: inherit; cursor: pointer; border: 0; }
+.frame-body .part { position: relative; z-index: 1; }
+.frame-body .part.save { z-index: 2; }
+.frame-body .part.low-contrast { z-index: 3; box-shadow: inset 0 0 0 2px #1c1917; }
 .title {
   align-self: stretch;
   background: transparent;

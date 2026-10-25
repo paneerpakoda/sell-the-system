@@ -10,13 +10,12 @@ import {
   hire,
   openParts,
   openProject,
-  openScreen,
-  radiusNeedsBackground,
+  selectPart,
+  shipCheck,
   promote,
   projectWatch,
   queueState,
   radiusHint,
-  shipButtonLabel,
   shownGrade,
   stageProgress,
   staffTask,
@@ -24,7 +23,6 @@ import {
   effectiveMiss,
   systemOwned,
   resetView,
-  playerJob,
   stage,
   startClient,
   state,
@@ -37,6 +35,14 @@ const GROUPS = [
   ["radius", "Radius"],
   ["contrast", "Contrast"]
 ]
+
+function propertyName(req) {
+  if (req.prop === "copy") return "Copy"
+  if (req.prop === "hierarchy") return "Hierarchy"
+  if (req.prop === "flow") return "Flow"
+  const name = req.prop || ""
+  return name ? name.charAt(0).toUpperCase() + name.slice(1) : "Part"
+}
 
 function wordOf(project, req) {
   if (req.group === "flow" || req.group === "type") return req.base || "Wrong"
@@ -57,16 +63,12 @@ function tone(word) {
 
 export function Dock() {
   const [gradesOpen, setGradesOpen] = useState(false)
-  const project = playerJob() || state.queue.find((item) => item.id === state.openId) || state.queue[0]
+  const project = state.queue.find((item) => item.id === state.openId) || null
+  const check = project ? shipCheck(project.id) : null
   const parts = openParts(project)
-  const heldShip = !!(project && shipButtonLabel(project).indexOf("held") !== -1)
-  const blocked = project && radiusNeedsBackground(project)
-  const lead = blocked ? { id: "background", open: [{ group: "radius", prop: "radius", element: "background" }] } : parts[0]
-  const rest = parts.filter((group) => !lead || group.id !== lead.id)
-  const leadReq = lead && lead.open[0]
-  const leadWord = leadReq ? wordOf(project, leadReq) : ""
+  const heldShip = !!(check && check.held)
   const guide = guidingFirst()
-  const guideNow = !!(guide && guide.started && !guide.shipLive && !guide.onLead && lead && project && project.id === guide.project.id && lead.id === (guide.lead && guide.lead.id))
+  const guideNow = !!(guide && guide.started && !guide.shipLive && !guide.onLead && parts[0] && project && project.id === guide.project.id && parts[0].id === (guide.lead && guide.lead.id))
 
   return (
     <aside className="dock">
@@ -104,30 +106,26 @@ export function Dock() {
           <h2>To Ship</h2>
           <span>{parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") : heldShip ? "Held" : "Clear"}</span>
         </header>
-        {project && !parts.length && <p className="ready">{heldShip ? shipButtonLabel(project) : "Clear"}</p>}
-        {lead && (
-          <button type="button" className={"now" + (guideNow ? " guide-pulse" : "")} data-tip="This is holding the ship." onClick={() => { if (lead.screenId) openScreen(project, lead.screenId); openProject(project, lead.id) }}>
-            {guideNow && <span className="sr-only">Next click. </span>}
-            <span className="part">{lead.screenName ? lead.screenName + " · " : ""}{NAMES[lead.id]}</span>
-            <span className={"prop " + tone(leadWord)}>{leadReq.group[0].toUpperCase() + leadReq.group.slice(1)} · {leadWord}{leadReq.prop === "radius" ? " · " + radiusHint(project, lead.id) : ""}</span>
-          </button>
+        {project && !parts.length && <p className="ready">{heldShip ? check.label : "Clear"}</p>}
+        {parts.length > 0 && (
+          <ul className="more-list">
+            {parts.map((group, index) => {
+              const req = group.open[0]
+              const name = propertyName(req)
+              const word = wordOf(project, req)
+              const pulse = index === 0 && guideNow
+              return (
+                <li key={(group.screenId || "") + ":" + group.id + ":" + req.prop}>
+                  <button type="button" className={(index === 0 ? "now" : "more") + (pulse ? " guide-pulse" : "")} data-tip="This is holding the ship." onClick={() => selectPart(project, group.screenId, group.id)}>
+                    {pulse && <span className="sr-only">Next click. </span>}
+                    <span className="part">{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
+                    <span className={"prop " + tone(word)}>{name} · {word}{req.prop === "radius" ? " · " + (req.hint || radiusHint(project, group.id)) : ""}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         )}
-          {rest.length > 0 && (
-            <ul className="more-list">
-              {rest.map((group) => {
-                const req = group.open[0]
-                const name = req.group[0].toUpperCase() + req.group.slice(1)
-                return (
-                  <li key={(group.screenId || "") + group.id + name}>
-                    <button type="button" className="more" onClick={() => { if (group.screenId) openScreen(project, group.screenId); openProject(project, group.id) }}>
-                      <span>{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
-                      <span className="count">{name}{group.open.length > 1 ? " +" + (group.open.length - 1) : ""}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
           <button type="button" className="grades-toggle" aria-expanded={gradesOpen} data-tip="Colour, radius, and contrast on this screen." onClick={() => setGradesOpen((open) => !open)}>
             <span className="grades-label">{gradesOpen ? "Hide grades" : "All grades"}</span>
           </button>
@@ -148,7 +146,7 @@ export function Dock() {
                         const target = group === "radius" ? " · " + radiusHint(project, req.element) : ""
                         return (
                           <li key={req.element + group}>
-                            <button type="button" onClick={() => openProject(project, req.focus || req.element)}>
+                            <button type="button" onClick={() => selectPart(project, null, req.focus || req.element)}>
                               <span>{NAMES[req.element]}</span>
                               <span className={tone(word)}>{word}{target}</span>
                             </button>

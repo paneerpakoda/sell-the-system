@@ -28,6 +28,8 @@ function RadiusSlider({ project }) {
   const industry = LANG[project.industry].radius
   const parts = RADIUS_PARTS.map((id) => project.elements[id].radius)
   const uniform = parts.every((radius) => radius === parts[0]) ? parts[0] : null
+  const selectedId = state.selectedEl && project.elements[state.selectedEl] ? state.selectedEl : null
+  const selectedValue = selectedId ? project.elements[selectedId].radius : uniform
   const choose = (event) => {
     const node = track.current
     if (!node) return
@@ -54,9 +56,9 @@ function RadiusSlider({ project }) {
         <button
           key={stop}
           type="button"
-          className={"radius-stop" + (uniform === stop ? " on" : "") + (industry === stop ? " industry" : "")}
+          className={"radius-stop" + (selectedValue === stop ? " on" : "") + (industry === stop ? " industry" : "")}
           aria-label={"Radius " + stop + " on every corner"}
-          aria-pressed={uniform === stop}
+          aria-pressed={selectedValue === stop}
           onClick={() => setRadius(stop)}
           onPointerDown={(event) => { event.stopPropagation(); setRadius(stop) }}
         >
@@ -64,6 +66,7 @@ function RadiusSlider({ project }) {
           <span>{stop}</span>
         </button>
       ))}
+      <span className="fig-sub">Selected {selectedValue}</span>
     </div>
   )
 }
@@ -189,7 +192,8 @@ export function Inspector() {
   const contrastValue = id === "background" ? paintedContrast(project, "title") : paintedContrast(project, id)
   const contrastGrade = id === "background" ? shownGrade(project, "title", "contrast") : contrastWord
   const inkName = el.ink && COLOURS[el.ink] ? el.ink : null
-  const showText = id !== "background" && id !== "title"
+  const showText = id !== "background"
+  const contrastTitle = id === "background" ? "Title contrast" : "Contrast"
   const guide = guideProp(project, id)
 
   const sections = {
@@ -236,7 +240,7 @@ export function Inspector() {
     contrast: (
       <section key="contrast" className="fig-section" data-tip="Comes from the text colour and the fill behind it.">
         <header className="fig-head">
-          <h3>Contrast</h3>
+          <h3>{contrastTitle}</h3>
           <b className={tone(contrastGrade)}>{contrastGrade}</b>
         </header>
         <div className="fig-field read">
