@@ -151,6 +151,38 @@ await check("Ship is disabled when the press would not ship", async () => {
   assert.equal(state.shipFee, null)
 })
 
+await check("bought process steps apply to projects already queued", async () => {
+  const { state, nameStudio, spawn, buyProcess, frameCopy } = await load()
+  nameStudio("Process")
+  state.staff = [permanent(1, "Ada")]
+  state.codified.fintech = true
+  state.money = 80
+  state.nextStaffId = 2
+  const project = spawn("start")
+  assert.equal(project.hasUX, true)
+  assert.equal(project.elements.title.copy, "Stuff")
+  const before = state.money
+  buyProcess("research")
+  buyProcess("wire")
+  buyProcess("test")
+  assert.equal(state.money, before - 72)
+  assert.equal(state.process.research && state.process.wire && state.process.test, true)
+  for (const screen of project.screens) {
+    const previous = project.elements
+    project.elements = screen.elements
+    const wanted = frameCopy(project)
+    assert.equal(screen.elements.title.copy, wanted.title, screen.name + " title")
+    assert.equal(screen.elements.save.copy, wanted.action, screen.name + " save")
+    assert.equal(screen.elements.title.hierarchy, "primary", screen.name)
+    assert.equal(screen.elements.save.hierarchy, "primary", screen.name)
+    assert.equal(screen.elements.cardA.hierarchy, "body", screen.name)
+    assert.equal(screen.elements.cardB.hierarchy, "body", screen.name)
+    project.elements = previous
+  }
+  if (project.flow.demand === "empty") assert.equal(project.flow.emptyFixed, true)
+  else assert.equal(project.flow.errorFixed, true)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")

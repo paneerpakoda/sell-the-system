@@ -1478,10 +1478,29 @@ function buyLanguage(industry) {
   teachProcess()
   commit()
 }
+function applyProcessToProject(project) {
+  if (!project || !project.hasUX) return
+  const screens = project.screens || []
+  if (!screens.length) {
+    applyPrefill(project)
+    return
+  }
+  screens.forEach((screen) => {
+    const apply = () => applyPrefill(project)
+    if (screen.elements === project.elements) apply()
+    else using(project, screen.elements, apply)
+    if (state.process.research && screen.elements !== project.elements) {
+      const specs = productScreens(project)
+      const spec = specs.find((item) => item.name === screen.name) || specs[0]
+      paintCopy(screen.elements, spec, false)
+    }
+  })
+}
 function buyProcess(key) {
   if (!stage3Active() || state.process[key] || state.money < 24) return
   state.money -= 24
   state.process[key] = true
+  state.queue.forEach(applyProcessToProject)
   state.status = PROCESS_INFO[key][0] + " is on."
   commit()
 }
