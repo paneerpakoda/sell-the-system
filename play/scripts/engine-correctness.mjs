@@ -133,13 +133,14 @@ function paintLoose(project) {
 }
 
 await check("Ship is disabled when the press would not ship", async () => {
-  const { state, nameStudio, spawn, advance } = await load()
+  const { state, nameStudio, spawn, advance, startClient } = await load()
   nameStudio("Ship")
   const project = spawn("start")
   advance(0.05)
   assert.equal(state.shipDisabled, true)
   assert.equal(state.canShip, false)
   assert.equal(state.shipFee, null)
+  startClient(project)
   paintLoose(project)
   advance(0.05)
   assert.equal(state.canShip, true)
@@ -300,7 +301,7 @@ await check("the next hire can be flagged unpayable", async () => {
   assert.equal(state.payroll.reason, "")
 })
 
-await check("the strict hand rule is the default and a Ship press blocks the win", async () => {
+await check("the strict hand rule is the default and a value edit blocks the win", async () => {
   const clean = await load()
   assert.equal(clean.WIN_HAND_TOUCH, "strict")
   clean.nameStudio("CleanWin")
@@ -312,12 +313,27 @@ await check("the strict hand rule is the default and a Ship press blocks the win
   assert.equal(clean.state.break.won, true)
   assert.match(clean.state.break.note, /Won the month/)
 
+  const held = await load()
+  held.nameStudio("HeldShip")
+  held.state.money = 100
+  held.state.month.qualified = true
+  held.state.month.bigShipped = true
+  held.handShip()
+  assert.equal(held.state.month.handTouches || 0, 0)
+  held.state.monthLeft = 0.2
+  held.advance(1)
+  assert.equal(held.state.break.won, true)
+
   const touched = await load()
-  touched.nameStudio("ShipTouch")
+  touched.nameStudio("EditTouch")
   touched.state.money = 100
   touched.state.month.qualified = true
   touched.state.month.bigShipped = true
-  touched.handShip()
+  const project = touched.spawn("start")
+  touched.startClient(project)
+  touched.openProject(project, "title")
+  assert.equal(touched.state.month.handTouches || 0, 0)
+  touched.edited((_, item) => { item.colour = "paper" })
   assert.equal(touched.state.month.handTouches, 1)
   assert.equal(touched.state.month.handTouch, true)
   touched.state.monthLeft = 0.2
@@ -349,6 +365,7 @@ await check("specialty mix stays off and does not change arrivals", async () => 
 function calmNamedColours(project, elements) {
   const wanted = new Set(elements)
   for (const screen of project.screens) {
+    for (const id of ["title", "cardA", "cardB", "save"]) screen.elements[id].ink = "ink"
     for (const id of wanted) screen.elements[id].colour = "paper"
   }
 }
@@ -409,6 +426,9 @@ await check("the queue names the screen that still holds the ship", async () => 
   spawn("start")
   const second = spawn("timer")
   startClient(second)
+  for (const screen of second.screens) {
+    for (const id of ["title", "cardA", "cardB", "save"]) screen.elements[id].ink = "ink"
+  }
   const [lead, other] = second.screens
   assert.equal(projectWatch(second).line, "You · " + lead.name + ", You · " + other.name)
   for (const id of ["title", "cardA"]) lead.elements[id].colour = "paper"
@@ -422,6 +442,8 @@ await check("a finished edit enables Ship before the next tick", async () => {
   nameStudio("Offer")
   const first = spawn("start")
   startClient(first)
+  for (const id of ["title", "cardA", "cardB", "save"]) first.elements[id].ink = "ink"
+  for (const id of ["cardA", "cardB", "save", "background"]) first.elements[id].colour = "paper"
   openProject(first, "title")
   assert.equal(state.shipDisabled, true)
   edited((_, item) => { item.colour = "paper" })
@@ -504,7 +526,7 @@ await check("editorial radius 0 is not wrong, and a typed 16 is graded", async (
   project.industry = "editorial"
   project.elements.title.radius = 0
   project.elements.background.radius = 0
-  assert.equal(grade(project, "title", "radius"), "bare")
+  assert.equal(grade(project, "title", "radius"), "best")
   assert.equal(state.tools.radius, false)
   project.elements.title.radius = 16
   project.elements.background.radius = 24
@@ -538,14 +560,15 @@ await check("payroll keeps the permanent when the intern covers the gap", async 
   assert.equal(state.staff[0].role, "permanent")
 })
 
-await check("starting a client records a hand touch", async () => {
-  const { state, nameStudio, spawn, startClient } = await load()
+await check("starting a client does not record a hand touch", async () => {
+  const { state, nameStudio, spawn, startClient, openProject } = await load()
   nameStudio("Touch")
   const project = spawn("start")
-  assert.equal(state.month.handTouches, 0)
+  assert.equal(state.month.handTouches || 0, 0)
   startClient(project)
-  assert.equal(state.month.handTouches, 1)
-  assert.equal(state.month.handTouch, true)
+  openProject(project, "title")
+  assert.equal(state.month.handTouches || 0, 0)
+  assert.equal(state.month.handTouch, false)
 })
 
 await check("a Permanent can take the open unstarted project", async () => {

@@ -4,6 +4,7 @@ import {
   clampRadius,
   contrastMix,
   fade,
+  paintedContrast,
   focused,
   inkHex,
   openProject,
@@ -28,6 +29,11 @@ function flowText(project) {
   if (!flow || flow.showing === "default") return "Default"
   if (flow.showing === "empty") return flow.emptyFixed ? "No notes yet" : "Empty"
   return flow.errorFixed ? "Couldn't save" : "Error"
+}
+
+function lowContrast(art, id) {
+  if (id === "background") return false
+  return paintedContrast({ elements: art }, id) + 1e-6 < 3
 }
 
 function flowClass(project) {
@@ -184,7 +190,7 @@ export function Screen() {
                   <button
                     type="button"
                     ref={(el) => { if (live) nodes.current.title = el }}
-                    className={"part title" + (live && picked.has("title") ? " on" : "")}
+                    className={"part title" + (lowContrast(art, "title") ? " low-contrast" : "") + (live && picked.has("title") ? " on" : "")}
                     style={{
                       color: fade(COLOURS[art.background.colour].hex, inkHex({ elements: art }, "title"), contrastMix(art.title)),
                       borderRadius: art.title.radius,
@@ -199,7 +205,7 @@ export function Screen() {
                       key={id}
                       type="button"
                       ref={(el) => { if (live) nodes.current[id] = el }}
-                      className={"part card" + (live && picked.has(id) ? " on" : "")}
+                      className={"part card" + (lowContrast(art, id) ? " low-contrast" : "") + (live && picked.has(id) ? " on" : "")}
                       style={{ background: COLOURS[art[id].colour].hex, borderRadius: art[id].radius }}
                       onClick={(event) => { event.stopPropagation(); openScreen(project, screen.id); if (mine) select(id) }}
                     >
@@ -211,7 +217,7 @@ export function Screen() {
                   <button
                     type="button"
                     ref={(el) => { if (live) nodes.current.save = el }}
-                    className={"part save" + (live && picked.has("save") ? " on" : "")}
+                    className={"part save" + (lowContrast(art, "save") ? " low-contrast" : "") + (live && picked.has("save") ? " on" : "")}
                     style={{
                       background: COLOURS[art.save.colour].hex,
                       color: fade(COLOURS[art.save.colour].hex, inkHex({ elements: art }, "save"), contrastMix(art.save)),

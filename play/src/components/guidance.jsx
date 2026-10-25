@@ -5,14 +5,13 @@ const {
   openParts,
   payrollDue,
   radiusNeedsBackground,
-  shipButtonLabel,
+  shipCheck,
   state
 } = engine
 
 // hire() writes this pay onto the new intern. Used only when no preview field is exported.
 const SEEN_INTERN_PAY = 10
 
-const SHIP_FIELDS = ["canShip", "shipEnabled", "shipReady", "canHandShip"]
 const HIRE_FIELDS = ["nextHireCost", "nextHirePay", "hireCost", "nextPayroll"]
 
 function readValue(names, project) {
@@ -66,12 +65,8 @@ export function shipClickEnabled(waiting, project) {
     if (state.staff.some((staff) => staff.projectId === project.id)) return false
     return true
   }
-  if (typeof state.shipDisabled === "boolean") return !state.shipDisabled
-  if (typeof state.canShip === "boolean") return state.canShip
-  const exposed = readValue(SHIP_FIELDS, project)
-  if (typeof exposed === "boolean") return exposed
-  if (!project) return false
-  return shipButtonLabel(project) !== "Ship held"
+  if (!project || !project.started) return false
+  return !shipCheck(project.id).held
 }
 
 export function moneyText(value) {

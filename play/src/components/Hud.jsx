@@ -7,9 +7,8 @@ import {
   openProject,
   payrollDue,
   projectWatch,
-  playerJob,
   resetView,
-  shipButtonLabel,
+  shipCheck,
   startClient,
   stage,
   state,
@@ -172,16 +171,15 @@ function ClientWidgets() {
 
 export function Hud() {
   const due = payrollDue()
-  const open = state.queue.find((item) => item.id === state.openId)
-  const waiting = open && !open.started
-  const project = waiting ? open : playerJob() || open || state.queue[0]
-  const live = shipClickEnabled(!!waiting, waiting ? open : project)
-  const offered = waiting ? "Start" : shipButtonLabel(project)
-  const shipLabel = !waiting && !live && offered.indexOf("held") === -1 && offered.indexOf("$") !== -1 ? "Ship held" : offered
-  const held = shipLabel.indexOf("held") !== -1
+  const open = state.queue.find((item) => item.id === state.openId) || null
+  const waiting = !!(open && !open.started)
+  const check = !waiting && open ? shipCheck(open.id) : null
+  const live = shipClickEnabled(waiting, open)
+  const shipLabel = waiting ? "Start" : check ? check.label : "Ship"
+  const held = !!(check && check.held)
   const guide = guidingFirst()
   const guideStart = !!(guide && !guide.started && waiting && open && open.id === guide.project.id)
-  const guideShip = !!(guide && guide.shipLive && !waiting && project && project.id === guide.project.id)
+  const guideShip = !!(guide && guide.shipLive && !waiting && open && open.id === guide.project.id)
   return (
     <>
       <header className="hud">
@@ -216,6 +214,8 @@ export function Hud() {
         className={"ship" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
         disabled={!live}
         aria-disabled={!live}
+        data-ship-held={held ? "true" : "false"}
+        data-ship-reason={held && check ? check.reason : ""}
         data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : held ? shipLabel : "Full fee $6, or $10 in Stage 3. Short fee $3, or $6. A ship does not pay $12."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >

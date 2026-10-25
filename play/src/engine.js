@@ -560,7 +560,10 @@ function radiusNeedsBackground(project) {
 }
 function radiusHint(project, elementId) {
   const target = targetRadius(LANG[project.industry], elementId)
-  return "Target " + target + ". A loose client also passes 12–24."
+  const reached = radiusGrade(project, elementId)
+  const base = "Target " + target + ". Stops include 8. A loose client also passes 12–24. Selected " + project.elements[elementId].radius + "."
+  if (reached === "best" || reached === "acceptable") return base
+  return base + " " + radiusFault(project, elementId)
 }
 function radiusGrade(project, elementId) {
   const lang = LANG[project.industry]
@@ -575,8 +578,8 @@ function radiusGrade(project, elementId) {
   if (shared && B === C + PARAMS.radiusStep) return "acceptable"
   const radius = project.elements[elementId].radius
   const industry = elementId === "background" ? industryB : industryC
-  // The industry number is never Wrong on its own. Editorial's 0 is that number.
-  if (radius === industry) return "bare"
+  // Exact target is Best practice on this element. Editorial's 0 is that number, so it is not Wrong.
+  if (radius === industry) return "best"
   if (elementId !== "background" && radius > B) return "wrong"
   if (radius < 12 || radius > 24) return "wrong"
   return "bare"
@@ -585,7 +588,8 @@ function grade(project, elementId, prop) {
   if (prop === "colour") return colourGrade(project, elementId)
   if (prop === "radius") return radiusGrade(project, elementId)
   if (prop === "contrast") {
-    if (elementId === "background") return "wrong"
+    // Background has no text. Its contrast is the title sitting on it.
+    if (elementId === "background") return grade(project, "title", "contrast")
     return contrastBand(paintedContrast(project, elementId))
   }
   return "wrong"
@@ -623,11 +627,36 @@ function holdsShip(project, req) {
   if (req.group === "type" || req.group === "flow") return !passes(project, req)
   return false
 }
-function holdingLine(project) {
-  for (let i = 0; i < project.reqs.length; i++) {
-    if (holdsShip(project, project.reqs[i])) return project.reqs[i]
+function blockingReqs(project) {
+  const rows = []
+  const seen = new Set()
+  const add = (req) => {
+    const key = (req.focus || req.element) + ":" + req.prop
+    if (seen.has(key)) return
+    seen.add(key)
+    rows.push(req)
   }
-  return null
+  project.reqs.forEach((req) => {
+    if (holdsShip(project, req)) add(req)
+  })
+  // Every text is judged for contrast, including a line the brief left unnamed.
+  ;["title", "cardA", "cardB", "save"].forEach((id) => {
+    if (contrastBand(paintedContrast(project, id)) !== "wrong") return
+    add({
+      element: id,
+      focus: id,
+      prop: "contrast",
+      group: "contrast",
+      title: NAMES[id],
+      base: "Contrast under 3",
+      named: false
+    })
+  })
+  return rows
+}
+function holdingLine(project) {
+  const rows = blockingReqs(project)
+  return rows.length ? rows[0] : null
 }
 function feeFor(project) {
   if (holdingLine(project)) return null
@@ -684,17 +713,39 @@ function firstHold(project) {
   if (!problem) return null
   return { screen: problem.screen, req: problem.req }
 }
+function reasonProp(req) {
+  if (!req) return "part"
+  if (req.prop === "copy" || req.prop === "hierarchy" || req.prop === "flow") return req.prop
+  if (req.prop === "colour" || req.prop === "radius" || req.prop === "contrast") return req.prop
+  return "part"
+}
+function problemReason(problem) {
+  const part = NAMES[problem.req.element] || problem.req.title || "Part"
+  return problem.screen.name + " · " + part + " " + reasonProp(problem.req)
+}
+function clientById(clientId) {
+  if (clientId == null) return null
+  return state.queue.find((project) => project.id === clientId) || null
+}
+// The only Ship gate. Button, To Ship, and the fee all read this.
+export function shipCheck(clientId) {
+  const project = clientById(clientId)
+  if (!project) return { held: false, reason: "", fee: null, label: "Ship", problems: [] }
+  const problems = shipProblems(project)
+  const fee = problems.length ? null : projectFee(project)
+  const held = problems.length > 0 || fee == null
+  let reason = ""
+  if (problems.length) reason = problemReason(problems[0])
+  else if (fee == null) {
+    const screen = blockingScreen(project)
+    reason = (screen ? screen.name : "Screen") + " · still needs work"
+  }
+  const label = held ? "Ship held · " + reason : "Ship · $" + fee
+  return { held, reason, fee, label, problems }
+}
 function shipButtonLabel(project) {
   if (!project) return "Ship"
-  const problem = shipProblems(project)[0]
-  if (problem) {
-    const part = NAMES[problem.req.element] || problem.req.title || "Part"
-    const prop = problem.req.group || problem.req.prop || "part"
-    return "Ship held · " + problem.screen.name + " · " + part + " " + prop
-  }
-  const fee = projectFee(project)
-  if (fee == null) return "Ship held"
-  return "Ship · $" + fee
+  return shipCheck(project.id).label
 }
 function isCovered(project, req) {
   if (req.prop === "copy") return state.process.research
@@ -1368,7 +1419,6 @@ export function startClient(project) {
   }
   if (!project || project.started) return
   if (state.staff.some((staff) => staff.projectId === project.id)) return
-  noteHand()
   project.started = true
   project.claimedBy = "player"
   state.openId = project.id
@@ -1438,23 +1488,15 @@ function handShip() {
     commit()
     return
   }
-  noteHand()
-  const project = state.queue.find((item) => item.claimedBy === "player" && item.id === state.openId) || playerJob() || focused()
-  if (!project) {
-    state.status = "No client to ship."
+  const project = shipTarget()
+  if (!project || !project.started) {
+    state.status = project ? "Start the client first." : "No client to ship."
     commit()
     return
   }
-  state.openId = project.id
-  const held = firstHold(project)
-  if (held) {
-    state.status = "Ship held. " + held.screen.name + " · " + (NAMES[held.req.element] || held.req.element) + " " + held.req.group + " is Wrong."
-    commit()
-    return
-  }
-  if (projectFee(project) == null) {
-    const screen = blockingScreen(project)
-    state.status = "Ship held. " + (screen ? screen.name : "A screen") + " still needs work."
+  const check = shipCheck(project.id)
+  if (check.held || check.fee == null) {
+    state.status = "Ship held. " + (check.reason || "This screen still needs work.")
     commit()
     return
   }
@@ -1520,32 +1562,15 @@ function settlePayroll() {
 function refreshQualified() {
   if (!stage3Active()) state.month.qualified = false
 }
-// How a Ship press counts toward the win.
-//
-// GDD, Win: you never opened or fixed a Project by hand. That list is no
-// select, no element click, no requirement click, no value edit, and no Ship.
-// Game Parameters, Win: you never selected a Project, clicked an element,
-// clicked a requirement, edited a value, or pressed Ship.
-// Those two win paragraphs agree. Pressing Ship counts as a hand touch.
-//
-// Both docs also define hands-free, and that rule is only the big-client cap:
-// a clean auto-ship, or Ship pressed with nothing edited because tokens, a
-// language, or the design process already met every judged requirement.
-// That press does not count as a hand ship for the cap. It is not the win rule.
-//
-// A hand touch is recorded on select, on an element click, on Start, on a
-// value edit, and on Ship. That is the list in both win paragraphs. Taking a
-// screen back and stealing a project from staff record one too.
-//
-// WIN_HAND_TOUCH selects the win rule.
-// "strict" (default): any recorded hand touch blocks the win. A Ship press,
-// a select, an element click, and Start each count. This is what both win
-// paragraphs say.
-// "one": a single hand action in the win month still wins. A second one blocks it.
-//
-// Simulation evidence, not a reason to change the default: allowing one hand
-// action in the win month gives about a 99.5% hands-off win rate. The strict
-// rule gives about 85%.
+// Hand touches count only when a judged value actually changes (edited()).
+// Selecting a client, opening a client, Start, and a Ship press do not count,
+// including a press while Ship is held.
+// Take-back does not count. The win paragraphs list select, element click,
+// requirement click, value edit, and Ship. They do not name take-back.
+// Taking a screen back changes who owns it, not a colour, radius, contrast,
+// copy, hierarchy, or flow value. Track D will update the win paragraphs.
+// WIN_HAND_TOUCH "strict" (default): any real value edit blocks the win.
+// "one": a single value edit in the win month still wins. A second blocks it.
 const WIN_HAND_TOUCH = "strict"
 function noteHand() {
   state.month.handTouches = (state.month.handTouches || 0) + 1
@@ -1715,7 +1740,6 @@ function buyProcess(key) {
   commit()
 }
 function claimProject(project) {
-  const stole = state.staff.some((staff) => staff.projectId === project.id)
   state.staff.forEach((staff) => {
     if (staff.projectId !== project.id) return
     staff.projectId = null
@@ -1731,7 +1755,6 @@ function claimProject(project) {
   project.staffId = null
   project.working = false
   project.flagged = false
-  if (stole) noteHand()
 }
 function watching(project) {
   return !!project && project.claimedBy !== "player" && state.staff.some((staff) => staff.projectId === project.id)
@@ -1754,7 +1777,7 @@ function openProject(project, element) {
   state.openId = project.id
   const screen = activeScreen(project)
   if (watching(project) || (screen && screen.owner && screen.owner !== "player")) {
-    state.selectedEl = null
+    state.selectedEl = element || null
     commit()
     return
   }
@@ -1765,7 +1788,6 @@ function openProject(project, element) {
     project.elements = current.elements
   }
   state.selectedEl = element || null
-  noteHand()
   commit()
 }
 export function setRadius(value, fromBackground) {
@@ -1872,7 +1894,8 @@ export function projectWatch(project) {
   }
   const blocking = screens.filter((screen) => screenBlocks(project, screen))
   if (blocking.length) return { needsYou: false, line: blocking.map((screen) => screenWorker(screen) + " · " + screen.name).join(", ") }
-  if (shipProblems(project).length || projectFee(project) == null) return { needsYou: false, line: "Ship held" }
+  const check = shipCheck(project.id)
+  if (check.held) return { needsYou: false, line: check.label }
   return { needsYou: false, line: "Ready to ship" }
 }
 function elementFailing(project, id) {
@@ -1882,12 +1905,14 @@ function elementFailing(project, id) {
 
 function studioOpen() { return state.handShips >= 1 }
 function shipTarget() {
-  return state.queue.find((item) => item.claimedBy === "player" && item.id === state.openId) || playerJob() || focused()
+  if (!state.openId) return null
+  const open = state.queue.find((item) => item.id === state.openId) || null
+  return open && open.started ? open : null
 }
 function refreshShipOffer() {
   const project = state.break ? null : shipTarget()
-  const held = project && firstHold(project)
-  const fee = held || !project ? null : projectFee(project)
+  const check = project ? shipCheck(project.id) : null
+  const fee = check && !check.held ? check.fee : null
   state.shipDisabled = fee == null
   state.canShip = fee != null
   state.shipFee = fee
@@ -2009,7 +2034,6 @@ export function openScreen(project, screenId) {
   if (!screen) return
   state.openId = project.id
   project.screenId = screen.id
-  noteHand()
   if (screen.owner === "player" || screen.owner == null) {
     screen.owner = "player"
     project.elements = screen.elements
@@ -2038,7 +2062,6 @@ export function takeScreen(project, screenId) {
     screen.touched = true
     project.claimedBy = "player"
     project.playerEdited = true
-    noteHand()
     state.status = "You took " + screen.name + " back."
   }
   project.screenId = screen.id
@@ -2147,7 +2170,7 @@ function hiddenWrongs(project, held) {
   return found
 }
 function explainBlocked(project, screen) {
-  const held = project.reqs.filter((req) => holdsShip(project, req))
+  const held = blockingReqs(project)
   if (project.id <= 3 && held.length) return held
   const rows = held.concat(hiddenWrongs(project, held))
   if (rows.length) return rows
@@ -2170,7 +2193,8 @@ export function shipProblems(project) {
     const word = req.group === "type" || req.group === "flow"
       ? (req.base || "Wrong")
       : reqGradeWord(grade(project, req.element, req.prop))
-    problems.push({ screen, req, word })
+    const hint = req.prop === "radius" ? radiusHint(project, req.element) : ""
+    problems.push({ screen, req, word, hint })
   }
   screens.forEach((screen) => {
     if (!screenBlocks(project, screen)) return
@@ -2181,7 +2205,9 @@ export function shipProblems(project) {
   return problems
 }
 export function shownGrade(project, elementId, prop) {
+  if (prop === "contrast" && elementId === "background") return shownGrade(project, "title", "contrast")
   const reached = grade(project, elementId, prop)
+  if (prop === "contrast" && reached === "wrong") return "Wrong"
   if (reached !== "wrong") return reqGradeWord(reached)
   const judged = (project.reqs || []).some((req) => (req.focus || req.element) === elementId && req.prop === prop)
   if (judged) return "Wrong"
@@ -2288,12 +2314,24 @@ export function sellAgency() {
   commit()
 }
 
+export function selectPart(project, screenId, elementId) {
+  if (!project) return
+  const screen = (project.screens || []).find((item) => item.id === screenId) || activeScreen(project)
+  state.openId = project.id
+  if (screen) {
+    project.screenId = screen.id
+    project.elements = screen.elements
+  }
+  state.selectedEl = elementId || null
+  commit()
+}
 export function openParts(project) {
-  return shipProblems(project).map((problem) => ({
+  if (!project) return []
+  return shipCheck(project.id).problems.map((problem) => ({
     id: problem.req.focus || problem.req.element,
     screenId: problem.screen.id,
     screenName: problem.screen.name,
-    open: [Object.assign({}, problem.req, { word: problem.word })]
+    open: [Object.assign({}, problem.req, { word: problem.word, hint: problem.hint || "" })]
   }))
 }
 
