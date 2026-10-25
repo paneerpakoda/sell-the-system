@@ -108,6 +108,7 @@ const state = {
   selectedEl: null,
   status: "",
   saveNote: "",
+  tabNote: "",
   renderKey: "",
   nextHireFloor: null,
   headOffer: null,
@@ -309,6 +310,7 @@ function moneyText(value) {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2)
 }
 function monthElapsed() {
+  if (state.clocksLive === false) return 0
   return Math.max(0, Math.min(monthLength, monthLength - state.monthLeft))
 }
 function employmentAmount(staff, until) {
@@ -2128,7 +2130,6 @@ function tick(dt) {
     notify()
   }
   if (!worldPaused()) notifyClock()
-  scheduleSave()
 }
 
 export const view = { z: 0.64, x: 0, y: 0, stretch: 0, springing: false }
@@ -2269,7 +2270,10 @@ function notify() {
   listeners.forEach((fn) => fn())
 }
 function notifyClock() {
-  refreshPayrollOffer()
+  if (state.clocksLive !== false) {
+    const next = nextHireAmount(monthElapsed())
+    if (next !== state.nextHireCost) refreshPayrollOffer()
+  }
   clockListeners.forEach((fn) => fn())
 }
 export function subscribe(fn) {
@@ -2350,9 +2354,77 @@ function structuralStamp() {
 
 let started = false
 const SAVE_KEY = "sell-the-system-v4"
+const LOCK_KEY = "sell-the-system-lock"
+const TAB_KEY = "sell-the-system-tab"
+const LOCK_MS = 2500
+let tabId = ""
+let lockTimer = null
+
+function ourTabId() {
+  if (tabId) return tabId
+  if (typeof sessionStorage !== "undefined") {
+    try {
+      tabId = sessionStorage.getItem(TAB_KEY) || ""
+      if (!tabId) {
+        tabId = "tab-" + Date.now()
+        sessionStorage.setItem(TAB_KEY, tabId)
+      }
+      return tabId
+    } catch (error) {
+      void error
+    }
+  }
+  tabId = "tab-" + Date.now()
+  return tabId
+}
+function readLock() {
+  if (typeof localStorage === "undefined") return null
+  try {
+    const raw = localStorage.getItem(LOCK_KEY)
+    if (!raw) return null
+    const data = JSON.parse(raw)
+    if (!data || typeof data.tabId !== "string" || typeof data.at !== "number") return null
+    return data
+  } catch (error) {
+    void error
+    return null
+  }
+}
+function lockIsFresh(lock) {
+  return !!lock && Date.now() - lock.at < LOCK_MS
+}
+function writeLock() {
+  if (typeof localStorage === "undefined") return
+  try {
+    localStorage.setItem(LOCK_KEY, JSON.stringify({ tabId: ourTabId(), at: Date.now() }))
+  } catch (error) {
+    void error
+  }
+}
+function releaseLock() {
+  const lock = readLock()
+  if (!lock || lock.tabId !== ourTabId() || typeof localStorage === "undefined") return
+  try { localStorage.removeItem(LOCK_KEY) } catch (error) { void error }
+}
+function claimTab() {
+  const lock = readLock()
+  if (lock && lock.tabId !== ourTabId() && lockIsFresh(lock)) {
+    state.tabNote = "This game is open in another tab"
+    return false
+  }
+  state.tabNote = ""
+  writeLock()
+  return true
+}
+export function ensureClient() {
+  if (state.tabNote || state.break || state.queue.length) return
+  spawn("start")
+  state.arrivalLeft = interval()
+  commit()
+}
 
 function writeSave() {
-  if (!started || typeof localStorage === "undefined") return
+  if (!started || state.tabNote || !state.studioName || typeof localStorage === "undefined") return
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify({ saveVersion, state, ledger: payrollLedger }))
     lastSaveAt = Date.now()
@@ -2409,11 +2481,17 @@ function restore() {
           void error
         }
         state.saveNote = "Old save from an earlier version was discarded."
+      } else if (accepted.reason === "empty") {
+        try { localStorage.removeItem(SAVE_KEY) } catch (error) { void error }
+        state.saveNote = ""
       } else state.saveNote = "A saved game could not be read and was not loaded."
       return false
     }
     Object.assign(state, data.state)
+    state.money = roundMoney(Math.max(0, Number(state.money) || 0))
+    state.debt = debtOf()
     state.saveNote = ""
+    state.tabNote = ""
     payrollLedger = Array.isArray(data.ledger) ? data.ledger : []
     return true
   } catch (error) {
@@ -2423,8 +2501,18 @@ function restore() {
   }
 }
 export function start() {
-  if (started) return
+  if (started) {
+    notify()
+    return
+  }
   started = true
+  if (!claimTab()) {
+    refreshPayrollOffer()
+    refreshShipOffer()
+    lastStamp = structuralStamp()
+    notify()
+    return
+  }
   const restored = restore()
   if (!restored) {
     spawn("start")
@@ -2442,8 +2530,14 @@ export function start() {
     })
   }
   if (typeof window !== "undefined") {
-    window.addEventListener("pagehide", () => saveNow())
+    window.addEventListener("pagehide", () => {
+      saveNow()
+      releaseLock()
+    })
   }
+  if (lockTimer) clearInterval(lockTimer)
+  lockTimer = setInterval(writeLock, 1000)
+  if (lockTimer && typeof lockTimer.unref === "function") lockTimer.unref()
   let last = performance.now()
   const frame = (now) => {
     const dt = Math.min(0.25, (now - last) / 1000)

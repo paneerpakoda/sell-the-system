@@ -96,7 +96,7 @@ export function ClockCard() {
     (!state.fork && !state.forkClosed && state.everHired && state.accepted >= 3) ||
     (state.fork && !state.forkClosed)
   )
-  const show = !closed && !!state.studioName && state.clocksLive === false && !state.break && state.notices.length === 0 && !decision
+  const show = !closed && !!state.studioName && !state.tabNote && state.queue.length > 0 && state.clocksLive === false && !state.break && state.notices.length === 0 && !decision
   const modal = useModal(show)
   modal.onEscape.current = () => setClosed(true)
   modal.onEnter.current = () => setClosed(true)

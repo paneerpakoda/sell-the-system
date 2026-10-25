@@ -4,7 +4,7 @@ import { dismissNotice, state } from "../engine.js"
 import { useModal } from "./focusTrap.js"
 
 export function Notice() {
-  const note = state.notices[0]
+  const note = state.break ? null : state.notices[0]
   const modal = useModal(!!note)
   modal.onEscape.current = () => dismissNotice()
   modal.onEnter.current = () => dismissNotice()

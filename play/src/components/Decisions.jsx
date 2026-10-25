@@ -31,7 +31,7 @@ export function Decisions() {
     const current = document.activeElement
     if (current && modal.ref.current && modal.ref.current.contains(current) && current.tagName === "BUTTON") current.click()
   }
-  if (!state.studioName || state.break || noticeUp) return null
+  if (state.tabNote || !state.studioName || state.break || noticeUp) return null
   if (eventOpen) {
     return (
       <aside ref={modal.ref} className="decision" role="dialog" aria-modal="true" aria-labelledby="big-client-title">

@@ -219,7 +219,6 @@ export function Dock() {
 
 function People() {
   const [pendingFire, setPendingFire] = useState(null)
-  useClock()
   const { due, next, unpayable, reason, lines } = payrollFacts()
   const locked = state.handShips < 3
   const internOnStaff = state.staff.some((staff) => staff.role === "intern")

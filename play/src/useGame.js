@@ -4,8 +4,9 @@ import { start, subscribe, subscribeClock, subscribeView } from "./engine.js"
 export function useGame() {
   const [, setTick] = useState(0)
   useEffect(() => {
+    const stop = subscribe(() => setTick((n) => n + 1))
     start()
-    return subscribe(() => setTick((n) => n + 1))
+    return stop
   }, [])
 }
 

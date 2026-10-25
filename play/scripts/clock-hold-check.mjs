@@ -54,6 +54,20 @@ try {
   const duringNotice = renderToStaticMarkup(createElement("div", null, createElement(Decisions), createElement(Notice)))
   assert.match(duringNotice, /Base values/)
   assert.doesNotMatch(duringNotice, /Specialist or generalist/)
+  engine.state.notices = [
+    { id: "permanent", title: "Permanent", body: "They start the clients." },
+    { id: "process", title: "Design process", body: "You remember the work." }
+  ]
+  const oneCard = renderToStaticMarkup(createElement(Notice))
+  assert.match(oneCard, /Permanent/)
+  assert.doesNotMatch(oneCard, /Design process/)
+  const { WeekPause } = await vite.ssrLoadModule("/src/components/Hud.jsx")
+  engine.state.break = { note: "Payroll paid.", won: false }
+  engine.state.monthIndex = 2
+  const behind = renderToStaticMarkup(createElement("div", null, createElement(Notice), createElement(WeekPause)))
+  assert.doesNotMatch(behind, /Permanent/)
+  assert.match(behind, /Month/)
+  engine.state.break = null
   engine.state.notices = []
   const afterNotice = renderToStaticMarkup(createElement(Decisions))
   assert.match(afterNotice, /Specialist or generalist/)

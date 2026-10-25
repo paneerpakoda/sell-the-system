@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-25 — round 6 batch 2
+
+A reload paints the restored studio. The screen listens before the game starts, and a second start paints again, so the name gate does not cover a save that loaded. A save with no studio name is a new game and does not say the save failed. A save is not written until the studio has a name, so an unnamed tab cannot wipe a run.
+
+A second tab sees "This game is open in another tab" and does not write the save. An empty queue says "Start your first client". The week and month clocks, and the hire price, stay put until the first Start. A teaching card still pauses only the client clock. One card shows at a time, and a queued note waits until the month-end card closes.
+
+The clock tick no longer refreshes payroll or writes the save. The save stays on events, on a one-second throttle, and when the page hides. Money restored from a save is rounded to cents.
+
 ## 2026-10-25 — round 6 batch 1
 
 Blank text uses Ink on Hot and Lime fills, so contrast is at least 3 before the player touches a screen. Fixing only the brief's colour lines can ship clients 1 to 3. A contrast hold names the part and the ratio, for example "Card A contrast 1.0, under 3".

@@ -972,6 +972,125 @@ await check("an enabled Ship press does not spend a hands-off month", async () =
   assert.equal(api.state.month.handTouch, false)
 })
 
+await check("reload keeps the studio and the next start still paints", async () => {
+  const engine = await load()
+  const store = new Map()
+  const sessions = new Map()
+  globalThis.localStorage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, value),
+    removeItem: (key) => store.delete(key)
+  }
+  globalThis.sessionStorage = {
+    getItem: (key) => (sessions.has(key) ? sessions.get(key) : null),
+    setItem: (key, value) => sessions.set(key, value),
+    removeItem: (key) => sessions.delete(key)
+  }
+  globalThis.requestAnimationFrame = () => 0
+  store.set("sell-the-system-v4", JSON.stringify({
+    saveVersion: 5,
+    state: { studioName: "Kept", money: 0.1 + 0.2, queue: [{ id: 1, client: "Northwind" }] },
+    ledger: []
+  }))
+  let paints = 0
+  const stop = engine.subscribe(() => { paints += 1 })
+  engine.start()
+  assert.equal(engine.state.studioName, "Kept")
+  assert.equal(engine.state.money, 0.3)
+  assert.equal(engine.state.queue[0].client, "Northwind")
+  assert.equal(engine.state.saveNote, "")
+  assert.ok(paints >= 1, "reload painted before a click")
+  stop()
+  let again = 0
+  engine.subscribe(() => { again += 1 })
+  engine.start()
+  assert.equal(again, 1)
+})
+
+await check("a second tab does not replace the save", async () => {
+  const engine = await load()
+  const store = new Map()
+  const saved = JSON.stringify({ saveVersion: 5, state: { studioName: "Kept", money: 24 }, ledger: [] })
+  store.set("sell-the-system-v4", saved)
+  store.set("sell-the-system-lock", JSON.stringify({ tabId: "other", at: Date.now() }))
+  globalThis.localStorage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, value),
+    removeItem: (key) => store.delete(key)
+  }
+  globalThis.sessionStorage = {
+    getItem: (key) => (key === "sell-the-system-tab" ? "me" : null),
+    setItem: () => {},
+    removeItem: () => {}
+  }
+  globalThis.requestAnimationFrame = () => 0
+  engine.start()
+  assert.equal(engine.state.tabNote, "This game is open in another tab")
+  assert.equal(engine.state.studioName, "")
+  assert.equal(store.get("sell-the-system-v4"), saved)
+})
+
+await check("a nameless save is a new game, not an error", async () => {
+  const engine = await load()
+  const store = new Map()
+  store.set("sell-the-system-v4", JSON.stringify({ saveVersion: 5, state: {}, ledger: [] }))
+  globalThis.localStorage = {
+    getItem: (key) => (store.has(key) ? store.get(key) : null),
+    setItem: (key, value) => store.set(key, value),
+    removeItem: (key) => store.delete(key)
+  }
+  globalThis.sessionStorage = {
+    getItem: () => "solo",
+    setItem: () => {},
+    removeItem: () => {}
+  }
+  globalThis.requestAnimationFrame = () => 0
+  engine.start()
+  assert.equal(engine.state.saveNote, "")
+  assert.equal(engine.state.status, "")
+  assert.equal(engine.state.studioName, "")
+  assert.equal(store.has("sell-the-system-v4"), false)
+})
+
+await check("hire price stays put until the first Start", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("HoldHire")
+  state.clocksLive = false
+  state.monthLeft = 240
+  nameStudio("HoldHire")
+  assert.equal(state.nextHireCost, 10)
+  advance(30)
+  assert.equal(state.monthLeft, 240)
+  assert.equal(state.nextHireCost, 10)
+})
+
+await check("an empty queue can start the first client", async () => {
+  const { state, nameStudio, ensureClient } = await load()
+  nameStudio("Empty")
+  state.queue = []
+  state.openId = null
+  ensureClient()
+  assert.equal(state.queue.length, 1)
+  assert.ok(state.queue[0].client)
+})
+
+await check("a click stays under 200ms with 30 clients", async () => {
+  const api = await load()
+  api.nameStudio("Rows")
+  api.state.queue = []
+  api.state.projectSeq = 0
+  for (let i = 0; i < 30; i++) api.spawn("fill")
+  for (const project of api.state.queue) api.startClient(project)
+  const started = performance.now()
+  for (const project of api.state.queue) {
+    api.projectWatch(project)
+    api.shipCheck(project.id)
+  }
+  const ms = performance.now() - started
+  console.log("30-row click path " + ms.toFixed(1) + "ms")
+  assert.ok(ms < 200, "click path " + ms)
+})
+
 await check("a disabled Ship names a reason when no client is open", async () => {
   const api = await load()
   api.nameStudio("NoOpen")

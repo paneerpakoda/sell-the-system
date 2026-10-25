@@ -12,7 +12,7 @@ export function Gate() {
     input.current?.focus()
   }, [])
 
-  if (state.studioName) return null
+  if (state.tabNote || state.studioName) return null
 
   return (
     <div className="gate">

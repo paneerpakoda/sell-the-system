@@ -6,7 +6,7 @@ import { ClockCard, Hud, WeekPause } from "./components/Hud.jsx"
 import { Inspector } from "./components/Inspector.jsx"
 import { Notice, Tips } from "./components/Notice.jsx"
 import { Screen } from "./components/Screen.jsx"
-import { dismissNotice, state } from "./engine.js"
+import { dismissNotice, ensureClient, state } from "./engine.js"
 import { useGame } from "./useGame.js"
 
 export function App() {
@@ -30,6 +30,15 @@ export function App() {
       window.removeEventListener("keydown", onKey)
     }
   }, [])
+  if (state.tabNote) {
+    return (
+      <div className="gate">
+        <div className="gate-card" role="status">
+          <h1>This game is open in another tab</h1>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="app">
       <Dock />
@@ -45,6 +54,14 @@ export function App() {
       <Notice />
       <Tips />
       <Gate />
+      {state.studioName && state.queue.length === 0 && !state.break && (
+        <div className="gate">
+          <div className="gate-card" role="status">
+            <h1>Start your first client</h1>
+            <button type="button" onClick={() => ensureClient()}>Start your first client</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
