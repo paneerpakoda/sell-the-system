@@ -71,6 +71,50 @@ await check("covered contrast includes Background and a Permanent ships", async 
   console.log("    shipped in " + shippedAt + "s")
 })
 
+function intern(id, name, pay = 10) {
+  return {
+    id,
+    name,
+    role: "intern",
+    pay,
+    miss: 0.2,
+    clean: 0,
+    projectId: null,
+    screenId: null,
+    workLeft: 0,
+    startedAt: 0
+  }
+}
+
+await check("month pause names the people and the amounts", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("Pause")
+  state.staff = [intern(1, "Ada"), permanent(2, "Ben")]
+  state.nextStaffId = 3
+  state.money = 0
+  state.monthLeft = 0.2
+  advance(1)
+  assert.ok(state.break, "pause card should be open")
+  assert.match(state.break.note, /Ada \(\$10\)/)
+  assert.match(state.break.note, /Ben \(\$30\)/)
+  assert.doesNotMatch(state.break.note, /object Object/)
+  assert.equal(state.money, 0)
+})
+
+await check("a paid month lists who was paid", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("Paid")
+  state.staff = [intern(1, "Ada")]
+  state.nextStaffId = 2
+  state.money = 24
+  state.monthLeft = 0.2
+  advance(1)
+  assert.ok(state.break)
+  assert.match(state.break.note, /Payroll paid \$10: Ada \(\$10\)/)
+  assert.equal(state.money, 14)
+  assert.doesNotMatch(state.break.note, /object Object/)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")

@@ -1357,9 +1357,14 @@ function openBreak() {
     state.wins += 1
     state.showBanner = true
   }
+  const bill = (staff) => staff.name + " ($" + staff.pay + ")"
   let note = "No payroll due."
-  if (payroll.left.length) note = payroll.left.join(", ") + " left. Payroll was short."
-  else if (payroll.paid > 0) note = "Payroll paid $" + payroll.paid + "."
+  if (payroll.left.length) {
+    note = payroll.left.map(bill).join(", ") + " left unpaid. Payroll was short."
+    if (payroll.paid > 0 && state.staff.length) note += " Paid $" + payroll.paid + ": " + state.staff.map(bill).join(", ") + "."
+  } else if (payroll.paid > 0) {
+    note = "Payroll paid $" + payroll.paid + ": " + state.staff.map(bill).join(", ") + "."
+  }
   if (won) note = "Won the month. " + note
   state.break = { note, won }
   state.status = note
