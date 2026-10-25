@@ -1,9 +1,11 @@
-import { bigClientOffer, chooseFork, dismissNotice, LANG, state, takeBig, turnDownBig } from "../engine.js"
+import { bigClientOffer, chooseFork, chooseMidgame, dismissNotice, gameFlags, LANG, state, takeBig, turnDownBig } from "../engine.js"
 import { useModal } from "./focusTrap.js"
 import { undoForkChoice } from "./guidance.jsx"
 
 const SPECIALIST = "New clients stay in one industry, so a language comes faster. You stop seeing the other industries."
 const GENERALIST = "Clients keep mixing across industries. A language takes longer, because big clients are spread out."
+const CHASE = "Big clients arrive twice as often. Each new month costs $8. The winning month is still one big client, with payroll paid and no hand touch."
+const STEADY = "Big clients stop arriving. A small ship pays $4 more. The winning month is four small ships, with payroll paid and no hand touch."
 
 function publish() {
   if (state.notices.length === 0) dismissNotice()
@@ -18,12 +20,14 @@ export function Decisions() {
   const noticeUp = state.notices.length > 0
   const offer = bigClientOffer()
   const eventOpen = !noticeUp && !!offer && !state.eventClosed && !!state.studioName && !state.break
-  const forkOpen = !eventOpen && !noticeUp && !state.break && !!state.studioName && !state.fork && !state.forkClosed && state.everHired && state.accepted >= 3
-  const undoOpen = !eventOpen && !noticeUp && !state.break && !!state.studioName && !!state.fork && !state.forkClosed
-  const open = eventOpen || forkOpen || undoOpen
+  const midgameOpen = gameFlags.midgameChoice && !eventOpen && !noticeUp && !state.break && !!state.studioName && !state.midgame && !state.midgameClosed && state.everHired && state.accepted >= 3
+  const forkOpen = !midgameOpen && !eventOpen && !noticeUp && !state.break && !!state.studioName && !state.fork && !state.forkClosed && state.everHired && state.accepted >= 3
+  const undoOpen = !midgameOpen && !eventOpen && !noticeUp && !state.break && !!state.studioName && !!state.fork && !state.forkClosed
+  const open = eventOpen || midgameOpen || forkOpen || undoOpen
   const modal = useModal(open)
   modal.onEscape.current = () => {
     if (eventOpen) state.eventClosed = true
+    else if (midgameOpen) state.midgameClosed = true
     else state.forkClosed = true
     publish()
   }
@@ -48,6 +52,26 @@ export function Decisions() {
     return (
       <button type="button" className="decision-reopen" onClick={() => { state.eventClosed = false; publish() }}>
         {state.event.client} is waiting
+      </button>
+    )
+  }
+  if (midgameOpen) {
+    return (
+      <div ref={modal.ref} className="decision" role="dialog" aria-modal="true" aria-labelledby="midgame-title">
+        <h2 id="midgame-title">Big clients or a steady book</h2>
+        <p><b>Chase big clients.</b> {CHASE}</p>
+        <p><b>Keep a steady book.</b> {STEADY}</p>
+        <div className="decision-row">
+          <button type="button" data-confirm onClick={() => chooseMidgame("chase")}>Chase big clients</button>
+          <button type="button" onClick={() => chooseMidgame("steady")}>Keep a steady book</button>
+        </div>
+      </div>
+    )
+  }
+  if (!state.midgame && state.midgameClosed && gameFlags.midgameChoice && state.everHired && state.accepted >= 3) {
+    return (
+      <button type="button" className="decision-reopen" onClick={() => { state.midgameClosed = false; publish() }}>
+        Big clients or a steady book
       </button>
     )
   }

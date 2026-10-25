@@ -50,7 +50,7 @@ Stage 3 is active while at least one Permanent is employed and at least one lang
 | Arrival, from 3 accepted ships | `45 - (acceptedShips - 3)` seconds | Subtract one second per accepted ship past the third |
 | Arrival floor | 30s | The fastest gap. More accepted ships do not shorten it |
 | Big client after | 3 accepted ships | Before this, arrivals are small clients |
-| Big chance | 1 in 4 | Chance an arrival is a big client, once they are legal |
+| Big chance | 1 in 4 | Chance an arrival is a big client, once they are legal. Chasing big clients makes this 1 in 2. A steady book makes it 0 |
 | Big cap | 1 waiting | Holds until a Project ships hands-free. Then uncapped |
 | Cap overflow | Arrives as a small client | A big roll that would break the cap |
 
@@ -174,6 +174,16 @@ These round 5 targets are what the code does now.
 | Cents | Money in state is rounded to cents |
 | First Intern | One clean ship pays $10, the wage for that month |
 | Extra Interns | Hire stops at one Intern. That is the one who can be busy on a screen already started. Interns do not start clients |
+| Mid-game choice | On. After a hire and 3 ships, pick chase or a steady book. No pick means the month cannot be won |
+
+## Mid-game choice
+
+`gameFlags.midgameChoice` defaults to on.
+
+| Choice | What you gain | What you give up | Winning month |
+| --- | --- | --- | --- |
+| Chase big clients | Big clients arrive 1 in 2, up from 1 in 4 | $8 at the choice, and $8 at the start of each later month | One big client, payroll paid, no hand touch, Stage 3 already on |
+| Keep a steady book | A small ship pays $4 more | Big clients stop arriving | Four small ships, payroll paid, no hand touch, Stage 3 already on |
 
 ## Related
 

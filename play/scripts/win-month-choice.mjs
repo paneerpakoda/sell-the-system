@@ -216,6 +216,7 @@ async function play(seed, specialty) {
   Math.random = mulberry32(seed)
   try {
     engine.gameFlags.specialtyMix = true
+    engine.gameFlags.midgameChoice = false
     engine.setSpecialty(specialty)
     engine.nameStudio(specialty || "General")
     if (!engine.state.queue.length) engine.spawn("start")

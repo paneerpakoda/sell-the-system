@@ -327,6 +327,7 @@ await check("the strict hand rule is the default and a value edit blocks the win
   assert.equal(clean.WIN_HAND_TOUCH, "strict")
   clean.nameStudio("CleanWin")
   clean.state.money = 100
+  clean.chooseMidgame("chase")
   clean.state.month.qualified = true
   clean.state.month.bigShipped = true
   clean.state.monthLeft = 0.2
@@ -337,6 +338,7 @@ await check("the strict hand rule is the default and a value edit blocks the win
   const held = await load()
   held.nameStudio("HeldShip")
   held.state.money = 100
+  held.chooseMidgame("chase")
   held.state.month.qualified = true
   held.state.month.bigShipped = true
   held.handShip()
@@ -348,6 +350,7 @@ await check("the strict hand rule is the default and a value edit blocks the win
   const touched = await load()
   touched.nameStudio("EditTouch")
   touched.state.money = 100
+  touched.chooseMidgame("chase")
   touched.state.month.qualified = true
   touched.state.month.bigShipped = true
   const project = touched.spawn("start")
@@ -360,6 +363,70 @@ await check("the strict hand rule is the default and a value edit blocks the win
   touched.advance(1)
   assert.equal(touched.state.break.won, false)
   assert.doesNotMatch(touched.state.break.note, /Won the month/)
+})
+
+await check("the mid-game choice is required, and each side has a different win", async () => {
+  const gate = await load()
+  assert.equal(gate.gameFlags.midgameChoice, true)
+  gate.nameStudio("Gate")
+  gate.state.money = 100
+  gate.state.month.qualified = true
+  gate.state.month.bigShipped = true
+  gate.state.monthLeft = 0.2
+  gate.advance(1)
+  assert.equal(gate.state.break.won, false)
+  assert.match(gate.state.break.note, /The big-client choice is still open/)
+
+  const chase = await load()
+  chase.nameStudio("Chase")
+  chase.state.money = 100
+  chase.chooseMidgame("chase")
+  assert.equal(chase.state.midgame, "chase")
+  assert.equal(chase.state.money, 92)
+  chase.state.month.qualified = true
+  chase.state.month.bigShipped = true
+  chase.state.monthLeft = 0.2
+  chase.advance(1)
+  assert.equal(chase.state.break.won, true)
+
+  const steadyFee = await load()
+  steadyFee.nameStudio("SteadyFee")
+  const priced = steadyFee.spawn("start")
+  paintLoose(priced)
+  priced.standard = "loose"
+  priced.size = "small"
+  const before = steadyFee.feeFor(priced)
+  assert.equal(typeof before, "number")
+  steadyFee.state.money = 40
+  steadyFee.chooseMidgame("steady")
+  assert.equal(steadyFee.feeFor(priced), before + 4)
+  steadyFee.state.accepted = 3
+  for (let i = 0; i < 12; i++) {
+    const project = steadyFee.spawn("timer")
+    assert.equal(project.size, "small")
+  }
+
+  const steadyWin = await load()
+  steadyWin.nameStudio("SteadyWin")
+  steadyWin.state.money = 40
+  steadyWin.chooseMidgame("steady")
+  steadyWin.state.month.qualified = true
+  steadyWin.state.month.smallShipped = 4
+  steadyWin.state.month.bigShipped = true
+  steadyWin.state.monthLeft = 0.2
+  steadyWin.advance(1)
+  assert.equal(steadyWin.state.break.won, true)
+
+  const steadyMiss = await load()
+  steadyMiss.nameStudio("SteadyMiss")
+  steadyMiss.state.money = 40
+  steadyMiss.chooseMidgame("steady")
+  steadyMiss.state.month.qualified = true
+  steadyMiss.state.month.bigShipped = true
+  steadyMiss.state.month.smallShipped = 3
+  steadyMiss.state.monthLeft = 0.2
+  steadyMiss.advance(1)
+  assert.equal(steadyMiss.state.break.won, false)
 })
 
 await check("specialty mix stays off and does not change arrivals", async () => {

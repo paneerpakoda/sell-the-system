@@ -95,7 +95,7 @@ const state = {
   monthLeft: monthLength,
   break: null,
   arrivalLeft: 20,
-  month: { qualified: false, bigShipped: false, handTouch: false, handTouches: 0 },
+  month: { qualified: false, bigShipped: false, smallShipped: 0, handTouch: false, handTouches: 0 },
   tokens: { colour: false, radius: false, contrast: false },
   codified: { fintech: false, wellness: false, editorial: false },
   process: { research: false, wire: false, test: false },
@@ -119,6 +119,8 @@ const state = {
   notices: [],
   seen: {},
   fork: null,
+  midgame: null,
+  midgameClosed: false,
   event: null,
   eventSeen: false,
   lastIndustry: null,
@@ -145,8 +147,13 @@ const state = {
   hireMiss: null
 }
 export const gameFlags = {
-  specialtyMix: false
+  specialtyMix: false,
+  // On: after the first hire and 3 ships, the player picks big clients or a steady book.
+  // Leaving it unanswered means a month cannot be won.
+  midgameChoice: true
 }
+const pitchCost = 8
+const steadyBump = 4
 const internWage = 10
 const permanentWage = 30
 // Was $6 / $3, and $10 / $6 in Stage 3. A clean ship now pays $10 before Stage 3,
@@ -270,10 +277,21 @@ export function weekState() {
 }
 function shipPay(project) {
   if (project && project.size === "big") return stage3Active() ? bigFeeStage3 : bigFee
-  return stage3Active() ? handFeeStage3 : handFee
+  const full = stage3Active() ? handFeeStage3 : handFee
+  return state.midgame === "steady" ? full + steadyBump : full
 }
 function autoPay() {
-  return stage3Active() ? autoFeeStage3 : autoFee
+  const base = stage3Active() ? autoFeeStage3 : autoFee
+  return state.midgame === "steady" ? base + steadyBump : base
+}
+function chargePitch() {
+  if (state.midgame !== "chase") return
+  const cash = roundMoney(Math.max(0, Number(state.money) || 0))
+  if (cash >= pitchCost) state.money = roundMoney(cash - pitchCost)
+  else {
+    state.money = 0
+    state.debt = roundMoney(debtOf() + (pitchCost - cash))
+  }
 }
 function roundMoney(value) {
   const number = Number(value)
@@ -988,7 +1006,10 @@ export function setSpecialty(industry) {
 function makeProject() {
   const industry = rollIndustry()
   let size = "small"
-  if (state.accepted >= 3 && Math.random() < 0.25) size = "big"
+  let bigChance = 0.25
+  if (state.midgame === "chase") bigChance = 0.5
+  if (state.midgame === "steady") bigChance = 0
+  if (state.accepted >= 3 && bigChance > 0 && Math.random() < bigChance) size = "big"
   const waitingBig = state.queue.filter((project) => project.size === "big").length
   if (size === "big" && !state.handsFreeEver && waitingBig >= 1) size = "small"
   const exactingChance = tokensUnlocked() ? PARAMS.exactingChanceAfterToken : PARAMS.exactingChance
@@ -1611,7 +1632,7 @@ function completeShip(project, method, staff) {
     state.bigDone[project.industry] = true
     state.month.bigShipped = true
     teach("lang-" + project.industry, LANG[project.industry].system, "You remember this one. The intern implements it faster, and does not miss.")
-  }
+  } else state.month.smallShipped = (state.month.smallShipped || 0) + 1
   if (!tokensWereOpen && tokensUnlocked()) teach("tokens", "Base values", "You remember the base. The intern sets it on every frame in one step.")
   if (handsFree) state.handsFreeEver = true
   if (method === "auto" && staff) staff.clean += 1
@@ -1730,19 +1751,29 @@ function handsBlockWin() {
   if (WIN_HAND_TOUCH === "one") return touches > 1
   return touches > 0
 }
+function monthWins(qualified, big, hands, payroll) {
+  if (!qualified || hands || !payroll.fullyPaid) return false
+  if (!gameFlags.midgameChoice) return !!big
+  if (state.midgame === "chase") return !!big
+  if (state.midgame === "steady") return (state.month.smallShipped || 0) >= 4
+  return false
+}
 function openBreak() {
   if (state.break) return
   const qualified = state.month.qualified
   const big = state.month.bigShipped
   const hands = handsBlockWin()
   const payroll = settlePayroll()
-  const won = qualified && big && !hands && payroll.fullyPaid
+  const won = monthWins(qualified, big, hands, payroll)
   if (won) {
     state.wins += 1
     state.showBanner = true
   }
   let note = payrollNote(payroll)
   if (won) note = "Won the month. " + note
+  else if (gameFlags.midgameChoice && !state.midgame && qualified && !hands && payroll.fullyPaid && big) {
+    note = "The big-client choice is still open. " + note
+  }
   state.break = { note, won }
   state.status = note
   state.monthLeft = 0
@@ -1751,10 +1782,11 @@ export function continueMonth() {
   if (!state.break) return
   state.break = null
   state.monthIndex += 1
-  state.month = { qualified: stage3Active(), bigShipped: false, handTouch: false, handTouches: 0 }
+  state.month = { qualified: stage3Active(), bigShipped: false, smallShipped: 0, handTouch: false, handTouches: 0 }
   state.monthLeft = monthLength
   payrollLedger = []
   state.staff.forEach((staff) => { staff.startedAt = 0 })
+  chargePitch()
   state.status = "Month " + state.monthIndex + ". Week 1."
   commit()
 }
@@ -2358,6 +2390,9 @@ function structuralStamp() {
     state.month.handTouches,
     state.month.qualified ? 1 : 0,
     state.month.bigShipped ? 1 : 0,
+    state.month.smallShipped || 0,
+    state.midgame || "",
+    state.midgameClosed ? 1 : 0,
     state.everHired ? 1 : 0,
     state.wikiOpen ? 1 : 0,
     state.headUnlocked ? 1 : 0,
@@ -2664,6 +2699,19 @@ export function stageProgress() {
   const system = language.length ? language.join(", ") + " is codified." : "Ship a big client, then buy that system."
   return "Stage 3 needs a permanent and a codified language. " + people + " " + system
 }
+export function chooseMidgame(choice) {
+  if (!gameFlags.midgameChoice || state.midgame) return
+  if (choice === "steady") {
+    state.midgame = "steady"
+    state.status = "Steady book. Big clients stop arriving. A small ship pays $4 more. Four small ships can win the month."
+  } else {
+    state.midgame = "chase"
+    chargePitch()
+    state.status = "Chasing big clients. They arrive twice as often. This month costs $8, and each new month costs $8."
+  }
+  state.midgameClosed = true
+  commit()
+}
 export function chooseFork(choice) {
   if (state.fork) return
   if (choice === "specialist") {
@@ -2760,7 +2808,7 @@ export function sellAgency() {
   state.clocksLive = false // a sold run holds week and month until the next Start
   state.break = null
   state.arrivalLeft = interval()
-  state.month = { qualified: false, bigShipped: false, handTouch: false, handTouches: 0 }
+  state.month = { qualified: false, bigShipped: false, smallShipped: 0, handTouch: false, handTouches: 0 }
   state.tokens = { colour: keptToken === "colour", radius: keptToken === "radius", contrast: keptToken === "contrast" }
   state.codified = { fintech: keptLang === "fintech", wellness: keptLang === "wellness", editorial: keptLang === "editorial" }
   state.process = { research: false, wire: false, test: false }
@@ -2781,6 +2829,8 @@ export function sellAgency() {
   state.tools = { swatches: false, radius: false, contrast: false, components: !!keptTool, styles: false }
   state.notices = []
   state.fork = null
+  state.midgame = null
+  state.midgameClosed = false
   state.event = null
   state.eventSeen = false
   state.lastIndustry = keptLang

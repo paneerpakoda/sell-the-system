@@ -2,6 +2,7 @@ import { memo, useLayoutEffect, useRef, useState } from "react"
 import {
   continueMonth,
   deadlineLength,
+  gameFlags,
   sellAgency,
   handShip,
   listStamp,
@@ -93,6 +94,7 @@ export function ClockCard() {
   const [closed, setClosed] = useState(false)
   const decision = !!(
     (state.event && !state.eventClosed) ||
+    (gameFlags.midgameChoice && !state.midgame && !state.midgameClosed && state.everHired && state.accepted >= 3) ||
     (!state.fork && !state.forkClosed && state.everHired && state.accepted >= 3) ||
     (state.fork && !state.forkClosed)
   )

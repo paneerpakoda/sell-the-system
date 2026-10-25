@@ -396,7 +396,10 @@ function HowToWin() {
       </header>
       <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
       <ul>
-        <li data-tip="After 3 ships, some arrivals name every element and pay the higher fee. The winning month needs one of them shipped.">
+        <li data-tip="After you hire, pick one. Chase: big clients arrive twice as often, and each month costs $8. Steady: big clients stop, a small ship pays $4 more, and four small ships win the month.">
+          <b>The choice.</b> After you hire, pick big clients or a steady book. Until you pick, a month cannot be won.
+        </li>
+        <li data-tip="After 3 ships, some arrivals name every element and pay the higher fee. The winning month needs one of them shipped, unless you kept a steady book.">
           <b>Big client.</b> After 3 ships, some arrivals name every element and pay the higher fee. Ship at least one in the winning month.
         </li>
         <li data-tip="In the winning month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.">

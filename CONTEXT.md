@@ -100,6 +100,10 @@ _Avoid_: a second currency, a score beside money
 Payment for a Project that shipped. You finish a ship, someone finishes one clean, or a big client pays the higher fee. Stage 3 raises the full fee and the big fee for ships completed while it is active. The clean fee stays $10. An Exacting client pays the full fee only when the Screen's grade is Best practice. Acceptable or Bare minimum pays the clean auto-ship fee. A Loose client pays the full fee when every named line is Bare minimum or better. Wrong holds Ship. The client is paying for the design.
 _Avoid_: selling a token, a pitch, a contract you negotiate, a bonus for finishing faster
 
+**Mid-game choice**:
+After a hire and 3 accepted ships, pick one. Chase big clients: they arrive 1 in 2, and each month costs $8, including the month you choose. The winning month is still one big client. Keep a steady book: big clients stop arriving, and a small ship pays $4 more. The winning month is four small ships. Leaving the choice open means the month cannot be won. `gameFlags.midgameChoice` defaults to on.
+_Avoid_: a second win screen, a choice with one real option
+
 **Month**:
 240 seconds, four weeks of 60 seconds, of wall clock. Payroll comes due at the end, pro-rated for the time each person was employed. The winning month is one of these that began only after Stage 3 was already active.
 _Avoid_: a count of ships, a freeze, a mood timer

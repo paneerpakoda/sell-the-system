@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-10-25 — round 6 batch 5
+
+After a hire and 3 ships, the game asks you to chase big clients or keep a steady book. Chasing makes a big client a 1 in 2 arrival and costs $8 now and at each new month. The winning month is still one big client. A steady book stops big clients and adds $4 to a small ship. That winning month is four small ships. Until you pick, the month cannot be won. `gameFlags.midgameChoice` defaults to on.
+
+A hands-off run that never picks wins under 60%. A run that chases big clients wins above 90%.
+
+Simpler choice: an unanswered month cannot be won, rather than a hidden default that still wins while you wait.
+
 ## 2026-10-25 — round 6 batch 4
 
 A clean ship pays $10, the same as the Intern's wage, before Stage 3 and during it. One clean ship covers that month. A full ship stays $10, or $16 in Stage 3. A big client stays $36, or $48.

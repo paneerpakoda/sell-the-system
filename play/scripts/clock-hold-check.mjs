@@ -54,6 +54,7 @@ try {
   const duringNotice = renderToStaticMarkup(createElement("div", null, createElement(Decisions), createElement(Notice)))
   assert.match(duringNotice, /Base values/)
   assert.doesNotMatch(duringNotice, /Specialist or generalist/)
+  assert.doesNotMatch(duringNotice, /Big clients or a steady book/)
   engine.state.notices = [
     { id: "permanent", title: "Permanent", body: "They start the clients." },
     { id: "process", title: "Design process", body: "You remember the work." }
@@ -70,8 +71,14 @@ try {
   engine.state.break = null
   engine.state.notices = []
   const afterNotice = renderToStaticMarkup(createElement(Decisions))
-  assert.match(afterNotice, /Specialist or generalist/)
-  assert.match(afterNotice, /New clients stay in one industry/)
+  assert.match(afterNotice, /Big clients or a steady book/)
+  assert.match(afterNotice, /Each new month costs \$8/)
+  assert.match(afterNotice, /four small ships/)
+  engine.state.money = 40
+  engine.chooseMidgame("chase")
+  const afterChoice = renderToStaticMarkup(createElement(Decisions))
+  assert.match(afterChoice, /Specialist or generalist/)
+  assert.match(afterChoice, /New clients stay in one industry/)
 } finally {
   await vite.close()
 }

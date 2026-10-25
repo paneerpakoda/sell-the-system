@@ -53,10 +53,12 @@ function readPrices(text) {
 function readFlags(text) {
   const hand = text.match(/^const WIN_HAND_TOUCH = (\S+)/m)
   const mix = text.match(/specialtyMix:\s*(true|false)/)
+  const midgame = text.match(/midgameChoice:\s*(true|false)/)
   const specialty = text.match(/^\s+specialty:\s*([^,\n]+)/m)
   return {
     handTouch: hand ? hand[1] : null,
     specialtyMix: mix ? mix[1] : null,
+    midgameChoice: midgame ? midgame[1] : null,
     specialty: specialty ? specialty[1].trim() : null
   }
 }
@@ -444,6 +446,10 @@ async function runGame(seed, opts) {
     }
     rememberPayroll(api, bag, opts)
     purchase(api, opts, bag)
+    if (opts.decideWell && api.gameFlags.midgameChoice && !state.midgame && state.everHired && state.accepted >= 3) {
+      api.chooseMidgame("chase")
+      note(bag, "midgame chase $" + state.money)
+    }
     while (state.notices.length) api.dismissNotice()
     if (opts.capturePayroll && state.staff.some((staff) => staff.role === "intern") && !bag.payrollDone) {
       finishPayrollMonth(api, bag, opts)
@@ -590,14 +596,23 @@ async function main() {
   console.log("process steps: " + prices.processKeys.join(", ") + " × $" + prices.process + " = $" + prices.processTotal)
   console.log("WIN_HAND_TOUCH = " + (flags.handTouch || "not defined") + " (left on the default)")
   console.log("gameFlags.specialtyMix = " + (flags.specialtyMix || "not defined") + " (left off)")
+  console.log("gameFlags.midgameChoice = " + (flags.midgameChoice || "not defined") + " (left on)")
   console.log("state.specialty = " + (flags.specialty || "not defined") + " (left unset)")
   console.log("seeds: " + seeds.join(" "))
-  console.log("win check: month started qualified, a big client shipped, handTouch is false, payroll fully paid")
+  console.log("win check: month started qualified, the mid-game choice is made, its win is met, handTouch is false, payroll fully paid")
 
   if (only === "all" || only === "win") {
     const competent = []
     for (const seed of seeds) competent.push(await runGame(seed, { name: "hands", buyProcess: true, stopOnWin: true }))
-    summarise("competent hands-off", competent)
+    const hands = summarise("competent hands-off", competent)
+    const decided = []
+    for (const seed of seeds) decided.push(await runGame(seed, { name: "choice", buyProcess: true, stopOnWin: true, decideWell: true }))
+    const good = summarise("chooses big clients", decided)
+    const handsRate = hands.wins / hands.runs
+    const goodRate = good.wins / good.runs
+    if (!(handsRate < 0.6)) throw new Error("hands-off won " + hands.wins + "/" + hands.runs + ", expected under 60%")
+    if (!(goodRate > 0.9)) throw new Error("good choice won " + good.wins + "/" + good.runs + ", expected above 90%")
+    console.log("midgame rates: hands-off " + hands.wins + "/" + hands.runs + ", chooses well " + good.wins + "/" + good.runs)
   }
   if (only === "all" || only === "noprocess") {
     const blocked = []
