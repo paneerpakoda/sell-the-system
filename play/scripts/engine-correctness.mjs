@@ -3,6 +3,7 @@
 //
 // Each case imports a fresh engine. This script calls nameStudio, spawn,
 // advance, and state. advance(seconds) runs the same tick as the browser.
+// spawn(reason) is the same arrival used in play.
 
 import assert from "node:assert/strict"
 import path from "node:path"
@@ -68,6 +69,20 @@ await check("covered contrast includes Background and a Permanent ships", async 
   assert.ok(shippedAt != null, "permanent did not ship within 60s (project " + project.client + ")")
   assert.ok(shippedAt <= 30, "expected a ship in well under a minute, took " + shippedAt + "s")
   console.log("    shipped in " + shippedAt + "s")
+})
+
+await check("a Permanent can take the open unstarted project", async () => {
+  const { state, nameStudio, spawn, advance } = await load()
+  nameStudio("Open")
+  state.staff = [permanent(1, "Ada")]
+  state.nextStaffId = 2
+  state.monthLeft = 10000
+  const project = spawn("start")
+  assert.equal(state.openId, project.id)
+  assert.equal(project.started, false)
+  advance(1)
+  assert.equal(state.staff[0].projectId, project.id)
+  assert.equal(project.started, true)
 })
 
 if (failures.length) {

@@ -1012,7 +1012,6 @@ function maybeShipStaff(project) {
 function takeUnclaimed(staff) {
   return state.queue.find((project) => {
     if (project.started || project.claimedBy === "player" || project.flagged) return false
-    if (project.id === state.openId) return false
     if (state.staff.some((other) => other.projectId === project.id)) return false
     return true
   }) || null
