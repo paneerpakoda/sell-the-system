@@ -1,23 +1,18 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { dismissNotice, state } from "../engine.js"
+import { useModal } from "./focusTrap.js"
 
 export function Notice() {
   const note = state.notices[0]
-  const button = useRef(null)
-  useEffect(() => {
-    if (!note) return undefined
-    button.current?.focus()
-    const onKey = (event) => {
-      if (event.key === "Escape") dismissNotice()
-    }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-  }, [note && note.id])
+  const modal = useModal(!!note)
+  modal.onEscape.current = () => dismissNotice()
+  modal.onEnter.current = () => dismissNotice()
   if (!note) return null
   return (
     <div className="modal-back" onClick={() => dismissNotice()}>
       <div
+        ref={modal.ref}
         className="modal"
         role="dialog"
         aria-modal="true"
@@ -26,7 +21,7 @@ export function Notice() {
       >
         <h2 id="notice-title">{note.title}</h2>
         <p>{note.body}</p>
-        <button ref={button} type="button" onClick={() => dismissNotice()}>Got it</button>
+        <button type="button" data-confirm onClick={() => dismissNotice()}>Got it</button>
       </div>
     </div>
   )
