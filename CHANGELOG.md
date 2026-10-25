@@ -54,4 +54,4 @@ The first three clients of a fresh game gate Ship with one, two, and three colou
 
 All grades hid empty Radius and Contrast headings on those colour-only clients. The queue chip named the first screen for each person, so it stayed on the lead after a later screen was the one holding Ship. A finished edit waited for the next clock tick before Ship could pay, so the button read "Ship held" for a moment after the last line was fixed. The chip now names the screens that still block Ship, and the edit updates the Ship offer immediately.
 
-The source stays private. Hosting is Vercel: `vercel.json` builds `play/` from the repo root. GitHub Pages is not used.
+The source stays private. Hosting is Vercel, at https://sell-the-system-harsh-s-projects-17430105.vercel.app/. `vercel.json` builds `play/` from the repo root. GitHub Pages is not used.
