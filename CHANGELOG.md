@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-25 — round 6 batch 6
+
+The nine-seed specialty check is confirmed. Specialist months are all 2. Generalist months are 3, 3, 3, 2, 5, none, 2, 3, none. The median gap is 1. Seed 53 had stopped shipping because three flagged clients were in an industry the studio had not codified, and the vague palette did not clear an Exacting brief. Painting those clients to the industry look lets that seed win in month 5. Seeds 67 and 97 still do not win by month 42.
+
+`check-params.mjs` also requires `data-ship-held` and `data-ship-reason` on the Ship control. The host line stays https://sell-the-system.vercel.app/
+
 ## 2026-10-25 — round 6 batch 5
 
 After a hire and 3 ships, the game asks you to chase big clients or keep a steady book. Chasing makes a big client a 1 in 2 arrival and costs $8 now and at each new month. The winning month is still one big client. A steady book stops big clients and adds $4 to a small ship. That winning month is four small ships. Until you pick, the month cannot be won. `gameFlags.midgameChoice` defaults to on.
@@ -84,7 +90,7 @@ Win rules and fees were left as written.
 
 Added `play/scripts/check-params.mjs`. It reads the month, week, deadline, arrival, and attempt values from `play/src/engine.js` and exits non-zero if the Game Design Document, Game Parameters, or CONTEXT still describe the old clock. That keeps the doc fix from drifting the next time the engine constants change.
 
-Added `play/scripts/simulate.mjs` so a hands-off win, a run that never buys the process steps, and a late firing can be checked without playing. The policy buys the three process steps when that is what gets a month shipped with no hand touch, and it does not change prices. The steps are $24 each, $72 in total. An earlier run of seeds 1 through 11 reported a first win in month 2. That figure is historical. Unchanged on this branch; remeasure after integration. The same policy without those steps had won none of the 11 by month 36 in that earlier run. Firing the Intern about one second before month end pays $9.96 against $10 for keeping them, which is that last second of the wage. The sim leaves `WIN_HAND_TOUCH` at `"strict"` and `gameFlags.specialtyMix` off.
+Added `play/scripts/simulate.mjs` so a hands-off win, a run that never buys the process steps, and a late firing can be checked without playing. The policy buys the three process steps when that is what gets a month shipped with no hand touch, and it does not change prices. The steps are $24 each, $72 in total. An earlier run of seeds 1 through 11 reported a first win in month 2. Round 6 measured that again: without the mid-game choice those 11 do not win, and choosing big clients wins all 11 in month 2. The same policy without the process steps still wins none of the 11 by month 36. Firing the Intern about one second before month end pays $9.96 against $10 for keeping them, which is that last second of the wage. The sim leaves `WIN_HAND_TOUCH` at `"strict"` and `gameFlags.specialtyMix` off. `gameFlags.midgameChoice` stays on.
 
 ### Payroll wording
 
@@ -116,11 +122,11 @@ The short fee is the small auto fee for every client. Its big-client branch coul
 
 Payroll is pro-rated by time employed. A lump sum had dropped the whole wage of anyone fired before the pause.
 
-The win reads one hand-touch constant, `WIN_HAND_TOUCH`. The default stays `"strict"`: any recorded hand touch blocks the win, and a Ship press counts.
+The win reads one hand-touch constant, `WIN_HAND_TOUCH`. The default stays `"strict"`: any recorded hand touch blocks the win. A Ship press does not count.
 
 A specialty mix can hold arrivals to one industry, so a specialist and a generalist can win in different months. `gameFlags.specialtyMix` defaults to off, which keeps the current mix.
 
-The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. An earlier `node play/scripts/win-month-choice.mjs` reported a specialist median of month 2 and a generalist median of month 2, a gap of 0. That month-2, gap-0 line is historical. Unchanged on this branch; remeasure after integration. The specialty flag stays off.
+The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. An earlier `node play/scripts/win-month-choice.mjs` reported a specialist median of month 2 and a generalist median of month 2, a gap of 0. Round 6 measured the nine seeds again: the specialist wins 9/9 with median month 2, and the generalist wins 7/9 with median month 3, a gap of 1. Seed 53 wins in month 5. Seeds 67 and 97 still do not win by month 42. The specialty flag stays off in the game. The script turns it on.
 
 All grades hid empty Radius and Contrast headings on those colour-only clients. The queue chip named the first screen for each person, so it stayed on the lead after a later screen was the one holding Ship. A finished edit waited for the next clock tick before Ship could pay, so the button read "Ship held" for a moment after the last line was fixed. The chip now names the screens that still block Ship, and the edit updates the Ship offer immediately.
 

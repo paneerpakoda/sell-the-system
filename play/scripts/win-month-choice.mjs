@@ -12,7 +12,9 @@
 // - Before a language is codified, press Ship about every 8 seconds. After that,
 //   start a covered client, paint only its lead, and press Ship once the intern
 //   has finished the other screens. Press Ship on an uncovered or flagged client
-//   about every 50 seconds so the queue can move. Once a Permanent is employed,
+//   about every 50 seconds so the queue can move. Those clients are painted to
+//   the industry look, because the vague palette does not clear an Exacting brief.
+//   Once a Permanent is employed,
 //   press Ship only to clear a client the player still holds or a flagged client.
 // - Stop touching in the last 8 seconds of a month once a Permanent is employed,
 //   every process step is owned, one language is codified, cash covers month-end
@@ -62,10 +64,10 @@ function median(values) {
   return (nums[mid - 1] + nums[mid]) / 2
 }
 
-function paintScreen(engine, project, screen) {
+function paintScreen(engine, project, screen, forceStrict) {
   const { LANG, ELEMENT_IDS, frameCopy, state } = engine
   const lang = LANG[project.industry]
-  const strict = project.size === "big" || state.codified[project.industry]
+  const strict = forceStrict || project.size === "big" || state.codified[project.industry]
   for (const id of ELEMENT_IDS) {
     const el = screen.elements[id]
     if (strict) {
@@ -88,10 +90,10 @@ function paintScreen(engine, project, screen) {
   project.elements = previous
 }
 
-function paint(engine, project, leadOnly) {
+function paint(engine, project, leadOnly, forceStrict) {
   const screens = project.screens || []
   const list = leadOnly ? screens.slice(0, 1) : screens
-  list.forEach((screen) => paintScreen(engine, project, screen))
+  list.forEach((screen) => paintScreen(engine, project, screen, forceStrict))
   project.flow.emptyFixed = true
   project.flow.errorFixed = true
   if (project.flow.demand) project.flow.showing = project.flow.demand
@@ -157,7 +159,8 @@ function buy(engine) {
 function shipNow(engine, project) {
   if (!project || project.shipped) return false
   if (!project.started) engine.startClient(project)
-  paint(engine, project, false)
+  const forceStrict = project.flagged || !covered(engine.state, project)
+  paint(engine, project, false, forceStrict)
   engine.state.openId = project.id
   if (engine.shipControl(project).held === "true") return false
   const id = project.id

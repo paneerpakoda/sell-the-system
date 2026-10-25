@@ -2,6 +2,8 @@
 // Buy process steps when that is what a competent hands-off player would do.
 // Do not change prices. Three process steps total $72 if the code says so.
 // The price and the step count are read from engine.js. The run prints the real total.
+// The hands-off run does not make the mid-game choice, so those months do not win.
+// The run that chases big clients does, and that is the one that should win.
 
 import { createHash } from "node:crypto"
 import fs from "node:fs"
