@@ -578,6 +578,8 @@ button.node:disabled { opacity: 0.45; }
 .clock-card li { margin-top: 8px; font-size: 14px; line-height: 1.4; }
 .clock-card li:first-child { margin-top: 0; }
 .clock-card .decision-row { margin: 0; flex: none; }
+.clock-card p.clock-running,
+.decision p.clock-running { margin: 0; color: var(--warn); font-size: 14px; font-weight: 650; }
 .clock-card li b { font-weight: 550; }
 .decision-reopen {
   position: absolute;

@@ -125,6 +125,7 @@ export function ClockCard() {
         <li><b>Week.</b> Each bar is one minute. The week clock waits until the first Start.</li>
         <li><b>Month.</b> Four weeks, about four minutes, then payroll. The month timer is on screen from month 1. It waits with the week clock until the first Start.</li>
       </ul>
+      <p className="clock-running">Clock is running</p>
       <div className="decision-row">
         <button type="button" data-confirm onClick={() => setClosed(true)}>Got it</button>
       </div>
