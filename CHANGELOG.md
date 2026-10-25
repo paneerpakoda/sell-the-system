@@ -54,4 +54,4 @@ The first three clients of a fresh game gate Ship with one, two, and three colou
 
 All grades hid empty Radius and Contrast headings on those colour-only clients. The queue chip named the first screen for each person, so it stayed on the lead after a later screen was the one holding Ship. A finished edit waited for the next clock tick before Ship could pay, so the button read "Ship held" for a moment after the last line was fixed. The chip now names the screens that still block Ship, and the edit updates the Ship offer immediately.
 
-The public site is GitHub Pages, at https://paneerpakoda.github.io/sell-the-system/. A push to `main` builds `play/` and deploys that build. Local dev still opens at `/`.
+The source stays private. Hosting is Vercel: `vercel.json` builds `play/` from the repo root. GitHub Pages is not used.
