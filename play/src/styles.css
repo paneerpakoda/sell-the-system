@@ -853,12 +853,16 @@ button.node:disabled { opacity: 0.45; }
 .screen.on, .part.on { outline: 2px solid var(--blue); outline-offset: 2px; }
 .part { font: inherit; cursor: pointer; border: 0; }
 .frame-body .part { position: relative; z-index: 1; }
-.frame-body .part.low-contrast { z-index: 2; box-shadow: inset 0 0 0 2px #1c1917; }
+/* Ink and white rings stay visible on Hot, Lime, Paper, and Ink, before selection. */
+.frame-body .part,
+.frame-body .part.low-contrast {
+  box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px #1c1917;
+}
+.frame-body .part.low-contrast { z-index: 2; }
 .frame-body .part.save { z-index: 4; }
 .frame-body .part.save.low-contrast { z-index: 5; }
 .title {
   align-self: stretch;
-  background: transparent;
   border: 0;
   padding: 12px 4px 4px;
   font-weight: 650;

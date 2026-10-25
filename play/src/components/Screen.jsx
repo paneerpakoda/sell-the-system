@@ -219,6 +219,7 @@ export function Screen() {
                     ref={(el) => { if (live) nodes.current.title = el }}
                     className={"part title" + (lowContrast(art, "title") ? " low-contrast" : "") + (live && picked.has("title") ? " on" : "")}
                     style={{
+                      background: COLOURS[art.title.colour].hex,
                       color: fade(COLOURS[art.background.colour].hex, inkHex({ elements: art }, "title"), contrastMix(art.title)),
                       borderRadius: art.title.radius,
                       fontSize: typeSize(art.title.hierarchy)
