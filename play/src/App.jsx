@@ -2,7 +2,7 @@ import { useEffect } from "react"
 import { Decisions } from "./components/Decisions.jsx"
 import { Dock } from "./components/Dock.jsx"
 import { Gate } from "./components/Gate.jsx"
-import { Hud, WeekPause } from "./components/Hud.jsx"
+import { ClockCard, Hud, WeekPause } from "./components/Hud.jsx"
 import { Inspector } from "./components/Inspector.jsx"
 import { Notice, Tips } from "./components/Notice.jsx"
 import { Screen } from "./components/Screen.jsx"
@@ -17,10 +17,11 @@ export function App() {
       event.preventDefault()
     }
     const onKey = (event) => {
-      if (event.key !== "Escape") return
+      if (event.key !== "Escape" || event.defaultPrevented) return
       if (event.target.closest && event.target.closest("input, textarea")) return
       dismissNotice()
       window.dispatchEvent(new Event("close-popovers"))
+      window.dispatchEvent(new Event("close-cards"))
     }
     document.addEventListener("selectstart", block)
     window.addEventListener("keydown", onKey)
@@ -36,6 +37,7 @@ export function App() {
         {state.studioName && <div className="studio-name">{state.studioName}</div>}
         <Hud />
         <Screen />
+        <ClockCard />
         <Decisions />
         <WeekPause />
       </main>

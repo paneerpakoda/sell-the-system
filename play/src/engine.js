@@ -1185,6 +1185,7 @@ function startLead(permanent, project) {
   permanent.screenId = reference.id
   project.staffId = permanent.id
   project.started = true
+  state.clocksLive = true // a staff Start also releases the week and month clocks
   project.working = true
   state.status = permanent.name + " is designing " + reference.name + " for " + project.client + "."
 }
@@ -1370,6 +1371,7 @@ export function startClient(project) {
   if (state.staff.some((staff) => staff.projectId === project.id)) return
   noteHand()
   project.started = true
+  state.clocksLive = true // first Start releases the week and month clocks
   project.claimedBy = "player"
   state.openId = project.id
   state.status = project.client + " started. " + timeLabel(project.onTimeLeft) + " on the clock."
@@ -1908,9 +1910,17 @@ function tick(dt) {
   if (!worldPaused()) {
     runScreens(dt)
     runArrival(dt)
-    state.monthLeft -= dt
+    // Week and month stay held until the first Start. clocksLive === false is
+    // that hold. Undefined keeps older saves and headless runs moving.
+    if (state.clocksLive !== false) {
+      state.monthLeft -= dt
+      if (state.monthLeft <= 0) openBreak()
+    }
+    // A teaching card pauses the client clock only. Closing it (empty
+    // notices) resumes that clock. Do not latch a separate pause flag.
+    const teaching = state.notices.length > 0
     for (const project of state.queue) {
-      if (project.started && project.onTimeLeft > 0) {
+      if (project.started && project.onTimeLeft > 0 && !teaching) {
         project.onTimeLeft = Math.max(0, project.onTimeLeft - dt)
         if (project.onTimeLeft === 0 && !project.deadlineTold) {
           project.deadlineTold = true
@@ -1918,7 +1928,6 @@ function tick(dt) {
         }
       }
     }
-    if (state.monthLeft <= 0) openBreak()
   }
   refreshQualified()
   commit()
@@ -2094,6 +2103,7 @@ export function start() {
     spawn("start")
     state.arrivalLeft = interval()
     state.status = ""
+    state.clocksLive = false // week and month wait for the first Start
   }
   notify()
   if (typeof document !== "undefined") {
@@ -2255,6 +2265,7 @@ export function sellAgency() {
   state.showBanner = false
   state.monthIndex = 1
   state.monthLeft = monthLength
+  state.clocksLive = false // a sold run holds week and month until the next Start
   state.break = null
   state.arrivalLeft = interval()
   state.month = { qualified: false, bigShipped: false, handTouch: false, handTouches: 0 }

@@ -482,13 +482,104 @@ button.node:disabled { opacity: 0.45; }
 }
 .week-marks b { display: block; height: 100%; background: var(--blue); }
 .week-pause {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 6;
-  display: grid;
-  place-items: center;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  overflow: auto;
   background: rgba(22, 22, 22, 0.72);
 }
+.week-pause .gate-card {
+  width: min(440px, 100%);
+  max-height: calc(100dvh - 24px);
+  margin: 0;
+  overflow: auto;
+  padding: 20px 16px;
+}
+.week-pause .gate-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  background: #2c2c2c;
+}
+.week-pause .gate-card button { margin-top: 0; }
+.clock-card {
+  position: absolute;
+  z-index: 5;
+  left: 12px;
+  right: 12px;
+  bottom: 128px;
+  max-width: 560px;
+  max-height: min(46vh, 340px);
+  margin: 0 auto;
+  padding: 14px 16px;
+  overflow: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  pointer-events: auto;
+}
+.clock-card h2 { margin: 0; font-size: 16px; font-weight: 550; }
+.clock-card ul { margin: 8px 0 0; padding-left: 18px; }
+.clock-card li { margin-top: 8px; font-size: 14px; line-height: 1.4; }
+.clock-card li b { font-weight: 550; }
+.decision-reopen {
+  position: absolute;
+  z-index: 4;
+  left: 16px;
+  bottom: 132px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  padding: 8px 12px;
+}
+.frame-lock {
+  position: absolute;
+  z-index: 4;
+  left: 12px;
+  right: 12px;
+  top: 12px;
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(22, 22, 22, 0.9);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+.stage-progress { margin-top: 0; }
+.progress-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+.progress-bar span { display: block; height: 100%; background: var(--blue); }
+.progress-steps {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.progress-steps li { display: flex; flex-direction: column; gap: 2px; }
+.progress-steps b { font-size: 14px; }
+.progress-steps li.done b { color: var(--ok); }
+.progress-steps span { color: var(--muted); font-size: 13px; line-height: 1.35; }
+.how-win p { margin: 0; color: var(--text); font-size: 14px; line-height: 1.4; }
+.how-win ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.how-win li { color: var(--muted); font-size: 13px; line-height: 1.4; }
+.how-win li b { color: var(--text); font-weight: 550; }
+.modal .decision-row { margin-top: 14px; }
+.modal .decision-row button { margin-top: 0; }
 .meter-k { color: var(--muted); font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; }
 .meter-v { font-size: 18px; font-weight: 550; font-variant-numeric: tabular-nums; }
 .timer svg { display: block; }
@@ -962,6 +1053,41 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
 .lib-row i[data-colour="lime"], .fill-dot[data-colour="lime"] { background: #C8FF00; }
 .note { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(180px, 1fr) minmax(140px, 34vh) minmax(120px, 28vh);
+  }
+  .stage { grid-row: 1; }
+  .dock {
+    grid-row: 2;
+    border-right: 0;
+    border-top: 1px solid #000;
+  }
+  .inspector {
+    grid-row: 3;
+    border-left: 0;
+    border-top: 1px solid #000;
+  }
+}
+@media (max-width: 480px) {
+  .week-pause { align-items: stretch; padding: 8px; }
+  .week-pause .gate-card {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+    padding: 16px 12px;
+  }
+  .week-pause .gate-card h1 { font-size: 22px; }
+  .week-pause .gate-card p { font-size: 14px; }
+  .week-pause .gate-actions button { width: 100%; }
+  .modal {
+    width: min(320px, calc(100vw - 16px));
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+  }
+  .clock-card { bottom: 112px; max-height: min(42vh, 280px); padding: 12px; }
+  .goal-strip { display: none; }
+}
 .tone-wrong { color: var(--danger); }
 .tone-bare { color: var(--warn); }
 .tone-ok, .tone-best { color: var(--ok); }

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import {
   continueMonth,
   deadlineLength,
@@ -16,13 +16,16 @@ import {
   timeLabel,
   weekState
 } from "../engine.js"
-import { TargetChip, guidingFirst, moneyText, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
+import { useModal } from "./focusTrap.js"
+import { TargetChip, formatClock, guidingFirst, moneyText, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
 
 function Weeks() {
   const { week, into } = weekState()
   const clock = weekClock(into)
+  const held = state.clocksLive === false
+  const weekText = held ? clock.text + " held" : clock.text + " left"
   return (
-      <div className="weeks" role="group" aria-label={"Week " + week + " of 4, " + clock.text + " left. Each week is one minute. A month is about four minutes."} data-tip="Each week is one minute. Four weeks make a month, about four minutes. Then payroll is due. This is not the client's clock.">
+      <div className="weeks" role="group" aria-label={"Week " + week + " of 4, " + weekText + ". Each week is one minute. The week clock waits until the first Start."} data-tip="Each week is one minute. It waits until the first Start. This is not the client's round clock.">
       <div className="meter-k">Week</div>
       <div className="week-marks" aria-hidden="true">
         {[0, 1, 2, 3].map((index) => {
@@ -35,23 +38,79 @@ function Weeks() {
         })}
       </div>
       <div className="meter-v">{week}</div>
-      <div className="week-clock">{clock.text} left</div>
+      <div className="week-clock">{weekText}</div>
+    </div>
+  )
+}
+
+function MonthClock() {
+  const held = state.clocksLive === false
+  const text = formatClock(state.monthLeft) + (held ? " held" : "")
+  return (
+    <div className="meter month-meter" data-tip="The month timer is on screen from month 1. Four weeks, about four minutes, then payroll. It waits with the week clock until the first Start. This is not the client's 5:00.">
+      <div className="meter-k">Month</div>
+      <div className="meter-v">{state.monthIndex}</div>
+      <div className="week-clock">{text}</div>
     </div>
   )
 }
 
 export function WeekPause() {
-  if (!state.break) return null
+  const open = !!state.break
+  const modal = useModal(open)
+  modal.onEscape.current = () => continueMonth()
+  modal.onEnter.current = () => {
+    const current = document.activeElement
+    if (current && modal.ref.current && modal.ref.current.contains(current) && current.tagName === "BUTTON") current.click()
+    else continueMonth()
+  }
+  if (!open) return null
   return (
     <div className="week-pause">
-      <form className="gate-card" onSubmit={(event) => { event.preventDefault(); continueMonth() }}>
-        <h1>Month {state.monthIndex}</h1>
+      <form
+        ref={modal.ref}
+        className="gate-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="month-end-title"
+        onSubmit={(event) => { event.preventDefault(); continueMonth() }}
+      >
+        <h1 id="month-end-title">Month {state.monthIndex}</h1>
         <p>Four weeks are done. {state.break.note} The tree stays open.</p>
-        <button type="submit">{state.break.won ? "Keep going" : "Next month"}</button>
-        {state.break.won && <button type="button" onClick={() => sellAgency()}>Sell the agency</button>}
+        <div className="gate-actions">
+          <button type="submit" data-confirm>{state.break.won ? "Keep going" : "Next month"}</button>
+          {state.break.won && <button type="button" onClick={() => sellAgency()}>Sell the agency</button>}
+        </div>
         {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
       </form>
     </div>
+  )
+}
+
+export function ClockCard() {
+  const [closed, setClosed] = useState(false)
+  const decision = !!(
+    (state.event && !state.eventClosed) ||
+    (!state.fork && !state.forkClosed && state.everHired && state.accepted >= 3) ||
+    (state.fork && !state.forkClosed)
+  )
+  const show = !closed && !!state.studioName && state.clocksLive === false && !state.break && state.notices.length === 0 && !decision
+  const modal = useModal(show)
+  modal.onEscape.current = () => setClosed(true)
+  modal.onEnter.current = () => setClosed(true)
+  if (!show) return null
+  return (
+    <aside ref={modal.ref} className="clock-card" role="dialog" aria-modal="true" aria-labelledby="clock-card-title">
+      <h2 id="clock-card-title">Three clocks</h2>
+      <ul>
+        <li><b>Client, 5:00.</b> The round clock on a client. It starts when you press Start. Late means that clock reached 0. The project stays, and Ship still pays. The on-time reward is closed.</li>
+        <li><b>Week.</b> Each bar is one minute. The week clock waits until the first Start.</li>
+        <li><b>Month.</b> Four weeks, about four minutes, then payroll. The month timer is on screen from month 1. It waits with the week clock until the first Start.</li>
+      </ul>
+      <div className="decision-row">
+        <button type="button" data-confirm onClick={() => setClosed(true)}>Got it</button>
+      </div>
+    </aside>
   )
 }
 
@@ -143,8 +202,14 @@ function ClientWidgets() {
         {state.queue.map((project) => {
           const open = project.id === state.openId
           const waiting = !project.started
+          const late = project.started && project.onTimeLeft <= 0
           const watch = projectWatch(project)
           const target = targetFor(project)
+          const clockTip = waiting
+            ? "Start this client. The round clock starts at 5:00. That is the client's time, not the week or the month."
+            : late
+              ? "Late means this client's clock hit 0. The project stays. Ship still pays. This is not the month clock."
+              : "On time if you ship within " + timeLabel(project.onTimeTotal) + "."
           return (
             <button
               key={project.id}
@@ -153,7 +218,7 @@ function ClientWidgets() {
               className={"client-widget" + (open ? " on" : "") + (watch.needsYou ? " call" : "") + (target ? " has-target" : "")}
               aria-current={open ? "true" : undefined}
               aria-label={project.client + (target ? ", target " + target : "") + ", " + watch.line}
-              data-tip={watch.needsYou ? watch.line : waiting ? "Start this client. The clock begins when you do." : "On time if you ship within " + timeLabel(project.onTimeTotal) + "."}
+              data-tip={watch.needsYou ? watch.line : clockTip}
               onClick={() => { resetView(); if (waiting) startClient(project); else openProject(project, null) }}
             >
               <span className="widget-copy">
@@ -189,6 +254,7 @@ export function Hud() {
           <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $6, or $10 in Stage 3. A short ship is $3, or $6. A ship does not pay $12.">${moneyText(state.money)}</div>
           <div className="meters">
             <Weeks />
+            <MonthClock />
             <div className="meter" data-tip="1 is by hand. 2 is a team. 3 adds UX. Stage 3 needs a permanent and a codified language.">
               <div className="meter-k">Stage</div>
               <div className="meter-v">{stage()}</div>
@@ -206,7 +272,6 @@ export function Hud() {
           </div>
           <p className="goal-strip">
             <span className="goal-win">Win a Stage 3 month with a big client, no hand touch, and payroll paid.</span>
-            <span className="goal-month">The round clock is the client, 5:00 the first time. The bars are the month.</span>
           </p>
           {state.status && <p className="status-line">{state.status}</p>}
         </div>

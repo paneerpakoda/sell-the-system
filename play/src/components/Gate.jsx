@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react"
 import { nameStudio, state } from "../engine.js"
+import { useModal } from "./focusTrap.js"
 
 export function Gate() {
   const [draft, setDraft] = useState("")
   const input = useRef(null)
   const clean = draft.trim().replace(/\s+/g, " ")
+  const modal = useModal(!state.studioName)
 
   useEffect(() => {
     input.current?.focus()
@@ -15,13 +17,17 @@ export function Gate() {
   return (
     <div className="gate">
       <form
+        ref={modal.ref}
         className="gate-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studio-title"
         onSubmit={(event) => {
           event.preventDefault()
           if (clean) nameStudio(clean)
         }}
       >
-        <h1>Name the studio</h1>
+        <h1 id="studio-title">Name the studio</h1>
         <p>Click what pulses. The round clock is the client's 5:00. The bars are the month: four one-minute weeks, then payroll.</p>
         <label htmlFor="studio-name">Studio name</label>
         <input

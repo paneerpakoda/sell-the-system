@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useModal } from "./focusTrap.js"
 import {
   NAMES,
   describe,
@@ -18,7 +19,6 @@ import {
   radiusHint,
   shipButtonLabel,
   shownGrade,
-  stageProgress,
   staffTask,
   stepSeconds,
   effectiveMiss,
@@ -99,6 +99,8 @@ export function Dock() {
       </section>
 
       <div className="dock-scroll">
+        <HowToWin />
+        <StageProgress />
         <section className="block">
           <header className="block-head">
           <h2>To Ship</h2>
@@ -172,6 +174,7 @@ export function Dock() {
 }
 
 function People() {
+  const [pendingFire, setPendingFire] = useState(null)
   const { due, next, unpayable, reason, lines } = payrollFacts()
   const locked = state.handShips < 3
   const internOnStaff = state.staff.some((staff) => staff.role === "intern")
@@ -198,8 +201,8 @@ function People() {
           <p className="hint">{staffTask(staff)}</p>
           {staff.role === "intern" && <p className="pace">{paceText(state.queue.find((item) => item.id === staff.projectId))} · {missText(staff, state.queue.find((item) => item.id === staff.projectId))}</p>}
           <div className="staff-actions">
-            <span className="tip-wrap" data-tip="They leave now. Unfinished frames come back to you.">
-              <button type="button" onClick={() => fire(staff.id)}>Fire</button>
+            <span className="tip-wrap" data-tip="They leave now. Unfinished frames come back to you. You confirm before they go.">
+              <button type="button" onClick={() => setPendingFire(staff)}>Fire</button>
             </span>
             {staff.role === "intern" && (
               <span className="tip-wrap" data-tip={staff.clean < 3 ? "Three clean screens, then they start clients for you." : "Starts clients you have not started, then checks the intern. $30 a month."}>
@@ -219,6 +222,125 @@ function People() {
           {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · $" + nextText}
         </button>
       </span>
+      <FireConfirm staff={pendingFire} onCancel={() => setPendingFire(null)} onFire={() => { fire(pendingFire.id); setPendingFire(null) }} />
+    </section>
+  )
+}
+
+function FireConfirm({ staff, onCancel, onFire }) {
+  const modal = useModal(!!staff)
+  modal.onEscape.current = () => onCancel()
+  modal.onEnter.current = () => {
+    const current = document.activeElement
+    if (current && modal.ref.current && modal.ref.current.contains(current) && current.tagName === "BUTTON") current.click()
+    else onFire()
+  }
+  if (!staff) return null
+  return (
+    <div className="modal-back" onClick={onCancel}>
+      <div
+        ref={modal.ref}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fire-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id="fire-title">Fire {staff.name}?</h2>
+        <p>{staff.name} leaves now. Frames they have not finished come back to you. Pay for time already worked still comes due. Tokens, languages, and process steps stay.</p>
+        <div className="decision-row">
+          <button type="button" data-confirm onClick={onFire}>Fire</button>
+          <button type="button" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const LANG_NAME = { fintech: "Swiss Grid", wellness: "Warm Soft", editorial: "Mono Stark" }
+
+function StageProgress() {
+  const intern = state.staff.find((staff) => staff.role === "intern")
+  const permanentOn = state.staff.some((staff) => staff.role === "permanent")
+  const clean = permanentOn ? 3 : Math.min(3, intern ? intern.clean : 0)
+  const languageId = ["fintech", "wellness", "editorial"].find((id) => state.codified[id])
+  const steps = [
+    {
+      id: "permanent",
+      label: "Permanent " + clean + "/3",
+      done: permanentOn,
+      fill: clean / 3,
+      text: "Three clean screens unlock Promote. A permanent, together with a language, opens Stage 3."
+    },
+    {
+      id: "language",
+      label: languageId ? LANG_NAME[languageId] : "Language 0/1",
+      done: !!languageId,
+      fill: languageId ? 1 : 0,
+      text: "A big client in an industry unlocks that language. Buying it covers colour, radius, and contrast. With a permanent, Stage 3 opens."
+    },
+    {
+      id: "research",
+      label: "User research",
+      done: !!state.process.research,
+      fill: state.process.research ? 1 : 0,
+      text: "Unlocks once Stage 3 is on. Later clients arrive with Copy / Clarity solved."
+    },
+    {
+      id: "wire",
+      label: "Wireframing",
+      done: !!state.process.wire,
+      fill: state.process.wire ? 1 : 0,
+      text: "Unlocks once Stage 3 is on. Later clients arrive with Hierarchy set."
+    },
+    {
+      id: "test",
+      label: "Usability testing",
+      done: !!state.process.test,
+      fill: state.process.test ? 1 : 0,
+      text: "Unlocks once Stage 3 is on. Later clients arrive with Flow / States fixed."
+    }
+  ]
+  const pct = Math.round(steps.reduce((sum, step) => sum + step.fill, 0) / steps.length * 100)
+  return (
+    <section className="block stage-progress">
+      <header className="block-head">
+        <h2>Stage 3</h2>
+        <span>{pct}%</span>
+      </header>
+      <div className="progress-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={"Stage 3 progress, " + pct + " percent"}>
+        <span style={{ width: pct + "%" }} />
+      </div>
+      <ol className="progress-steps">
+        {steps.map((step) => (
+          <li key={step.id} className={step.done ? "done" : ""} data-tip={step.text}>
+            <b>{step.label}</b>
+            <span>{step.text}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function HowToWin() {
+  return (
+    <section className="block how-win">
+      <header className="block-head">
+        <h2>How to win</h2>
+      </header>
+      <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
+      <ul>
+        <li data-tip="After 3 ships, some arrivals name every element and pay the higher fee. The winning month needs one of them shipped.">
+          <b>Big client.</b> After 3 ships, some arrivals name every element and pay the higher fee. Ship at least one in the winning month.
+        </li>
+        <li data-tip="In the winning month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.">
+          <b>No hand touch.</b> In that month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.
+        </li>
+        <li data-tip="Late means the client's round clock hit 0. The project stays. Ship still pays. It is not the week or the month.">
+          <b>Late.</b> The client's round clock hit 0. The project stays, and Ship still pays. The on-time reward is closed. Late is not the week or the month.
+        </li>
+      </ul>
     </section>
   )
 }
@@ -290,14 +412,12 @@ function Tree() {
       rows.push(node({ id: key, name, cost: 24, done: false, locked: null, buy: () => buyProcess(key) }))
     })
   }
-  const progress = stageProgress()
   if (!rows.length && state.accepted < 1 && !state.everHired) return null
   return (
     <section className="block studio">
       <header className="block-head">
         <h2>Tree</h2>
       </header>
-      <p className="hint">{progress}</p>
       {!rows.length && <p className="hint">Nothing to buy until that line moves.</p>}
       {rows.map((row) => row.locked ? (
         <div key={row.id} className="node locked" data-tip={row.tip}>

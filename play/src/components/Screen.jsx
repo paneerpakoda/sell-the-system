@@ -6,6 +6,7 @@ import {
   fade,
   focused,
   inkHex,
+  openParts,
   openProject,
   openScreen,
   takeScreen,
@@ -22,6 +23,22 @@ import {
 } from "../engine.js"
 
 const CORNERS = ["nw", "ne", "sw", "se"]
+
+function leadElement(project, screen, fallback) {
+  const parts = openParts(project)
+  const hit = parts.find((group) => group.screenId === screen.id) || parts[0]
+  return hit ? hit.id : fallback
+}
+
+function openEditor(project, screen, elementId) {
+  openScreen(project, screen.id)
+  if (screen.owner && screen.owner !== "player") return
+  openProject(project, elementId)
+}
+
+function ownerFirst(screen) {
+  return screenOwnerName(screen).split(" · ")[0]
+}
 
 function flowText(project) {
   const flow = project.flow
@@ -133,8 +150,6 @@ export function Screen() {
     window.addEventListener("pointercancel", end)
   }
 
-  const select = (id) => openProject(project, id)
-
   return (
     <div
       className="viewport"
@@ -161,15 +176,16 @@ export function Screen() {
           {(project.screens && project.screens.length ? project.screens : [activeScreen(project)]).map((screen, index) => {
             const live = screen.id === (activeScreen(project) && activeScreen(project).id)
             const mine = screenEditable(project, screen)
+            const locked = !!(screen.owner && screen.owner !== "player")
             const art = screen.elements
             return (
-              <div key={screen.id} className={"figma-frame" + (live ? " on" : "")} style={{ left: index * 490 }}>
+              <div key={screen.id} className={"figma-frame" + (live ? " on" : "") + (locked ? " locked" : "")} style={{ left: index * 490 }}>
                 <div className="frame-head">
-                  <button type="button" className="frame-name" data-tip="Show this frame. This does not take it from someone else." onClick={() => openScreen(project, screen.id)}>
+                  <button type="button" className="frame-name" data-tip={locked ? "This frame is locked. Take over to edit it." : "Open this frame in the editor."} onClick={() => openEditor(project, screen, leadElement(project, screen, "title"))}>
                     {screen.name}
                     <span>{screenOwnerName(screen)}</span>
                   </button>
-                  {screen.owner && screen.owner !== "player" && (
+                  {locked && (
                     <button type="button" className="takeover" data-tip="Pull this frame back. The intern stops." onClick={() => takeScreen(project, screen.id)}>Take over</button>
                   )}
                 </div>
@@ -178,8 +194,11 @@ export function Screen() {
                   ref={(el) => { if (live) { phoneRef.current = el; nodes.current.background = el } }}
                   onPointerDown={live && mine ? onPhonePointerDown : undefined}
                   style={{ background: COLOURS[art.background.colour].hex, borderRadius: art.background.radius }}
-                  onClick={() => { openScreen(project, screen.id); if (mine) select("background") }}
+                  onClick={() => openEditor(project, screen, leadElement(project, screen, "background"))}
                 >
+                  {locked && (
+                    <p className="frame-lock">{ownerFirst(screen)} has this frame. Take over to open it in the editor. They stop, and the frame comes back to you.</p>
+                  )}
                   {project.hasUX && <span className={"flowchip" + flowClass(project)}>{flowText(project)}</span>}
                   <button
                     type="button"
@@ -190,7 +209,7 @@ export function Screen() {
                       borderRadius: art.title.radius,
                       fontSize: typeSize(art.title.hierarchy)
                     }}
-                    onClick={(event) => { event.stopPropagation(); openScreen(project, screen.id); if (mine) select("title") }}
+                    onClick={(event) => { event.stopPropagation(); openEditor(project, screen, "title") }}
                   >
                     {art.title.copy}
                   </button>
@@ -201,7 +220,7 @@ export function Screen() {
                       ref={(el) => { if (live) nodes.current[id] = el }}
                       className={"part card" + (live && picked.has(id) ? " on" : "")}
                       style={{ background: COLOURS[art[id].colour].hex, borderRadius: art[id].radius }}
-                      onClick={(event) => { event.stopPropagation(); openScreen(project, screen.id); if (mine) select(id) }}
+                      onClick={(event) => { event.stopPropagation(); openEditor(project, screen, id) }}
                     >
                       <span style={{ color: fade(COLOURS[art[id].colour].hex, inkHex({ elements: art }, id), contrastMix(art[id])), fontSize: typeSize(art[id].hierarchy) }}>
                         {art[id].copy}
@@ -218,7 +237,7 @@ export function Screen() {
                       borderRadius: art.save.radius,
                       fontSize: typeSize(art.save.hierarchy)
                     }}
-                    onClick={(event) => { event.stopPropagation(); openScreen(project, screen.id); if (mine) select("save") }}
+                    onClick={(event) => { event.stopPropagation(); openEditor(project, screen, "save") }}
                   >
                     {art.save.copy}
                   </button>

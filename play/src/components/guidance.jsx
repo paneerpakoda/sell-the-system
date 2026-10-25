@@ -1,6 +1,7 @@
 import * as engine from "../engine.js"
 
 const {
+  dismissNotice,
   monthLength,
   openParts,
   payrollDue,
@@ -112,6 +113,21 @@ export function payrollFacts() {
     reason: payroll && typeof payroll.reason === "string" ? payroll.reason : "",
     lines: payroll && Array.isArray(payroll.atEndLines) ? payroll.atEndLines : []
   }
+}
+
+export function formatClock(seconds) {
+  const whole = Math.max(0, Math.ceil(Number(seconds) - 1e-9))
+  const minutes = Math.floor(whole / 60)
+  const secs = whole % 60
+  return minutes + ":" + String(secs).padStart(2, "0")
+}
+
+export function undoForkChoice() {
+  state.fork = null
+  state.specialty = null
+  state.forkClosed = false
+  state.status = "Choice undone. Specialist keeps new clients in one industry. Generalist keeps the mix."
+  if (state.notices.length === 0) dismissNotice()
 }
 
 export function weekClock(into) {

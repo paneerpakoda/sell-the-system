@@ -1,0 +1,65 @@
+import assert from "node:assert/strict"
+import { createElement } from "react"
+import { renderToStaticMarkup } from "react-dom/server"
+import { createServer } from "vite"
+import { advance, dismissNotice, nameStudio, spawn, startClient, state, weekState } from "../src/engine.js"
+
+nameStudio("Clocks")
+state.clocksLive = false
+const project = spawn("start")
+const month = state.monthLeft
+advance(5)
+assert.equal(state.monthLeft, month, "month clock moved before the first Start")
+assert.equal(weekState().into, 0, "week clock moved before the first Start")
+assert.equal(weekState().week, 1)
+
+startClient(project)
+assert.equal(state.clocksLive, true)
+const onTime = project.onTimeLeft
+advance(2)
+assert.ok(state.monthLeft < month, "month clock stayed held after Start")
+assert.ok(weekState().into > 0, "week clock stayed held after Start")
+assert.ok(project.onTimeLeft < onTime, "client clock did not start")
+
+const frozen = project.onTimeLeft
+const monthDuring = state.monthLeft
+state.notices.push({ id: "teach-test", title: "Teaching", body: "Pause the client clock." })
+advance(3)
+assert.equal(project.onTimeLeft, frozen, "teaching card did not pause the client clock")
+assert.ok(state.monthLeft < monthDuring, "teaching card froze the month clock")
+
+dismissNotice()
+assert.equal(state.notices.length, 0)
+const resumed = project.onTimeLeft
+advance(2)
+assert.ok(project.onTimeLeft < resumed, "client clock stayed paused after the teaching card closed")
+
+const vite = await createServer({
+  server: { middlewareMode: true },
+  appType: "custom",
+  logLevel: "error"
+})
+try {
+  const engine = await vite.ssrLoadModule("/src/engine.js")
+  const { Decisions } = await vite.ssrLoadModule("/src/components/Decisions.jsx")
+  const { Notice } = await vite.ssrLoadModule("/src/components/Notice.jsx")
+  engine.nameStudio("Stage")
+  engine.state.notices = [{ id: "tokens", title: "Base values", body: "You remember the base." }]
+  engine.state.everHired = true
+  engine.state.accepted = 3
+  engine.state.fork = null
+  engine.state.forkClosed = false
+  engine.state.event = null
+  engine.state.break = null
+  const duringNotice = renderToStaticMarkup(createElement("div", null, createElement(Decisions), createElement(Notice)))
+  assert.match(duringNotice, /Base values/)
+  assert.doesNotMatch(duringNotice, /Specialist or generalist/)
+  engine.state.notices = []
+  const afterNotice = renderToStaticMarkup(createElement(Decisions))
+  assert.match(afterNotice, /Specialist or generalist/)
+  assert.match(afterNotice, /New clients stay in one industry/)
+} finally {
+  await vite.close()
+}
+
+console.log("clock hold and stage-2 card check ok")
