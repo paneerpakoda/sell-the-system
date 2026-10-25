@@ -27,6 +27,27 @@ input, textarea { user-select: text; -webkit-user-select: text; }
 button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.dock button:focus-visible,
+.inspector button:focus-visible,
+.client-widget:focus-visible,
+.layer-jumps button:focus-visible,
+.choice:focus-visible,
+.fill-row:focus-visible,
+.lib-row:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
+.ship:focus-visible,
+.gate-card button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+.frame-body .part:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -3px;
+  box-shadow: inset 0 0 0 2px var(--blue);
+}
 
 .app {
   height: 100dvh;
@@ -314,7 +335,12 @@ button.node:disabled { opacity: 0.45; }
   font-weight: 550;
   letter-spacing: -0.03em;
 }
-.gate-card input:focus { outline: none; border-bottom-color: var(--blue); }
+.gate-card input:focus,
+.gate-card input:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+  border-bottom-color: var(--blue);
+}
 .gate-card button {
   margin-top: 28px;
   height: 40px;
@@ -514,25 +540,46 @@ button.node:disabled { opacity: 0.45; }
   background: #2c2c2c;
 }
 .week-pause .gate-card button { margin-top: 0; }
+.week-pause-stack { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(440px, 100%); }
+.finish-nudge {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--warn);
+  color: #1c1917;
+  font-size: 14px;
+  font-weight: 650;
+}
+.week-pause .gate-actions button[data-confirm]:focus {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
 .clock-card {
   position: absolute;
   z-index: 5;
   left: 12px;
   right: 12px;
   bottom: 128px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   max-width: 560px;
-  max-height: min(46vh, 340px);
+  max-height: none;
   margin: 0 auto;
-  padding: 14px 16px;
-  overflow: auto;
+  padding: 14px 16px 16px;
+  overflow: visible;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
   pointer-events: auto;
 }
 .clock-card h2 { margin: 0; font-size: 16px; font-weight: 550; }
-.clock-card ul { margin: 8px 0 0; padding-left: 18px; }
+.clock-card ul { margin: 0; padding-left: 18px; }
 .clock-card li { margin-top: 8px; font-size: 14px; line-height: 1.4; }
+.clock-card li:first-child { margin-top: 0; }
+.clock-card .decision-row { margin: 0; flex: none; }
+.clock-card p.clock-running,
+.decision p.clock-running { margin: 0; color: var(--warn); font-size: 14px; font-weight: 650; }
 .clock-card li b { font-weight: 550; }
 .decision-reopen {
   position: absolute;
@@ -727,6 +774,20 @@ button.node:disabled { opacity: 0.45; }
   font-weight: 550;
 }
 .modal button:hover { background: #075a9e; }
+.modal .decision-row button[data-confirm] {
+  background: #c62828;
+  color: #fff;
+}
+.modal .decision-row button[data-confirm]:hover { background: #a31f1f; }
+.modal .decision-row button:not([data-confirm]) {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.modal .decision-row button:not([data-confirm]):hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
 .tip {
   position: fixed;
   z-index: 35;
@@ -853,12 +914,16 @@ button.node:disabled { opacity: 0.45; }
 .screen.on, .part.on { outline: 2px solid var(--blue); outline-offset: 2px; }
 .part { font: inherit; cursor: pointer; border: 0; }
 .frame-body .part { position: relative; z-index: 1; }
-.frame-body .part.low-contrast { z-index: 2; box-shadow: inset 0 0 0 2px #1c1917; }
+/* Ink and white rings stay visible on Hot, Lime, Paper, and Ink, before selection. */
+.frame-body .part,
+.frame-body .part.low-contrast {
+  box-shadow: inset 0 0 0 2px #fff, inset 0 0 0 4px #1c1917;
+}
+.frame-body .part.low-contrast { z-index: 2; }
 .frame-body .part.save { z-index: 4; }
 .frame-body .part.save.low-contrast { z-index: 5; }
 .title {
   align-self: stretch;
-  background: transparent;
   border: 0;
   padding: 12px 4px 4px;
   font-weight: 650;
@@ -1074,12 +1139,52 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
 .lib-row i[data-colour="lime"], .fill-dot[data-colour="lime"] { background: #C8FF00; }
 .note { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 
+@media (max-width: 1536px) {
+  .app { grid-template-columns: 220px minmax(0, 1fr) 220px; }
+  .stage { overflow: auto; display: flex; flex-direction: column; }
+  .studio-name { position: relative; top: auto; left: auto; max-width: none; padding: 8px 12px 0; flex: none; }
+  .hud { position: relative; top: auto; left: auto; right: auto; flex: none; }
+  .ship { position: relative; top: auto; bottom: auto; left: auto; transform: none; margin: 8px auto; flex: none; }
+  .widget-rail { position: relative; left: auto; right: auto; bottom: auto; flex: none; height: 96px; z-index: 1; }
+  .viewport { position: relative; inset: auto; flex: 1 0 640px; min-height: 640px; }
+  .world { top: 46%; }
+  .clock-card, .decision, .decision-reopen {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    flex: none;
+    max-height: none;
+  }
+  .clock-card { margin: 8px 12px 12px; }
+  .decision { margin: 8px auto 16px; }
+  .decision-reopen { margin: 8px 16px 16px; width: fit-content; }
+  .client, .target-chip, .who, .meta { min-width: 0; }
+}
+@media (max-width: 1440px) {
+  .app { grid-template-columns: 200px minmax(0, 1fr) 200px; }
+  .money { font-size: 36px; }
+}
+@media (max-width: 1366px) {
+  .app { grid-template-columns: 180px minmax(0, 1fr) 180px; }
+}
+@media (max-width: 1280px) {
+  .app { grid-template-columns: 168px minmax(0, 1fr) 168px; }
+  .money { font-size: 32px; }
+}
+@media (max-width: 960px) {
+  .app { grid-template-columns: 150px minmax(0, 1fr) 150px; }
+  .money { font-size: 28px; }
+  .meters { gap: 10px; }
+}
+
 @media (max-width: 860px) {
   .app {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.8fr);
   }
-  .stage { grid-row: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .stage { grid-row: 1; overflow: auto; display: flex; flex-direction: column; }
   .studio-name { position: relative; top: auto; left: auto; max-width: none; padding: 8px 12px 0; }
   .hud { position: relative; top: auto; left: auto; right: auto; }
   .ship { position: relative; top: auto; bottom: auto; left: auto; transform: none; margin: 8px auto; }
@@ -1115,30 +1220,42 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
   .money { font-size: 20px; }
   .meters { gap: 6px; }
   .widget-rail { display: none; }
-  .clock-card { bottom: 8px; max-height: min(46vh, 220px); }
+  .clock-card, .decision { position: relative; bottom: auto; left: auto; right: auto; max-height: none; margin: 8px 12px; }
   .gate { overflow: auto; align-items: start; padding: 8px 0; }
   .gate-card, .week-pause .gate-card { padding: 12px; }
   .gate-card h1, .gate-card input { font-size: 22px; }
-  .week-pause { align-items: stretch; padding: 8px; }
+  .week-pause { align-items: flex-end; padding: 8px; }
   .week-pause .gate-card { width: 100%; max-height: calc(100dvh - 16px); }
   .week-pause .gate-actions button { width: 100%; }
 }
 @media (max-width: 480px) {
-  .week-pause { align-items: stretch; padding: 8px; }
+  .week-pause { align-items: flex-end; padding: 8px; }
   .week-pause .gate-card {
     width: 100%;
-    max-height: calc(100dvh - 16px);
+    max-height: min(62dvh, calc(100dvh - 120px));
     padding: 16px 12px;
   }
   .week-pause .gate-card h1 { font-size: 22px; }
   .week-pause .gate-card p { font-size: 14px; }
   .week-pause .gate-actions button { width: 100%; }
+  .modal-back { align-items: end; padding: 8px; }
   .modal {
     width: min(320px, calc(100vw - 16px));
-    max-height: calc(100dvh - 16px);
+    max-height: min(70dvh, calc(100dvh - 16px));
+    margin-top: 0;
     overflow: auto;
+    align-self: end;
   }
-  .clock-card { bottom: 112px; max-height: min(42vh, 280px); padding: 12px; }
+  .clock-card, .decision, .decision-reopen {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    max-height: none;
+    margin: 8px 12px 12px;
+  }
+  .clock-card { padding: 12px; }
   .goal-strip { display: none; }
 }
 .tone-wrong { color: var(--danger); }

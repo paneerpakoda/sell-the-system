@@ -19,6 +19,7 @@ export function useModal(active) {
   const onEnter = useRef(null)
   useEffect(() => {
     if (!active) return undefined
+    window.dispatchEvent(new Event("close-popovers"))
     const entry = { ref }
     stack.push(entry)
     const root = ref.current

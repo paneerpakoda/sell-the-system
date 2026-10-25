@@ -41,6 +41,7 @@ export function Decisions() {
       <div ref={modal.ref} className="decision" role="dialog" aria-modal="true" aria-labelledby="big-client-title">
         <h2 id="big-client-title">{offer.client} is a big client</h2>
         <p>Take the brief. A full ship pays ${offer.payout}. A short ship pays ${offer.short}. Turn it down for ${offer.decline}.</p>
+        <p className="clock-running">Clock is running</p>
         <div className="decision-row">
           <button type="button" data-confirm onClick={() => takeBig()}>Take it · ${offer.payout}</button>
           <button type="button" onClick={() => turnDownBig()}>Turn it down · ${offer.decline}</button>
@@ -61,6 +62,7 @@ export function Decisions() {
         <h2 id="midgame-title">Big clients or a steady book</h2>
         <p><b>Chase big clients.</b> {CHASE}</p>
         <p><b>Keep a steady book.</b> {STEADY}</p>
+        <p className="clock-running">Clock is running</p>
         <div className="decision-row">
           <button type="button" data-confirm onClick={() => chooseMidgame("chase")}>Chase big clients</button>
           <button type="button" onClick={() => chooseMidgame("steady")}>Keep a steady book</button>
