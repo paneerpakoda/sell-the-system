@@ -172,8 +172,9 @@ export function Hud() {
   const open = state.queue.find((item) => item.id === state.openId)
   const waiting = open && !open.started
   const project = waiting ? open : playerJob() || open || state.queue[0]
-  const shipLabel = waiting ? "Start" : shipButtonLabel(project)
   const live = shipClickEnabled(!!waiting, waiting ? open : project)
+  const offered = waiting ? "Start" : shipButtonLabel(project)
+  const shipLabel = !waiting && !live && offered.indexOf("$") !== -1 ? "Ship held" : offered
   const guide = guidingFirst()
   const guideStart = !!(guide && !guide.started && waiting && open && open.id === guide.project.id)
   const guideShip = !!(guide && guide.shipLive && !waiting && project && project.id === guide.project.id)
