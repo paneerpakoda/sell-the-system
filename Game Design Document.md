@@ -93,7 +93,7 @@ A Head start can be bought after the first Fit you finish for a client who was n
 
 ### People
 
-The first Intern can be hired after 3 hand ships. Hire has no fee. Pay comes due at the end of the month, and only for staff still employed. A month is 240 seconds, four weeks of 60 seconds. An idle Intern is still paid. Each hire is another Intern. Hiring and firing do not change Reputation.
+The first Intern can be hired after 3 hand ships. Hire has no fee. Pay comes due at the end of the month, pro-rated for the time each person was employed. A month is 240 seconds, four weeks of 60 seconds. An idle Intern is still paid. Each hire is another Intern. Hiring and firing do not change Reputation.
 
 Each Intern's miss rate is rolled from 20% to 50% and shown on that Intern's card. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%, and the rate does not go below that. If no Intern has been hired, the next hire starts at 20%, once. An idle Intern pulls the oldest small Project you have not claimed. A big client is not pulled until at least one token has been bought. You can claim that big client yourself before then. The attempt takes 8 seconds.
 
@@ -101,7 +101,7 @@ A clean auto-ship pays $3, or $6 once Stage 3 is active. It counts as an accepte
 
 A miss writes a visibly wrong value on one uncovered property and flags the Project. You fix it and Ship. That pays the hand fee. It is a hand ship, and it is not that Intern's clean ship.
 
-Fire is immediate, for an Intern or a Permanent. Future pay stops. Money already paid stays spent. The Project they were attempting returns to the queue.
+Fire is immediate, for an Intern or a Permanent. Future pay stops. The month still bills the time already worked. Money already paid stays spent. The Project they were attempting returns to the queue.
 
 Promote that Intern after 3 of their own clean ships. Promote has no fee. They become a Permanent: $30 a month, attempts of 4 seconds, and a 0% miss on any property the design system, a codified language, or the design process covers. The miss rate on their card still applies to an uncovered property that is judged.
 
@@ -155,7 +155,7 @@ Coverage stacks. Base Colour, Base Radius, and Base Contrast cover vague colour,
 
 ## Win
 
-The win is one full month of 240 seconds, four weeks of 60 seconds, that began only after Stage 3 was already active. In that month at least one big client shipped. You never opened or fixed a Project by hand: no select, no element click, no requirement click, no value edit, and no Ship. Opening the Wiki does not count. Month-end payroll for the staff still employed was paid in full. The banner does not block. Play continues.
+The win is one full month of 240 seconds, four weeks of 60 seconds, that began only after Stage 3 was already active. In that month at least one big client shipped. You never opened or fixed a Project by hand: no select, no element click, no requirement click, no value edit, and no Ship. Opening the Wiki does not count. Month-end payroll for the time staff were employed was paid in full. The banner does not block. Play continues.
 
 ## Form
 

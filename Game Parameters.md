@@ -4,7 +4,7 @@ Decided 24 October 2026. These numbers are the `PARAMS` object in `prototype-sel
 
 Starting money is $24. There is one balance. It never goes below $0.
 
-A month is 240 seconds, four weeks of 60 seconds, of wall clock. Payroll is deducted at the end of the month, for staff still employed. If the queue is empty, the next Project arrives immediately. While the queue already holds a Project, the next arrives every 60 seconds until 3 ships have been accepted, then every 45 - (acceptedShips - 3) seconds, and never faster than 30 seconds.
+A month is 240 seconds, four weeks of 60 seconds, of wall clock. Payroll is deducted at the end of the month, pro-rated for the time each person was employed. If the queue is empty, the next Project arrives immediately. While the queue already holds a Project, the next arrives every 60 seconds until 3 ships have been accepted, then every 45 - (acceptedShips - 3) seconds, and never faster than 30 seconds.
 
 An accepted ship is a successful hand ship or a clean auto-ship. Reputation rises by 1 for each, and only speeds that gap.
 
@@ -19,7 +19,7 @@ Stage 3 is active while at least one Permanent is employed and at least one lang
 | Balance floor | $0 | Payroll never drives the balance negative |
 | Month | 240s | Wall-clock month, four weeks of 60 seconds. Payroll comes due at the end |
 | Week | 60s | One quarter of the month. The HUD shows week 1 through week 4 |
-| Payroll | Staff still employed | An Intern or Permanent fired before the end is not on that bill |
+| Payroll | Pro-rated | Time employed this month. Someone fired before the end is billed for that fraction. A full month is the full wage |
 | Reputation | +1 per accepted ship | Speeds arrivals. Hiring and firing do not change it |
 
 ## Fees
@@ -32,8 +32,8 @@ Stage 3 is active while at least one Permanent is employed and at least one lang
 | Auto-ship fee, Stage 3 | $6 | Same clean auto-ship, completed while Stage 3 is active |
 | Big fee | $36 | One big client |
 | Big fee, Stage 3 | $48 | One big client, shipped while Stage 3 is active |
-| Intern pay | $10 per month | Due for every Intern still employed, including one with no Project |
-| Permanent pay | $30 per month | Due for every Permanent still employed |
+| Intern pay | $10 per month | Pro-rated for time employed, including idle time and time before a firing |
+| Permanent pay | $30 per month | Pro-rated for time employed, including idle time and time before a firing |
 | Hire fee | None | No upfront charge for an Intern or for Promote |
 | Base token | $12 each | Base Colour, Base Radius, or Base Contrast |
 | Codify Language | $15 | One Industry, after a big client in that Industry has shipped |
@@ -155,7 +155,7 @@ These are the swatches already on the phone in `prototype-sell-the-system.html`.
 
 ## Win
 
-A full month is 240 seconds, four weeks of 60 seconds. It began only after Stage 3 was already active. In that month at least one big client shipped. You never selected a Project, clicked an element, clicked a requirement, edited a value, or pressed Ship. Month-end payroll for the staff still employed was paid in full. The banner does not block. Play continues.
+A full month is 240 seconds, four weeks of 60 seconds. It began only after Stage 3 was already active. In that month at least one big client shipped. You never selected a Project, clicked an element, clicked a requirement, edited a value, or pressed Ship. Month-end payroll for the time staff were employed was paid in full. The banner does not block. Play continues.
 
 ## Related
 

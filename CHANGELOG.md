@@ -13,3 +13,7 @@ Win rules, fees, and the description of how an attempt is judged were left as wr
 ### Tooling
 
 Added `play/scripts/check-params.mjs`. It reads the month, week, deadline, and arrival values from `play/src/engine.js` and exits non-zero if the Game Design Document, Game Parameters, or CONTEXT still describe the old clock. That keeps the doc fix from drifting the next time the engine constants change.
+
+### Payroll wording
+
+The docs said payroll is due only for staff still employed, and that an Intern or Permanent fired before the end is not on that bill. The engine bills `pay × time employed / month length`, so a firing still owes the fraction of the month already worked, and a person kept for the whole month owes the full wage. The Game Design Document, Game Parameters, and CONTEXT now say that. Wages stay $10 and $30. The win is still a qualified month, a big client, no hand touch, and payroll paid.

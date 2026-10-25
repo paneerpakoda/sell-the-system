@@ -97,7 +97,7 @@ Payment for a Project that shipped. You finish a ship, someone finishes one clea
 _Avoid_: selling a token, a pitch, a contract you negotiate, a bonus for finishing faster
 
 **Month**:
-240 seconds, four weeks of 60 seconds, of wall clock. Payroll comes due at the end, for staff still employed. The winning month is one of these that began only after Stage 3 was already active.
+240 seconds, four weeks of 60 seconds, of wall clock. Payroll comes due at the end, pro-rated for the time each person was employed. The winning month is one of these that began only after Stage 3 was already active.
 _Avoid_: a count of ships, a freeze, a mood timer
 
 **On time**:
