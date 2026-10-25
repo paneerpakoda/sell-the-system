@@ -196,6 +196,107 @@ await check("a big screen that is not best practice pays the short fee", async (
   assert.equal(feeFor(project), 6)
 })
 
+function close(actual, expected, label) {
+  assert.ok(Math.abs(actual - expected) < 0.001, (label || "money") + " " + actual + " != " + expected)
+}
+
+await check("payroll fields exist before anyone is hired", async () => {
+  const { state, nameStudio } = await load()
+  nameStudio("Empty")
+  assert.equal(state.payroll.due, 0)
+  assert.deepEqual(state.payroll.lines, [])
+  assert.equal(state.nextHireCost, 10)
+  assert.equal(state.payroll.nextHire, 10)
+  assert.equal(state.nextHireUnpayable, false)
+  assert.equal(state.payroll.reason, "")
+})
+
+await check("a full-month employee pays the full wage", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("FullWage")
+  state.staff = [intern(1, "Ada")]
+  state.nextStaffId = 2
+  state.money = 50
+  state.monthLeft = 0.2
+  advance(1)
+  assert.ok(state.break)
+  close(state.money, 40)
+  assert.match(state.break.note, /Payroll paid \$10: Ada \(\$10\)/)
+})
+
+await check("a hire midway through the month pays half", async () => {
+  const { state, nameStudio, hire, advance, dismissNotice, payrollDue } = await load()
+  nameStudio("Half")
+  state.handShips = 3
+  state.money = 100
+  state.monthLeft = 120
+  hire()
+  while (state.notices.length) dismissNotice()
+  assert.equal(state.staff[0].startedAt, 120)
+  close(payrollDue(), 5)
+  close(state.payroll.due, 0)
+  close(state.nextHireCost, 5)
+  close(state.payroll.nextHire, 5)
+  state.monthLeft = 0.2
+  advance(1)
+  assert.ok(state.break)
+  close(state.money, 95)
+  assert.match(state.break.note, /Ada \(\$5\)/)
+})
+
+await check("firing just before month end keeps pay already worked", async () => {
+  const { state, nameStudio, hire, fire, promote, payrollDue, advance, dismissNotice } = await load()
+  nameStudio("Exploit")
+  state.handShips = 3
+  state.money = 200
+  state.monthLeft = 240
+  hire()
+  state.staff[0].clean = 3
+  promote(state.staff[0].id)
+  hire()
+  while (state.notices.length) dismissNotice()
+  const internId = state.staff.find((staff) => staff.role === "intern").id
+  close(payrollDue(), 40)
+  state.monthLeft = 1
+  nameStudio("Exploit")
+  const accrued = state.payroll.due
+  assert.ok(accrued > 39 && accrued < 40, "accrued " + accrued)
+  fire(internId)
+  close(state.payroll.due, accrued)
+  const end = payrollDue()
+  assert.ok(end > 39 && end < 40, "month-end after fire " + end)
+  assert.notEqual(end, 30)
+  state.money = 200
+  state.monthLeft = 0.2
+  advance(1)
+  while (state.notices.length) dismissNotice()
+  assert.ok(state.break)
+  close(state.money, 200 - end)
+  assert.match(state.break.note, /Ada/)
+  assert.match(state.break.note, /Ben/)
+  assert.doesNotMatch(state.break.note, /object Object/)
+})
+
+await check("the next hire can be flagged unpayable", async () => {
+  const { state, nameStudio } = await load()
+  nameStudio("Warn")
+  state.money = 12
+  state.staff = [permanent(1, "Ada")]
+  state.monthLeft = 240
+  nameStudio("Warn")
+  close(state.payroll.atEnd, 30)
+  close(state.nextHireCost, 10)
+  assert.equal(state.nextHireUnpayable, true)
+  assert.equal(state.payroll.nextHireUnpayable, true)
+  assert.match(state.payroll.reason, /\$10/)
+  assert.match(state.payroll.reason, /\$40/)
+  assert.match(state.payroll.reason, /\$12/)
+  state.money = 40
+  nameStudio("Warn")
+  assert.equal(state.nextHireUnpayable, false)
+  assert.equal(state.payroll.reason, "")
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")

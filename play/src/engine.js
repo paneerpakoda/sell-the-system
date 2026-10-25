@@ -238,7 +238,92 @@ function shipPay(project) {
 function autoPay() {
   return stage3Active() ? 6 : 3
 }
-function payrollDue() { return state.staff.reduce((sum, staff) => sum + staff.pay, 0) }
+function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100
+}
+function moneyText(value) {
+  const rounded = roundMoney(value)
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2)
+}
+function monthElapsed() {
+  return Math.max(0, Math.min(monthLength, monthLength - state.monthLeft))
+}
+function employmentAmount(staff, until) {
+  const start = Number.isFinite(staff.startedAt) ? staff.startedAt : 0
+  const end = Math.max(start, Math.min(monthLength, until))
+  return roundMoney(staff.pay * (end - start) / monthLength)
+}
+function combineLines(lines) {
+  const order = []
+  const sums = new Map()
+  lines.forEach((line) => {
+    if (!line || !(line.amount > 0)) return
+    if (!sums.has(line.name)) order.push(line.name)
+    sums.set(line.name, roundMoney((sums.get(line.name) || 0) + line.amount))
+  })
+  return order.map((name) => ({ name, amount: sums.get(name) }))
+}
+function payrollPreview(until) {
+  const closeLines = payrollLedger.map((line) => ({ name: line.name, amount: line.amount }))
+  const endLines = payrollLedger.map((line) => ({ name: line.name, amount: line.amount }))
+  state.staff.forEach((staff) => {
+    closeLines.push({ name: staff.name, amount: employmentAmount(staff, until) })
+    endLines.push({ name: staff.name, amount: employmentAmount(staff, monthLength) })
+  })
+  const lines = combineLines(closeLines)
+  const atEndLines = combineLines(endLines)
+  return {
+    due: roundMoney(lines.reduce((sum, line) => sum + line.amount, 0)),
+    lines,
+    atEnd: roundMoney(atEndLines.reduce((sum, line) => sum + line.amount, 0)),
+    atEndLines
+  }
+}
+function nextHireAmount(until) {
+  const elapsed = Math.max(0, Math.min(monthLength, until))
+  return roundMoney(internWage * (monthLength - elapsed) / monthLength)
+}
+function refreshPayrollOffer() {
+  const until = monthElapsed()
+  const preview = payrollPreview(until)
+  const next = nextHireAmount(until)
+  const bill = roundMoney(preview.atEnd + next)
+  const unpayable = bill - state.money > 0.001
+  state.payroll = {
+    due: preview.due,
+    lines: preview.lines,
+    atEnd: preview.atEnd,
+    atEndLines: preview.atEndLines,
+    nextHire: next,
+    nextHireUnpayable: unpayable,
+    reason: unpayable
+      ? "Hiring adds $" + moneyText(next) + " for the rest of this month. Payroll would be $" + moneyText(bill) + " and you have $" + moneyText(state.money) + "."
+      : ""
+  }
+  state.nextHireCost = next
+  state.nextHireUnpayable = unpayable
+}
+function payrollDue() {
+  return payrollPreview(monthElapsed()).atEnd
+}
+function rememberPay(staff, until) {
+  const amount = employmentAmount(staff, until)
+  if (amount > 0) payrollLedger.push({ name: staff.name, amount })
+}
+function formatPeople(lines) {
+  return (lines || []).filter((line) => line && line.amount > 0).map((line) => line.name + " ($" + moneyText(line.amount) + ")").join(", ")
+}
+function payrollNote(result) {
+  const owed = formatPeople(result.paidLines)
+  const gone = formatPeople(result.left)
+  if (!result.fullyPaid) {
+    const paidBit = "Paid $" + moneyText(result.paid) + (result.paid > 0 && owed ? ": " + owed : "") + "."
+    if (gone) return gone + " left unpaid. Payroll was short. " + paidBit
+    return "Payroll was short. " + paidBit
+  }
+  if (result.paid > 0) return "Payroll paid $" + moneyText(result.paid) + ": " + owed + "."
+  return "No payroll due."
+}
 function tokensUnlocked() { return state.everHired && state.accepted >= 3 }
 function playerJob() {
   return state.queue.find((project) => project.claimedBy === "player") || null
@@ -1339,25 +1424,44 @@ function runArrival(dt) {
   }
 }
 function settlePayroll() {
+  const until = monthLength
+  const departed = payrollLedger.map((line) => ({ name: line.name, amount: line.amount }))
+  const active = state.staff.map((staff) => ({
+    staff,
+    name: staff.name,
+    amount: employmentAmount(staff, until)
+  }))
+  const owed = () => roundMoney(
+    departed.reduce((sum, line) => sum + line.amount, 0) +
+    active.reduce((sum, line) => sum + line.amount, 0)
+  )
   const left = []
-  const pull = (role) => {
-    for (let i = state.staff.length - 1; i >= 0; i--) {
-      if (state.staff[i].role !== role) continue
-      const gone = state.staff.splice(i, 1)[0]
-      releaseStaff(gone)
-      return gone
+  const dismiss = (role) => {
+    for (let i = active.length - 1; i >= 0; i--) {
+      if (active[i].staff.role !== role) continue
+      const gone = active.splice(i, 1)[0]
+      const index = state.staff.findIndex((staff) => staff.id === gone.staff.id)
+      if (index >= 0) {
+        const removed = state.staff.splice(index, 1)[0]
+        releaseStaff(removed)
+      }
+      if (gone.amount > 0) left.push({ name: gone.name, amount: gone.amount })
+      return true
     }
-    return null
+    return false
   }
-  while (state.staff.length && payrollDue() > state.money) {
-    const role = state.staff.some((staff) => staff.role === "permanent") ? "permanent" : "intern"
-    const gone = pull(role)
-    if (!gone) break
-    left.push(gone)
+  while (active.length && owed() - state.money > 0.001) {
+    const role = active.some((item) => item.staff.role === "permanent") ? "permanent" : "intern"
+    if (!dismiss(role)) break
   }
-  const due = payrollDue()
-  state.money = Math.max(0, state.money - due)
-  return { paid: due, left, fullyPaid: left.length === 0 }
+  const paidLines = combineLines(departed.concat(active.map((item) => ({ name: item.name, amount: item.amount }))))
+  const payable = roundMoney(paidLines.reduce((sum, line) => sum + line.amount, 0))
+  const paid = roundMoney(Math.min(state.money, payable))
+  state.money = roundMoney(Math.max(0, state.money - paid))
+  payrollLedger = []
+  state.staff.forEach((staff) => { staff.startedAt = monthLength })
+  const fullyPaid = left.length === 0 && paid + 0.001 >= payable
+  return { paid, payable, left, paidLines, fullyPaid }
 }
 function refreshQualified() {
   if (!stage3Active()) state.month.qualified = false
@@ -1373,14 +1477,7 @@ function openBreak() {
     state.wins += 1
     state.showBanner = true
   }
-  const bill = (staff) => staff.name + " ($" + staff.pay + ")"
-  let note = "No payroll due."
-  if (payroll.left.length) {
-    note = payroll.left.map(bill).join(", ") + " left unpaid. Payroll was short."
-    if (payroll.paid > 0 && state.staff.length) note += " Paid $" + payroll.paid + ": " + state.staff.map(bill).join(", ") + "."
-  } else if (payroll.paid > 0) {
-    note = "Payroll paid $" + payroll.paid + ": " + state.staff.map(bill).join(", ") + "."
-  }
+  let note = payrollNote(payroll)
   if (won) note = "Won the month. " + note
   state.break = { note, won }
   state.status = note
@@ -1392,6 +1489,8 @@ export function continueMonth() {
   state.monthIndex += 1
   state.month = { qualified: stage3Active(), bigShipped: false, handTouch: false }
   state.monthLeft = monthLength
+  payrollLedger = []
+  state.staff.forEach((staff) => { staff.startedAt = 0 })
   state.status = "Month " + state.monthIndex + ". Week 1."
   commit()
 }
@@ -1412,18 +1511,19 @@ function hire() {
     id: state.nextStaffId++,
     name,
     role: "intern",
-    pay: 10,
+    pay: internWage,
     miss,
     clean: 0,
     projectId: null,
     screenId: null,
-    workLeft: 0
+    workLeft: 0,
+    startedAt: monthElapsed()
   })
   const tokensWereOpen = tokensUnlocked()
   state.everHired = true
   state.arrivalLeft = interval()
   if (!tokensWereOpen && tokensUnlocked()) teach("tokens", "Base values", "You remember the base. The intern sets it on every frame in one step.")
-  state.status = name + " hired. $10 a month. They design the other screens from yours."
+  state.status = name + " hired. $" + internWage + " a month. They design the other screens from yours."
   if (!state.break) state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
   commit()
 }
@@ -1431,6 +1531,7 @@ function fire(id) {
   const index = state.staff.findIndex((staff) => staff.id === id)
   if (index < 0) return
   const staff = state.staff[index]
+  rememberPay(staff, monthElapsed())
   releaseStaff(staff)
   state.staff.splice(index, 1)
   state.status = staff.name + " is fired. Future pay stops."
@@ -1449,11 +1550,13 @@ function promote(id) {
       screen.done = false
     })
   }
+  rememberPay(staff, monthElapsed())
   staff.role = "permanent"
-  staff.pay = 30
+  staff.pay = permanentWage
+  staff.startedAt = monthElapsed()
   staff.projectId = null
   staff.screenId = null
-  state.status = staff.name + " is permanent. $30 a month. They start clients you have not started."
+  state.status = staff.name + " is permanent. $" + permanentWage + " a month. They start clients you have not started."
   teach("permanent", "Permanent", "They start the clients. You do not have to walk in first.")
   teachProcess()
   commit()
@@ -1701,6 +1804,7 @@ function refreshShipOffer() {
   state.shipFee = fee
 }
 function commit() {
+  refreshPayrollOffer()
   refreshShipOffer()
   notify()
 }
