@@ -60,6 +60,20 @@ function arrivalSentence(source) {
   return `While the queue already holds a Project, the next arrives every ${earlySeconds} seconds until ${threshold} ships have been accepted, then every ${baseSeconds} - (acceptedShips - ${threshold}) seconds, and never faster than ${floorSeconds} seconds.`
 }
 
+function attemptSentence(source) {
+  const body = source.match(/export function stepSeconds\(project\) \{\n  return Math\.round\(Math\.max\(([\d.]+), ([\d.]+) - systemCount\(project\) \* ([\d.]+)\) \* 10\) \/ 10\n\}/)
+  if (!body) {
+    fail("stepSeconds() is not the documented attempt shape")
+    return null
+  }
+  return {
+    floor: body[1],
+    base: body[2],
+    step: body[3],
+    sentence: `An attempt takes ${body[2]} seconds, minus ${body[3]} seconds for each counted system, and never under ${body[1]} seconds. Interns and Permanents use that same clock.`
+  }
+}
+
 function deadlineSentence(source, constants) {
   const body = source.match(/function deadlineForNext\(\) \{([\s\S]*?)\n\}/)
   if (!body) {
@@ -107,6 +121,7 @@ if (engine.deadlineLength !== constants.deadlineLength) {
 const monthPhrase = `${constants.monthLength} seconds, four weeks of ${constants.weekLength} seconds`
 const arrivals = arrivalSentence(source)
 const deadlines = deadlineSentence(source, constants)
+const attempt = attemptSentence(source)
 
 const stale = [
   [/\b45 seconds\b/, "45 seconds"],
@@ -116,7 +131,12 @@ const stale = [
   [/20 - min\(acceptedShips, 12\)/, "arrival formula 20 - min(acceptedShips, 12)"],
   [/8 seconds once/, "8 seconds once 12 ships"],
   [/down to 8 seconds/, "down to 8 seconds"],
-  [/from 20 seconds to 8 seconds/, "gap from 20 seconds to 8 seconds"]
+  [/from 20 seconds to 8 seconds/, "gap from 20 seconds to 8 seconds"],
+  [/attempt takes 8 seconds/, "an attempt takes 8 seconds"],
+  [/attempts take 4 seconds/, "attempts take 4 seconds"],
+  [/attempts of 4 seconds/, "attempts of 4 seconds"],
+  [/\| Intern attempt \| 8s \|/, "intern attempt 8s"],
+  [/\| Permanent attempt \| 4s \|/, "permanent attempt 4s"]
 ]
 
 for (const name of docs) {
@@ -125,6 +145,7 @@ for (const name of docs) {
   if (monthPhrase && !text.includes(monthPhrase)) fail(`${name} is missing "${monthPhrase}"`)
   if (arrivals && !text.includes(arrivals)) fail(`${name} is missing "${arrivals}"`)
   if (deadlines && !text.includes(deadlines)) fail(`${name} is missing "${deadlines}"`)
+  if (attempt && !text.includes(attempt.sentence)) fail(`${name} is missing "${attempt.sentence}"`)
   for (const [pattern, label] of stale) {
     if (pattern.test(text)) fail(`${name} still says ${label}`)
   }
@@ -136,10 +157,12 @@ const rows = [
   `| Week | ${constants.weekLength}s |`,
   `| On time, until a hire | ${constants.firstDeadline}s |`,
   `| On time, after a hire | ${constants.deadlineLength}s |`,
-  `| On time, with a Permanent | ${constants.managedDeadline}s |`
+  `| On time, with a Permanent | ${constants.managedDeadline}s |`,
+  attempt ? `| Intern attempt | ${attempt.base}s to ${attempt.floor}s |` : null,
+  attempt ? `| Permanent attempt | ${attempt.base}s to ${attempt.floor}s |` : null
 ]
 for (const row of rows) {
-  if (constants.monthLength != null && !parameters.includes(row)) {
+  if (row && constants.monthLength != null && !parameters.includes(row)) {
     fail(`Game Parameters.md is missing table row ${row}`)
   }
 }
@@ -156,4 +179,5 @@ console.log(`weekLength ${constants.weekLength}s`)
 console.log(`firstDeadline ${constants.firstDeadline}s`)
 console.log(`deadlineLength ${constants.deadlineLength}s`)
 console.log(`managedDeadline ${constants.managedDeadline}s`)
+if (attempt) console.log(`stepSeconds ${attempt.base}s minus ${attempt.step}s per system, floor ${attempt.floor}s`)
 console.log("Game Design Document.md, Game Parameters.md, and CONTEXT.md match the engine.")

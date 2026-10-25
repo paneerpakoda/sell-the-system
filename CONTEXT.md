@@ -57,11 +57,11 @@ The queue. Projects that have arrived and are not shipped. The left HUD shows it
 _Avoid_: backlog, board, a roster
 
 **Intern**:
-A hire unlocked after 3 hand ships. No hire fee. Pay is $10 at the end of the month, including when idle. Their miss rate is rolled from 20% to 50% and shown on their card. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%. It does not go below that. If no Intern has been hired, the next hire starts at 20%, once. An idle Intern pulls the oldest small Project you have not claimed. A big client stays unpulled until at least one token has been bought. You can claim that big client yourself before then. The attempt takes 8 seconds. They miss only an uncovered property. A clean ship pays less than a ship you finish.
+A hire unlocked after 3 hand ships. No hire fee. Pay is $10 at the end of the month, including when idle. Their miss rate is rolled from 20% to 50% and shown on their card. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%. It does not go below that. If no Intern has been hired, the next hire starts at 20%, once. An idle Intern pulls the oldest small Project you have not claimed. A big client stays unpulled until at least one token has been bought. You can claim that big client yourself before then. An attempt takes 1.4 seconds, minus 0.12 seconds for each counted system, and never under 0.4 seconds. Interns and Permanents use that same clock. They miss only an uncovered property. A clean ship pays less than a ship you finish.
 _Avoid_: a free pair of hands, a property specialist from the day you hire them
 
 **Permanent**:
-That Intern, promoted after 3 of their own clean ships. Pay is $30 a month. Attempts take 4 seconds. Covered properties are a 0% miss. The rolled rate still applies to an uncovered property that is judged. Fire removes the person. Tokens, languages, and process steps stay.
+That Intern, promoted after 3 of their own clean ships. Pay is $30 a month. Attempts use that same clock. Covered properties are a 0% miss. The rolled rate still applies to an uncovered property that is judged. Fire removes the person. Tokens, languages, and process steps stay.
 _Avoid_: a mood bar, a title ladder, a person who is also a token
 
 **Head start**:

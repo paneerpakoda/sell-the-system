@@ -17,3 +17,5 @@ Added `play/scripts/check-params.mjs`. It reads the month, week, deadline, and a
 ### Payroll wording
 
 The docs said payroll is due only for staff still employed, and that an Intern or Permanent fired before the end is not on that bill. The engine bills `pay × time employed / month length`, so a firing still owes the fraction of the month already worked, and a person kept for the whole month owes the full wage. The Game Design Document, Game Parameters, and CONTEXT now say that. Wages stay $10 and $30. The win is still a qualified month, a big client, no hand touch, and payroll paid.
+
+The docs also said an Intern attempt takes 8 seconds and a Permanent attempt takes 4 seconds. Both roles use `stepSeconds`: 1.4 seconds, minus 0.12 seconds for each counted system, and never under 0.4 seconds. Those sentences now say that, and `check-params.mjs` reads the formula from the engine.

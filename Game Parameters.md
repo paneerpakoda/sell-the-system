@@ -78,9 +78,9 @@ On time is 300 seconds for the first Project and until an Intern is hired, 180 s
 | --- | --- | --- |
 | Intern after | 3 hand ships | Hand ships required before an Intern can be hired |
 | Intern miss | 20–50%, rolled per Intern | Shown on that Intern's card. A miss hits one uncovered judged property |
-| Intern attempt | 8s | How long the attempt takes. They pull the oldest Project you have not claimed |
+| Intern attempt | 1.4s to 0.4s | An attempt takes 1.4 seconds, minus 0.12 seconds for each counted system, and never under 0.4 seconds. Interns and Permanents use that same clock. The count is the components tool, the radius tool, styles, each bought token, and two for a codified language |
 | Promote after | 3 clean ships | Counted on that Intern's own clean auto-ships |
-| Permanent attempt | 4s | How long a Permanent's attempt takes |
+| Permanent attempt | 1.4s to 0.4s | Same clock as an Intern |
 | Permanent miss, covered | 0% | Properties covered by a token, a codified language, or the design process |
 | Permanent miss, uncovered | The rolled rate | Still applies to a judged property nothing covers |
 | Fire | Immediate | Intern or Permanent. Pay already spent stays spent |

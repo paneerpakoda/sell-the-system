@@ -95,7 +95,7 @@ A Head start can be bought after the first Fit you finish for a client who was n
 
 The first Intern can be hired after 3 hand ships. Hire has no fee. Pay comes due at the end of the month, pro-rated for the time each person was employed. A month is 240 seconds, four weeks of 60 seconds. An idle Intern is still paid. Each hire is another Intern. Hiring and firing do not change Reputation.
 
-Each Intern's miss rate is rolled from 20% to 50% and shown on that Intern's card. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%, and the rate does not go below that. If no Intern has been hired, the next hire starts at 20%, once. An idle Intern pulls the oldest small Project you have not claimed. A big client is not pulled until at least one token has been bought. You can claim that big client yourself before then. The attempt takes 8 seconds.
+Each Intern's miss rate is rolled from 20% to 50% and shown on that Intern's card. An on-time Fit for a Sound client sets the Intern who attempted that Project to 20%, and the rate does not go below that. If no Intern has been hired, the next hire starts at 20%, once. An idle Intern pulls the oldest small Project you have not claimed. A big client is not pulled until at least one token has been bought. You can claim that big client yourself before then. An attempt takes 1.4 seconds, minus 0.12 seconds for each counted system, and never under 0.4 seconds. Interns and Permanents use that same clock.
 
 A clean auto-ship pays $3, or $6 once Stage 3 is active. It counts as an accepted ship. An Intern's clean auto-ship also counts toward the 3 clean ships that unlock Promote.
 
@@ -103,7 +103,7 @@ A miss writes a visibly wrong value on one uncovered property and flags the Proj
 
 Fire is immediate, for an Intern or a Permanent. Future pay stops. The month still bills the time already worked. Money already paid stays spent. The Project they were attempting returns to the queue.
 
-Promote that Intern after 3 of their own clean ships. Promote has no fee. They become a Permanent: $30 a month, attempts of 4 seconds, and a 0% miss on any property the design system, a codified language, or the design process covers. The miss rate on their card still applies to an uncovered property that is judged.
+Promote that Intern after 3 of their own clean ships. Promote has no fee. They become a Permanent: $30 a month, that same attempt clock, and a 0% miss on any property the design system, a codified language, or the design process covers. The miss rate on their card still applies to an uncovered property that is judged.
 
 If the balance cannot cover payroll, unpaid Permanents leave first, then unpaid Interns. Stop when the people who remain are affordable, pay them, and keep them. The balance does not go below $0.
 
