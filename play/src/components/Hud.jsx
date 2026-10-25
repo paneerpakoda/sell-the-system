@@ -203,6 +203,9 @@ export function Hud() {
           <p className="goal-strip">
             <span className="goal-win">Win a Stage 3 month. A big client ships, you never touch the work, and payroll is paid.</span>
             <span className="goal-month">{monthLine()}</span>
+            {state.studioName && state.accepted < 3 && !state.break && (
+              <span className="goal-month">The month is already running. Four one-minute weeks.</span>
+            )}
           </p>
           {state.status && <p className="status-line">{state.status}</p>}
         </div>
