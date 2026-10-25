@@ -315,6 +315,7 @@ export function Hud() {
       </header>
       <button
         type="button"
+        tabIndex={1}
         className={"ship" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
         disabled={!live}
         aria-disabled={!live}
