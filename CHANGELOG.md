@@ -8,11 +8,13 @@ Aligned the clock in the Game Design Document, Game Parameters, and CONTEXT with
 
 The arrival gap was `20 - min(acceptedShips, 12)` seconds, from 20 seconds down to 8 seconds. The engine waits 60 seconds until 3 ships have been accepted, then `45 - (acceptedShips - 3)` seconds, and never faster than 30 seconds. CONTEXT had the same 45-second month, 45-second on-time window, and 20-to-8-second gap, so those sentences were updated too.
 
-Win rules, fees, and the description of how an attempt is judged were left as written.
+Win rules and fees were left as written.
 
 ### Tooling
 
-Added `play/scripts/check-params.mjs`. It reads the month, week, deadline, and arrival values from `play/src/engine.js` and exits non-zero if the Game Design Document, Game Parameters, or CONTEXT still describe the old clock. That keeps the doc fix from drifting the next time the engine constants change.
+Added `play/scripts/check-params.mjs`. It reads the month, week, deadline, arrival, and attempt values from `play/src/engine.js` and exits non-zero if the Game Design Document, Game Parameters, or CONTEXT still describe the old clock. That keeps the doc fix from drifting the next time the engine constants change.
+
+Added `play/scripts/simulate.mjs` so a hands-off win, a run that never buys the process steps, and a late firing can be checked without playing. The policy buys the three process steps when that is what gets a month shipped with no hand touch, and it does not change prices. The steps are $24 each, $72 in total. Seeds 1 through 11 each reach a first win in month 2. The same policy without those steps wins none of the 11 by month 36. Firing the Intern about one second before month end pays $9.96 against $10 for keeping them, which is that last second of the wage. The sim leaves `WIN_HAND_TOUCH` at `"strict"` and `gameFlags.specialtyMix` off.
 
 ### Payroll wording
 
