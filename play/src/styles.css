@@ -1146,7 +1146,8 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
   .hud { position: relative; top: auto; left: auto; right: auto; flex: none; }
   .ship { position: relative; top: auto; bottom: auto; left: auto; transform: none; margin: 8px auto; flex: none; }
   .widget-rail { position: relative; left: auto; right: auto; bottom: auto; flex: none; height: 96px; z-index: 1; }
-  .viewport { position: relative; inset: auto; flex: 1 0 520px; min-height: 520px; }
+  .viewport { position: relative; inset: auto; flex: 1 0 640px; min-height: 640px; }
+  .world { top: 46%; }
   .clock-card, .decision, .decision-reopen {
     position: relative;
     top: auto;
