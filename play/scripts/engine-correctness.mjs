@@ -297,6 +297,32 @@ await check("the next hire can be flagged unpayable", async () => {
   assert.equal(state.payroll.reason, "")
 })
 
+await check("the strict hand rule is the default and a Ship press blocks the win", async () => {
+  const clean = await load()
+  assert.equal(clean.WIN_HAND_TOUCH, "strict")
+  clean.nameStudio("CleanWin")
+  clean.state.money = 100
+  clean.state.month.qualified = true
+  clean.state.month.bigShipped = true
+  clean.state.monthLeft = 0.2
+  clean.advance(1)
+  assert.equal(clean.state.break.won, true)
+  assert.match(clean.state.break.note, /Won the month/)
+
+  const touched = await load()
+  touched.nameStudio("ShipTouch")
+  touched.state.money = 100
+  touched.state.month.qualified = true
+  touched.state.month.bigShipped = true
+  touched.handShip()
+  assert.equal(touched.state.month.handTouches, 1)
+  assert.equal(touched.state.month.handTouch, true)
+  touched.state.monthLeft = 0.2
+  touched.advance(1)
+  assert.equal(touched.state.break.won, false)
+  assert.doesNotMatch(touched.state.break.note, /Won the month/)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")

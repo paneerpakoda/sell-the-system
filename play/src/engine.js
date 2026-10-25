@@ -95,7 +95,7 @@ const state = {
   monthLeft: monthLength,
   break: null,
   arrivalLeft: 20,
-  month: { qualified: false, bigShipped: false, handTouch: false },
+  month: { qualified: false, bigShipped: false, handTouch: false, handTouches: 0 },
   tokens: { colour: false, radius: false, contrast: false },
   codified: { fintech: false, wellness: false, editorial: false },
   process: { research: false, wire: false, test: false },
@@ -1387,7 +1387,7 @@ function handShip() {
     commit()
     return
   }
-  state.month.handTouch = true
+  noteHand()
   const project = state.queue.find((item) => item.claimedBy === "player" && item.id === state.openId) || playerJob() || focused()
   if (!project) {
     state.status = "No client to ship."
@@ -1466,11 +1466,47 @@ function settlePayroll() {
 function refreshQualified() {
   if (!stage3Active()) state.month.qualified = false
 }
+// How a Ship press counts toward the win.
+//
+// GDD, Win: you never opened or fixed a Project by hand. That list is no
+// select, no element click, no requirement click, no value edit, and no Ship.
+// Game Parameters, Win: you never selected a Project, clicked an element,
+// clicked a requirement, edited a value, or pressed Ship.
+// Those two win paragraphs agree. Pressing Ship counts as a hand touch.
+//
+// Both docs also define hands-free, and that rule is only the big-client cap:
+// a clean auto-ship, or Ship pressed with nothing edited because tokens, a
+// language, or the design process already met every judged requirement.
+// That press does not count as a hand ship for the cap. It is not the win rule.
+//
+// The code today records a hand touch on every Ship press, including a press
+// that does not ship and a press completeShip would treat as hands-free for
+// the cap. Selecting a project does not, unless it steals work from staff,
+// edits a value, or takes a screen back.
+//
+// WIN_HAND_TOUCH selects that current rule.
+// "strict" (default): any recorded hand touch blocks the win, and a Ship press
+// is one. This is what both win paragraphs say, and what handShip does today.
+// "one": a single hand action in the win month still wins. A second one blocks it.
+//
+// Simulation evidence, not a reason to change the default: allowing one hand
+// action in the win month gives about a 99.5% hands-off win rate. The strict
+// rule gives about 85%.
+const WIN_HAND_TOUCH = "strict"
+function noteHand() {
+  state.month.handTouches = (state.month.handTouches || 0) + 1
+  state.month.handTouch = true
+}
+function handsBlockWin() {
+  const touches = state.month.handTouches || 0
+  if (WIN_HAND_TOUCH === "one") return touches > 1
+  return touches > 0
+}
 function openBreak() {
   if (state.break) return
   const qualified = state.month.qualified
   const big = state.month.bigShipped
-  const hands = state.month.handTouch
+  const hands = handsBlockWin()
   const payroll = settlePayroll()
   const won = qualified && big && !hands && payroll.fullyPaid
   if (won) {
@@ -1487,7 +1523,7 @@ export function continueMonth() {
   if (!state.break) return
   state.break = null
   state.monthIndex += 1
-  state.month = { qualified: stage3Active(), bigShipped: false, handTouch: false }
+  state.month = { qualified: stage3Active(), bigShipped: false, handTouch: false, handTouches: 0 }
   state.monthLeft = monthLength
   payrollLedger = []
   state.staff.forEach((staff) => { staff.startedAt = 0 })
@@ -1637,7 +1673,7 @@ function claimProject(project) {
   project.staffId = null
   project.working = false
   project.flagged = false
-  if (stole) state.month.handTouch = true
+  if (stole) noteHand()
 }
 function watching(project) {
   return !!project && project.claimedBy !== "player" && state.staff.some((staff) => staff.projectId === project.id)
@@ -1700,7 +1736,7 @@ function edited(fn) {
   project.playerEdited = true
   screen.touched = true
   if (screen.qc === "passed") screen.qc = null
-  state.month.handTouch = true
+  noteHand()
   state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
   refreshWork()
 }
@@ -1953,7 +1989,7 @@ export function takeScreen(project, screenId) {
     screen.touched = true
     project.claimedBy = "player"
     project.playerEdited = true
-    state.month.handTouch = true
+    noteHand()
     state.status = "You took " + screen.name + " back."
   }
   project.screenId = screen.id
@@ -2013,6 +2049,7 @@ export function openParts(project) {
 
 export {
   state,
+  WIN_HAND_TOUCH,
   COLOURS,
   NAMES,
   ELEMENT_IDS,
