@@ -746,6 +746,20 @@ button.node:disabled { opacity: 0.45; }
   font-weight: 550;
 }
 .modal button:hover { background: #075a9e; }
+.modal .decision-row button[data-confirm] {
+  background: #c62828;
+  color: #fff;
+}
+.modal .decision-row button[data-confirm]:hover { background: #a31f1f; }
+.modal .decision-row button:not([data-confirm]) {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.modal .decision-row button:not([data-confirm]):hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+}
 .tip {
   position: fixed;
   z-index: 35;
