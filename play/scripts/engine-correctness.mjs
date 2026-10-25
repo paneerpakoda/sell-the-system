@@ -183,6 +183,19 @@ await check("bought process steps apply to projects already queued", async () =>
   else assert.equal(project.flow.errorFixed, true)
 })
 
+await check("a big screen that is not best practice pays the short fee", async () => {
+  const { state, nameStudio, spawn, feeFor } = await load()
+  nameStudio("Fee")
+  const project = spawn("start")
+  paintLoose(project)
+  project.size = "big"
+  project.standard = "exacting"
+  assert.equal(feeFor(project), 3)
+  state.staff = [permanent(1, "Ada")]
+  state.codified.editorial = true
+  assert.equal(feeFor(project), 6)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")

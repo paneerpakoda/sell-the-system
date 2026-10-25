@@ -118,8 +118,22 @@ const state = {
   seen: {},
   shipDisabled: true,
   canShip: false,
-  shipFee: null
+  shipFee: null,
+  payroll: {
+    due: 0,
+    lines: [],
+    atEnd: 0,
+    atEndLines: [],
+    nextHire: 10,
+    nextHireUnpayable: false,
+    reason: ""
+  },
+  nextHireCost: 10,
+  nextHireUnpayable: false
 }
+const internWage = 10
+const permanentWage = 30
+let payrollLedger = []
 
 function cap(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : "" }
 function teach(id, title, body) {
@@ -221,8 +235,7 @@ function shipPay(project) {
   if (project && project.size === "big") return stage3Active() ? 48 : 36
   return stage3Active() ? 10 : 6
 }
-function autoPay(project) {
-  if (project.size === "big") return stage3Active() ? 48 : 36
+function autoPay() {
   return stage3Active() ? 6 : 3
 }
 function payrollDue() { return state.staff.reduce((sum, staff) => sum + staff.pay, 0) }
@@ -521,7 +534,7 @@ function holdingLine(project) {
 function feeFor(project) {
   if (holdingLine(project)) return null
   const full = shipPay(project)
-  const shortFee = autoPay({ size: "small" })
+  const shortFee = autoPay()
   const uxMet = typeFlowMet(project)
   if (project.standard === "loose") {
     const namedOk = project.reqs.every((req) => !isVisualReq(req) || !req.named || meetsBar(grade(project, req.element, req.prop), "bare"))
