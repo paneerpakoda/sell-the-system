@@ -129,24 +129,28 @@ export function Dock() {
           </button>
           {gradesOpen && project && (
             <div className="grades">
-              {GROUPS.map(([group, label]) => (
-                <div key={group}>
-                  <h3>{label}</h3>
-                  <ul>
-                    {project.reqs.filter((req) => req.group === group).map((req) => {
-                      const word = wordOf(project, req)
-                      return (
-                        <li key={req.element + group}>
-                          <button type="button" onClick={() => openProject(project, req.focus || req.element)}>
-                            <span>{NAMES[req.element]}</span>
-                            <span className={tone(word)}>{word}</span>
-                          </button>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
-              ))}
+              {GROUPS.map(([group, label]) => {
+                const reqs = project.reqs.filter((req) => req.group === group)
+                if (!reqs.length) return null
+                return (
+                  <div key={group}>
+                    <h3>{label}</h3>
+                    <ul>
+                      {reqs.map((req) => {
+                        const word = wordOf(project, req)
+                        return (
+                          <li key={req.element + group}>
+                            <button type="button" onClick={() => openProject(project, req.focus || req.element)}>
+                              <span>{NAMES[req.element]}</span>
+                              <span className={tone(word)}>{word}</span>
+                            </button>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )
+              })}
             </div>
           )}
         </section>

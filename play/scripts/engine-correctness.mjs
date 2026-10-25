@@ -403,6 +403,33 @@ await check("the first three clients gate Ship with one, two, and three lines", 
   assert.ok(fourth.reqs.length > namedVisual.length)
 })
 
+await check("the queue names the screen that still holds the ship", async () => {
+  const { nameStudio, spawn, startClient, projectWatch } = await load()
+  nameStudio("Watch")
+  spawn("start")
+  const second = spawn("timer")
+  startClient(second)
+  const [lead, other] = second.screens
+  assert.equal(projectWatch(second).line, "You · " + lead.name + ", You · " + other.name)
+  for (const id of ["title", "cardA"]) lead.elements[id].colour = "paper"
+  assert.equal(projectWatch(second).line, "You · " + other.name)
+  for (const id of ["title", "cardA"]) other.elements[id].colour = "paper"
+  assert.equal(projectWatch(second).line, "Ready to ship")
+})
+
+await check("a finished edit enables Ship before the next tick", async () => {
+  const { state, nameStudio, spawn, startClient, openProject, edited, shipButtonLabel } = await load()
+  nameStudio("Offer")
+  const first = spawn("start")
+  startClient(first)
+  openProject(first, "title")
+  assert.equal(state.shipDisabled, true)
+  edited((_, item) => { item.colour = "paper" })
+  assert.equal(state.shipDisabled, false)
+  assert.equal(state.canShip, true)
+  assert.match(shipButtonLabel(first), /^Ship · \$/)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")

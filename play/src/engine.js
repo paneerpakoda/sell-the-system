@@ -1768,7 +1768,7 @@ function edited(fn) {
   if (screen.qc === "passed") screen.qc = null
   noteHand()
   state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
-  refreshWork()
+  commit()
 }
 function reqGradeWord(reached) {
   if (reached === "best") return "Best practice"
@@ -1840,17 +1840,9 @@ export function projectWatch(project) {
     const name = intern ? intern.name : "Your intern"
     return { needsYou: true, line: name + " is waiting on your frame" }
   }
-  const parts = []
-  const seen = new Set()
-  screens.forEach((screen) => {
-    if (screen.qc === "passed") return
-    const who = screenWorker(screen)
-    if (seen.has(who)) return
-    seen.add(who)
-    parts.push(who + " · " + screen.name)
-  })
-  if (!parts.length) return { needsYou: false, line: "Ready to ship" }
-  return { needsYou: false, line: parts.join(", ") }
+  const blocking = screens.filter((screen) => screenBlocks(project, screen))
+  if (!blocking.length) return { needsYou: false, line: "Ready to ship" }
+  return { needsYou: false, line: blocking.map((screen) => screenWorker(screen) + " · " + screen.name).join(", ") }
 }
 function elementFailing(project, id) {
   return project.reqs.some((req) => req.focus === id && !passes(project, req))
@@ -1858,7 +1850,6 @@ function elementFailing(project, id) {
 
 
 function studioOpen() { return state.handShips >= 1 }
-function refreshWork() { notify() }
 function shipTarget() {
   return state.queue.find((item) => item.claimedBy === "player" && item.id === state.openId) || playerJob() || focused()
 }
