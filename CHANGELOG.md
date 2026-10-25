@@ -49,3 +49,5 @@ Payroll is pro-rated by time employed. A lump sum had dropped the whole wage of 
 The win reads one hand-touch constant, `WIN_HAND_TOUCH`. The default stays `"strict"`: any recorded hand touch blocks the win, and a Ship press counts.
 
 A specialty mix can hold arrivals to one industry, so a specialist and a generalist can win in different months. `gameFlags.specialtyMix` defaults to off, which keeps the current mix.
+
+The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. After it, `node play/scripts/win-month-choice.mjs` reports a specialist median of month 2 and a generalist median of month 2, a gap of 0. The specialty flag stays off.
