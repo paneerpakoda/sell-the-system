@@ -115,7 +115,10 @@ const state = {
   studioName: "",
   tools: { swatches: false, radius: false, contrast: false, components: false, styles: false },
   notices: [],
-  seen: {}
+  seen: {},
+  shipDisabled: true,
+  canShip: false,
+  shipFee: null
 }
 
 function cap(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : "" }
@@ -1655,7 +1658,20 @@ function elementFailing(project, id) {
 
 function studioOpen() { return state.handShips >= 1 }
 function refreshWork() { notify() }
-function commit() { notify() }
+function shipTarget() {
+  return state.queue.find((item) => item.claimedBy === "player" && item.id === state.openId) || playerJob() || focused()
+}
+function refreshShipOffer() {
+  const project = state.break ? null : shipTarget()
+  const fee = project && !firstHold(project) ? projectFee(project) : null
+  state.shipDisabled = fee == null
+  state.canShip = fee != null
+  state.shipFee = fee
+}
+function commit() {
+  refreshShipOffer()
+  notify()
+}
 // Headless clock. Browser play uses start(), which calls this same tick.
 // Scripts call advance(seconds) and spawn(reason). The slice defaults to the
 // browser frame cap so a headless second matches a played second.

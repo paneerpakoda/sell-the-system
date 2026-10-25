@@ -115,6 +115,42 @@ await check("a paid month lists who was paid", async () => {
   assert.doesNotMatch(state.break.note, /object Object/)
 })
 
+const VAGUE = { background: "paper", title: "ink", cardA: "white", cardB: "white", save: "ink" }
+
+function paintLoose(project) {
+  for (const screen of project.screens || []) {
+    for (const id of Object.keys(VAGUE)) {
+      const el = screen.elements[id]
+      el.colour = VAGUE[id]
+      el.radius = id === "background" ? 20 : 16
+      el.contrast = 21
+      el.ink = null
+    }
+  }
+}
+
+await check("Ship is disabled when the press would not ship", async () => {
+  const { state, nameStudio, spawn, advance } = await load()
+  nameStudio("Ship")
+  const project = spawn("start")
+  advance(0.05)
+  assert.equal(state.shipDisabled, true)
+  assert.equal(state.canShip, false)
+  assert.equal(state.shipFee, null)
+  paintLoose(project)
+  advance(0.05)
+  assert.equal(state.canShip, true)
+  assert.equal(state.shipDisabled, false)
+  assert.equal(typeof state.shipFee, "number")
+  assert.ok(state.shipFee > 0)
+  state.monthLeft = 0.05
+  advance(1)
+  assert.ok(state.break)
+  assert.equal(state.shipDisabled, true)
+  assert.equal(state.canShip, false)
+  assert.equal(state.shipFee, null)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")
