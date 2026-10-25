@@ -6,11 +6,11 @@ import {
   focused,
   edited,
   frameCopy,
-  grade,
   paintedContrast,
-  reqGradeWord,
+  radiusHint,
   screenEditable,
   setRadius,
+  shownGrade,
   LANG,
   NAMES,
   openProject,
@@ -20,7 +20,7 @@ import { guidingFirst } from "./guidance.jsx"
 
 const SWATCHES = ["paper", "white", "ink", "sand", "stone", "hot", "lime"]
 const ORDER = ["colour", "radius", "contrast"]
-const RADIUS_STOPS = [0, 4, 12, 16, 20]
+const RADIUS_STOPS = [0, 4, 8, 12, 16, 20]
 const RADIUS_PARTS = ["title", "cardA", "cardB", "save"]
 
 function RadiusSlider({ project }) {
@@ -68,11 +68,11 @@ function RadiusSlider({ project }) {
   )
 }
 
-function scrubRadius(event, start) {
+function scrubRadius(event, start, fromBackground) {
   event.preventDefault()
   const startX = event.clientX
   const move = (ev) => {
-    setRadius(start + Math.round((ev.clientX - startX) / 2))
+    setRadius(start + Math.round((ev.clientX - startX) / 2), fromBackground)
   }
   const end = () => {
     window.removeEventListener("pointermove", move)
@@ -154,6 +154,11 @@ export function Inspector() {
   const [open, setOpen] = useState(null)
   const root = useRef(null)
   useEffect(() => {
+    const onEscape = () => setOpen(null)
+    window.addEventListener("close-popovers", onEscape)
+    return () => window.removeEventListener("close-popovers", onEscape)
+  }, [])
+  useEffect(() => {
     if (!open) return undefined
     const close = (event) => {
       if (root.current && root.current.contains(event.target)) return
@@ -177,13 +182,12 @@ export function Inspector() {
   const id = state.selectedEl
   const el = project.elements[id]
   const component = state.tools.components && (id === "cardA" || id === "cardB")
-  const sharedRadius = RADIUS_PARTS.every((part) => project.elements[part].radius === project.elements.title.radius)
-  const radiusValue = state.tools.radius ? (sharedRadius || id === "background" ? project.elements.title.radius : el.radius) : el.radius
-  const colourWord = reqGradeWord(grade(project, id, "colour"))
-  const radiusWord = reqGradeWord(grade(project, id, "radius"))
-  const contrastWord = id === "background" ? "" : reqGradeWord(grade(project, id, "contrast"))
+  const radiusValue = el.radius
+  const colourWord = shownGrade(project, id, "colour")
+  const radiusWord = shownGrade(project, id, "radius")
+  const contrastWord = id === "background" ? "" : shownGrade(project, id, "contrast")
   const contrastValue = id === "background" ? paintedContrast(project, "title") : paintedContrast(project, id)
-  const contrastGrade = id === "background" ? reqGradeWord(grade(project, "title", "contrast")) : contrastWord
+  const contrastGrade = id === "background" ? shownGrade(project, "title", "contrast") : contrastWord
   const inkName = el.ink && COLOURS[el.ink] ? el.ink : null
   const showText = id !== "background" && id !== "title"
   const guide = guideProp(project, id)
@@ -200,7 +204,7 @@ export function Inspector() {
           open={open === "fill"}
           pulse={guide === "colour" || (guide === "contrast" && !showText)}
           onToggle={() => setOpen(open === "fill" ? null : "fill")}
-          onPick={(name) => edited((_, item) => { item.colour = name })}
+          onPick={(name) => { edited((_, item) => { item.colour = name }); setOpen(null) }}
         />
       </section>
     ),
@@ -210,8 +214,9 @@ export function Inspector() {
           <h3>Radius</h3>
           <b className={tone(radiusWord)}>{radiusWord}</b>
         </header>
+        <p className="fig-sub">{radiusHint(project, id)}</p>
         <label className={"fig-field" + (state.tools.radius ? " wide" : "") + (guide === "radius" ? " guide-pulse" : "")}>
-          <button type="button" className="scrub" aria-label="Scrub corner radius" onPointerDown={(event) => scrubRadius(event, radiusValue)}>
+          <button type="button" className="scrub" aria-label="Scrub corner radius" onPointerDown={(event) => scrubRadius(event, radiusValue, id === "background" && state.tools.radius)}>
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 11.5V6.5a4 4 0 0 1 4-4h5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
           </button>
           {state.tools.radius && <span className="var-name">radius</span>}
@@ -222,7 +227,7 @@ export function Inspector() {
             max="32"
             value={radiusValue}
             aria-label={state.tools.radius ? "Radius variable" : "Corner radius"}
-            onChange={(event) => setRadius(event.target.value)}
+            onChange={(event) => setRadius(event.target.value, id === "background" && state.tools.radius)}
           />
         </label>
         {state.tools.radius && <RadiusSlider project={project} />}
@@ -246,7 +251,7 @@ export function Inspector() {
               open={open === "text"}
               pulse={guide === "contrast"}
               onToggle={() => setOpen(open === "text" ? null : "text")}
-              onPick={(name) => edited((_, item) => { item.ink = name })}
+              onPick={(name) => { edited((_, item) => { item.ink = name }); setOpen(null) }}
             />
           </>
         )}
@@ -353,6 +358,7 @@ function guideProp(project, id) {
 }
 
 function tone(word) {
+  if (word === "Not judged") return "tone-bare"
   if (word === "Wrong") return "tone-wrong"
   if (word === "Bare minimum") return "tone-bare"
   if (word === "Acceptable") return "tone-ok"

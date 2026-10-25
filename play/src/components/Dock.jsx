@@ -3,7 +3,6 @@ import {
   NAMES,
   describe,
   fire,
-  grade,
   buyLanguage,
   buyProcess,
   buyToken,
@@ -16,7 +15,10 @@ import {
   promote,
   projectWatch,
   queueState,
-  reqGradeWord,
+  radiusHint,
+  shipButtonLabel,
+  shownGrade,
+  stageProgress,
   staffTask,
   stepSeconds,
   effectiveMiss,
@@ -40,12 +42,13 @@ function wordOf(project, req) {
   if (req.group === "flow" || req.group === "type") return req.base || "Wrong"
   if (req.word) return req.word
   if (req.group === "colour" || req.group === "radius" || req.group === "contrast") {
-    return reqGradeWord(grade(project, req.element, req.prop))
+    return shownGrade(project, req.element, req.prop)
   }
   return "Open"
 }
 
 function tone(word) {
+  if (word === "Not judged") return "tone-bare"
   if (word === "Wrong" || word === "Clear intent" || (word && (word.startsWith("Fix ") || word.startsWith("Hierarchy ")))) return "tone-wrong"
   if (word === "Bare minimum") return "tone-bare"
   if (word === "Acceptable") return "tone-ok"
@@ -56,6 +59,7 @@ export function Dock() {
   const [gradesOpen, setGradesOpen] = useState(false)
   const project = playerJob() || state.queue.find((item) => item.id === state.openId) || state.queue[0]
   const parts = openParts(project)
+  const heldShip = !!(project && shipButtonLabel(project).indexOf("held") !== -1)
   const blocked = project && radiusNeedsBackground(project)
   const lead = blocked ? { id: "background", open: [{ group: "radius", prop: "radius", element: "background" }] } : parts[0]
   const rest = parts.filter((group) => !lead || group.id !== lead.id)
@@ -97,26 +101,26 @@ export function Dock() {
       <div className="dock-scroll">
         <section className="block">
           <header className="block-head">
-            <h2>To Ship</h2>
-            <span>{parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") : "Clear"}</span>
-          </header>
-          {project && !parts.length && <p className="ready">Clear</p>}
-          {lead && (
-            <button type="button" className={"now" + (guideNow ? " guide-pulse" : "")} data-tip="This is holding the ship." onClick={() => { if (lead.screenId) openScreen(project, lead.screenId); openProject(project, lead.id) }}>
-              {guideNow && <span className="sr-only">Next click. </span>}
-              <span className="part">{lead.screenName && project.screens && project.screens[0] && lead.screenName !== project.screens[0].name ? lead.screenName + " · " : ""}{NAMES[lead.id]}</span>
-              <span className={"prop " + tone(leadWord)}>{leadReq.group[0].toUpperCase() + leadReq.group.slice(1)} · {leadWord}</span>
-            </button>
-          )}
+          <h2>To Ship</h2>
+          <span>{parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") : heldShip ? "Held" : "Clear"}</span>
+        </header>
+        {project && !parts.length && <p className="ready">{heldShip ? shipButtonLabel(project) : "Clear"}</p>}
+        {lead && (
+          <button type="button" className={"now" + (guideNow ? " guide-pulse" : "")} data-tip="This is holding the ship." onClick={() => { if (lead.screenId) openScreen(project, lead.screenId); openProject(project, lead.id) }}>
+            {guideNow && <span className="sr-only">Next click. </span>}
+            <span className="part">{lead.screenName ? lead.screenName + " · " : ""}{NAMES[lead.id]}</span>
+            <span className={"prop " + tone(leadWord)}>{leadReq.group[0].toUpperCase() + leadReq.group.slice(1)} · {leadWord}{leadReq.prop === "radius" ? " · " + radiusHint(project, lead.id) : ""}</span>
+          </button>
+        )}
           {rest.length > 0 && (
             <ul className="more-list">
               {rest.map((group) => {
                 const req = group.open[0]
                 const name = req.group[0].toUpperCase() + req.group.slice(1)
                 return (
-                  <li key={group.id}>
-                    <button type="button" className="more" onClick={() => openProject(project, group.id)}>
-                      <span>{NAMES[group.id]}</span>
+                  <li key={(group.screenId || "") + group.id + name}>
+                    <button type="button" className="more" onClick={() => { if (group.screenId) openScreen(project, group.screenId); openProject(project, group.id) }}>
+                      <span>{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
                       <span className="count">{name}{group.open.length > 1 ? " +" + (group.open.length - 1) : ""}</span>
                     </button>
                   </li>
@@ -129,6 +133,9 @@ export function Dock() {
           </button>
           {gradesOpen && project && (
             <div className="grades">
+              {!project.reqs.some((req) => req.group === "radius") && (
+                <p className="hint">{radiusHint(project, "title")} Background is already round, so a corner from 12 to 24 is not Wrong.</p>
+              )}
               {GROUPS.map(([group, label]) => {
                 const reqs = project.reqs.filter((req) => req.group === group)
                 if (!reqs.length) return null
@@ -138,11 +145,12 @@ export function Dock() {
                     <ul>
                       {reqs.map((req) => {
                         const word = wordOf(project, req)
+                        const target = group === "radius" ? " · " + radiusHint(project, req.element) : ""
                         return (
                           <li key={req.element + group}>
                             <button type="button" onClick={() => openProject(project, req.focus || req.element)}>
                               <span>{NAMES[req.element]}</span>
-                              <span className={tone(word)}>{word}</span>
+                              <span className={tone(word)}>{word}{target}</span>
                             </button>
                           </li>
                         )
@@ -166,15 +174,18 @@ export function Dock() {
 function People() {
   const { due, next, unpayable, reason, lines } = payrollFacts()
   const locked = state.handShips < 3
+  const internOnStaff = state.staff.some((staff) => staff.role === "intern")
   const short = due > 0 && state.money < due
   const dueText = moneyText(due)
   const nextText = moneyText(next)
   const warn = reason || ("This hire makes payroll $" + moneyText(due + next) + ". You have $" + moneyText(state.money) + ". Someone leaves at the end of the month.")
   const hireTip = locked
-    ? "Ship 3 screens yourself."
-    : unpayable
-      ? warn
-      : "Implements your frame on the others. A system makes that faster. $" + nextText + " for the rest of this month."
+    ? "Ship 3 screens yourself. Hire stays locked until then."
+    : internOnStaff
+      ? "One intern at a time. They build the other screens. Promote them, then you can hire again."
+      : unpayable
+        ? warn
+        : "They build the screens you are not designing. $" + nextText + " is the rest of this month at $10. The price falls as the month runs. Next month a hire is $10 again."
   return (
     <section className="block studio">
       <header className="block-head">
@@ -198,14 +209,14 @@ function People() {
           </div>
         </div>
       ))}
-      <p className="hint">{"Payroll due $" + dueText + ". Next hire $" + nextText + "."}</p>
+      <p className="hint">{"Payroll due $" + dueText + ". Next hire $" + nextText + " for the rest of this month. It falls as the month runs."}</p>
       {lines.map((line) => (
         <p key={line.name} className="hint">{line.name + " · $" + moneyText(line.amount)}</p>
       ))}
       {unpayable && <p className="hint payroll-warn">{warn}</p>}
       <span className="tip-wrap" data-tip={hireTip}>
-        <button type="button" className={"buy" + (!locked && unpayable ? " warn" : "")} disabled={locked} onClick={() => hire()}>
-          {locked ? "Intern " + state.handShips + "/3" : "Hire · $" + nextText}
+        <button type="button" className={"buy" + (!locked && !internOnStaff && unpayable ? " warn" : "")} disabled={locked || internOnStaff} onClick={() => hire()}>
+          {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · $" + nextText}
         </button>
       </span>
     </section>
@@ -253,7 +264,7 @@ function Tree() {
   const tokensReady = state.everHired && state.accepted >= 3
   const rows = []
   if (!state.everHired && state.handShips < 1) {
-    rows.push({ id: "intern", name: "Intern", detail: state.handShips + "/3 hand ships", done: false, locked: true, tip: "Ship 3 screens yourself." })
+    rows.push({ id: "intern", name: "Hire", detail: state.handShips + "/3 screens", done: false, locked: true, tip: "Ship 3 screens yourself. Hire stays locked until then." })
   }
   if (state.handShips >= 1 && !state.tools.components) {
     rows.push(node({ id: "components", name: "Components", cost: 12, done: false, locked: null, buy: () => buyTool("components") }))
@@ -279,12 +290,15 @@ function Tree() {
       rows.push(node({ id: key, name, cost: 24, done: false, locked: null, buy: () => buyProcess(key) }))
     })
   }
-  if (!rows.length) return null
+  const progress = stageProgress()
+  if (!rows.length && state.accepted < 1 && !state.everHired) return null
   return (
     <section className="block studio">
       <header className="block-head">
         <h2>Tree</h2>
       </header>
+      <p className="hint">{progress}</p>
+      {!rows.length && <p className="hint">Nothing to buy until that line moves.</p>}
       {rows.map((row) => row.locked ? (
         <div key={row.id} className="node locked" data-tip={row.tip}>
           <span>{row.name}</span>
@@ -302,10 +316,11 @@ function Tree() {
 }
 
 const TREE_TIPS = {
-  components: "Both cards change together. An intern sets both in one step.",
+  components: "An intern sets both cards in one step.",
+
   "radius-tool": "One number for this frame. An intern sets every corner in one step.",
   styles: "An intern keeps your fills, and does not miss them.",
-  colour: "The intern sets every fill in one step.",
+  colour: "Fills only. Paper, white cards, an ink title, and an ink button. It does not set the contrast text.",
   radius: "The intern sets every corner in one step.",
   contrast: "The intern sets contrast in one step.",
   fintech: "The intern implements Swiss Grid faster, and does not miss.",

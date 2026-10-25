@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react"
 import {
   continueMonth,
   deadlineLength,
+  sellAgency,
   handShip,
   openProject,
   payrollDue,
@@ -15,13 +16,13 @@ import {
   timeLabel,
   weekState
 } from "../engine.js"
-import { TargetChip, guidingFirst, monthLine, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
+import { TargetChip, guidingFirst, moneyText, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
 
 function Weeks() {
   const { week, into } = weekState()
   const clock = weekClock(into)
   return (
-    <div className="weeks" role="group" aria-label={"Week " + week + " of 4, " + clock.text + " left. Each week is one minute. A month is about four minutes."} data-tip="Each week is one minute. Four weeks make a month, about four minutes. Then the work pauses and payroll is due. Clocks wait while a note is open.">
+      <div className="weeks" role="group" aria-label={"Week " + week + " of 4, " + clock.text + " left. Each week is one minute. A month is about four minutes."} data-tip="Each week is one minute. Four weeks make a month, about four minutes. Then payroll is due. This is not the client's clock.">
       <div className="meter-k">Week</div>
       <div className="week-marks" aria-hidden="true">
         {[0, 1, 2, 3].map((index) => {
@@ -46,7 +47,9 @@ export function WeekPause() {
       <form className="gate-card" onSubmit={(event) => { event.preventDefault(); continueMonth() }}>
         <h1>Month {state.monthIndex}</h1>
         <p>Four weeks are done. {state.break.note} The tree stays open.</p>
-        <button type="submit">Next month</button>
+        <button type="submit">{state.break.won ? "Keep going" : "Next month"}</button>
+        {state.break.won && <button type="button" onClick={() => sellAgency()}>Sell the agency</button>}
+        {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
       </form>
     </div>
   )
@@ -174,7 +177,8 @@ export function Hud() {
   const project = waiting ? open : playerJob() || open || state.queue[0]
   const live = shipClickEnabled(!!waiting, waiting ? open : project)
   const offered = waiting ? "Start" : shipButtonLabel(project)
-  const shipLabel = !waiting && !live && offered.indexOf("$") !== -1 ? "Ship held" : offered
+  const shipLabel = !waiting && !live && offered.indexOf("held") === -1 && offered.indexOf("$") !== -1 ? "Ship held" : offered
+  const held = shipLabel.indexOf("held") !== -1
   const guide = guidingFirst()
   const guideStart = !!(guide && !guide.started && waiting && open && open.id === guide.project.id)
   const guideShip = !!(guide && guide.shipLive && !waiting && project && project.id === guide.project.id)
@@ -182,40 +186,37 @@ export function Hud() {
     <>
       <header className="hud">
         <div className="score">
-          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends.">${state.money}</div>
+          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $6, or $10 in Stage 3. A short ship is $3, or $6. A ship does not pay $12.">${moneyText(state.money)}</div>
           <div className="meters">
-            {state.accepted >= 3 && <Weeks />}
-            <div className="meter" data-tip="1 is by hand. 2 is a team. 3 adds UX.">
+            <Weeks />
+            <div className="meter" data-tip="1 is by hand. 2 is a team. 3 adds UX. Stage 3 needs a permanent and a codified language.">
               <div className="meter-k">Stage</div>
               <div className="meter-v">{stage()}</div>
             </div>
-            <div className="meter" data-tip={state.everHired ? "Clients shipped." : "Screens you ship yourself. An intern unlocks at 3."}>
+            <div className="meter" data-tip={state.everHired ? "Clients shipped." : "Screens you ship yourself. Hire unlocks at 3, and the count stops there."}>
               <div className="meter-k">{state.everHired ? "Ships" : "Hand"}</div>
-              <div className="meter-v">{state.everHired ? state.accepted : state.handShips + "/3"}</div>
+              <div className="meter-v">{state.everHired ? state.accepted : Math.min(state.handShips, 3) + "/3"}</div>
             </div>
             {due > 0 && (
               <div className="meter" data-tip="Due when week 4 ends. If the balance is short, people leave.">
                 <div className="meter-k">Payroll</div>
-                <div className={"meter-v" + (state.money < due ? " urgent" : "")}>${due}</div>
+                <div className={"meter-v" + (state.money < due ? " urgent" : "")}>${moneyText(due)}</div>
               </div>
             )}
           </div>
           <p className="goal-strip">
-            <span className="goal-win">Win a Stage 3 month. A big client ships, you never touch the work, and payroll is paid.</span>
-            <span className="goal-month">{monthLine()}</span>
-            {state.studioName && state.accepted < 3 && !state.break && (
-              <span className="goal-month">The month is already running. Four one-minute weeks.</span>
-            )}
+            <span className="goal-win">Win a Stage 3 month with a big client, no hand touch, and payroll paid.</span>
+            <span className="goal-month">The round clock is the client, 5:00 the first time. The bars are the month.</span>
           </p>
           {state.status && <p className="status-line">{state.status}</p>}
         </div>
       </header>
       <button
         type="button"
-        className={"ship" + (shipLabel === "Ship held" ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
+        className={"ship" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
         disabled={!live}
         aria-disabled={!live}
-        data-tip={waiting ? "Begin this client. The full time starts now." : shipLabel === "Ship held" ? "A screen still has something Wrong." : "Ship this client for the fee shown."}
+        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : held ? shipLabel : "Full fee $6, or $10 in Stage 3. Short fee $3, or $6. A ship does not pay $12."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >
         {shipLabel}

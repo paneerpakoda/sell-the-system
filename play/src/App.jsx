@@ -1,12 +1,12 @@
 import { useEffect } from "react"
+import { Decisions } from "./components/Decisions.jsx"
 import { Dock } from "./components/Dock.jsx"
 import { Gate } from "./components/Gate.jsx"
 import { Hud, WeekPause } from "./components/Hud.jsx"
 import { Inspector } from "./components/Inspector.jsx"
-import { Intro } from "./components/Intro.jsx"
 import { Notice, Tips } from "./components/Notice.jsx"
 import { Screen } from "./components/Screen.jsx"
-import { state } from "./engine.js"
+import { dismissNotice, state } from "./engine.js"
 import { useGame } from "./useGame.js"
 
 export function App() {
@@ -16,8 +16,18 @@ export function App() {
       if (event.target.closest && event.target.closest("input, textarea")) return
       event.preventDefault()
     }
+    const onKey = (event) => {
+      if (event.key !== "Escape") return
+      if (event.target.closest && event.target.closest("input, textarea")) return
+      dismissNotice()
+      window.dispatchEvent(new Event("close-popovers"))
+    }
     document.addEventListener("selectstart", block)
-    return () => document.removeEventListener("selectstart", block)
+    window.addEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("selectstart", block)
+      window.removeEventListener("keydown", onKey)
+    }
   }, [])
   return (
     <div className="app">
@@ -26,7 +36,7 @@ export function App() {
         {state.studioName && <div className="studio-name">{state.studioName}</div>}
         <Hud />
         <Screen />
-        <Intro />
+        <Decisions />
         <WeekPause />
       </main>
       <Inspector />

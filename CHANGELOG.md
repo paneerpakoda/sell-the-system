@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-25 — fix list v4
+
+Ship, the To Ship list, and the fee use one check. When Ship is held, the button names the screen and the property, and the list does not say Clear. A wrong radius or contrast on a judged line holds Ship. The radius target is shown, a typed value in range is graded before the Radius variable is bought, Background no longer starts at 0, and Editorial's industry radius of 0 is not Wrong. The radius stops include 8.
+
+The opening is one card. Esc closes a note and the colour picker. Notes do not freeze the clock. The month bars are visible from month 1, and the round clock is described as the client's 5:00. Hire says why it is locked, the price is the rest of the month, and a second intern is refused until the first is promoted. Stage 3 says what is left. The run saves in the browser and pauses while the tab is hidden.
+
+Payroll drops interns first only when their pay covers the shortfall. Hiring does not reset the next client. Select, an element click, and Start record a hand touch, matching the win rule. A full ship pays $6 and a short ship pays $3. Stage 3 raises those to $10 and $6. A ship does not pay $12.
+
+After three ships and a hire, the player chooses specialist or generalist. The first big client can be taken or turned down. A won month can be sold, and one owned perk comes into the next run.
+
 ## 2026-10-25
 
 ### Documentation
@@ -50,7 +60,7 @@ The win reads one hand-touch constant, `WIN_HAND_TOUCH`. The default stays `"str
 
 A specialty mix can hold arrivals to one industry, so a specialist and a generalist can win in different months. `gameFlags.specialtyMix` defaults to off, which keeps the current mix.
 
-The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. After it, `node play/scripts/win-month-choice.mjs` reports a specialist median of month 2 and a generalist median of month 2, a gap of 0. The specialty flag stays off.
+The first three clients of a fresh game gate Ship with one, two, and three colour lines so the opening is learnable. Client 1 is one screen and one Title colour. Client 2 asks for Title and Card A. Client 3 asks for Title, Card A, and Save. Client 4 keeps the old generator. This is the opening, not a balance change. After it, `node play/scripts/win-month-choice.mjs` reports a specialist median of month 2 and a generalist median of month 2, a gap of 0. That month-2, gap-0 line is the sim of that opening. The specialty flag stays off.
 
 All grades hid empty Radius and Contrast headings on those colour-only clients. The queue chip named the first screen for each person, so it stayed on the lead after a later screen was the one holding Ship. A finished edit waited for the next clock tick before Ship could pay, so the button read "Ship held" for a moment after the last line was fixed. The chip now names the screens that still block Ship, and the edit updates the Ship offer immediately.
 

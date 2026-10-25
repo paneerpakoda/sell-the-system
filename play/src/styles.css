@@ -517,14 +517,19 @@ button.node:disabled { opacity: 0.45; }
   top: 208px;
   transform: translateX(-50%);
   min-width: 168px;
-  height: 40px;
-  padding: 0 16px;
+  max-width: min(440px, calc(100% - 32px));
+  height: auto;
+  min-height: 40px;
+  padding: 8px 14px;
   border: 0;
   border-radius: 6px;
   background: var(--blue);
   color: #fff;
   font-size: 16px;
   font-weight: 550;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: center;
 }
 .ship:hover { background: #0b86e0; }
 .ship.held { background: var(--raised); color: var(--muted); }
@@ -542,10 +547,35 @@ button.node:disabled { opacity: 0.45; }
 .ship.held:disabled:hover,
 .ship.held[aria-disabled="true"],
 .ship.held[aria-disabled="true"]:hover {
-  opacity: 0.4;
+  opacity: 1;
   cursor: default;
   background: var(--raised);
-  color: var(--muted);
+  color: var(--text);
+}
+.decision {
+  position: absolute;
+  z-index: 4;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.decision h2 { margin: 0; font-size: 16px; font-weight: 550; }
+.decision p { margin: 0; color: var(--muted); }
+.decision-row { display: flex; gap: 8px; }
+.decision-row button, .week-pause .gate-card button + button {
+  border: 0;
+  border-radius: 6px;
+  background: var(--raised);
+  padding: 8px 12px;
 }
 .guide-pulse {
   animation: guide-pulse 1.4s ease-out infinite;

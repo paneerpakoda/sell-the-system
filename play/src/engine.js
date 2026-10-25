@@ -74,7 +74,7 @@ const PRODUCTS = {
 }
 const TOKEN_NAME = { colour: "Base colour", radius: "Base radius", contrast: "Base contrast" }
 const TOKEN_DETAIL = {
-  colour: "New screens use a Paper background, white cards, an ink title, and an ink save button.",
+  colour: "Fills only. New screens use a Paper background, white cards, an ink title, and an ink button. It does not set the contrast text.",
   radius: "New screens use 16px corners.",
   contrast: "New screens use contrast 21.0 (100%)."
 }
@@ -116,6 +116,11 @@ const state = {
   tools: { swatches: false, radius: false, contrast: false, components: false, styles: false },
   notices: [],
   seen: {},
+  fork: null,
+  event: null,
+  eventSeen: false,
+  lastIndustry: null,
+  sold: 0,
   shipDisabled: true,
   canShip: false,
   shipFee: null,
@@ -225,7 +230,8 @@ function deadlineForNext() {
   return deadlineLength
 }
 function worldPaused() {
-  return !state.studioName || state.notices.length > 0 || !!state.break
+  if (!state.studioName || state.break) return true
+  return typeof document !== "undefined" && document.hidden
 }
 const weekLength = monthLength / 4
 export function weekState() {
@@ -355,7 +361,7 @@ function blankElement(partial) {
 }
 function blankElements() {
   return {
-    background: blankElement({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "body" }),
+    background: blankElement({ colour: "hot", radius: 24, contrast: 1.6, hierarchy: "body" }),
     title: blankElement({ colour: "lime", radius: 0, contrast: 1.6, hierarchy: "primary", copy: "" }),
     cardA: blankElement({ colour: "lime", radius: 0, contrast: 1.6, hierarchy: "body", ink: "lime" }),
     cardB: blankElement({ colour: "hot", radius: 32, contrast: 1.6, hierarchy: "body", ink: "hot" }),
@@ -368,7 +374,7 @@ function makeReq(project, spec) {
   if (spec.prop === "colour" && spec.mode === "strict") base = "Colour " + COLOURS[lang.colour[spec.element]].name
   else if (spec.prop === "colour") base = "Calm colour"
   else if (spec.prop === "radius" && spec.mode === "strict") base = "Radius " + targetRadius(lang, spec.element)
-  else if (spec.prop === "radius") base = "Radius 12–24"
+  else if (spec.prop === "radius") base = "Radius 12–24 · target " + targetRadius(lang, spec.element)
   else if (spec.prop === "contrast" && spec.mode === "strict") base = "Contrast ≥ " + lang.contrast.toFixed(1)
   else if (spec.prop === "contrast") base = "Contrast ≥ 4.5"
   else if (spec.prop === "hierarchy") base = "Hierarchy " + cap(spec.value)
@@ -552,6 +558,10 @@ function radiusNeedsBackground(project) {
     return project.reqs.some((req) => (req.focus || req.element) === id && req.prop === "radius" && holdsShip(project, req))
   })
 }
+function radiusHint(project, elementId) {
+  const target = targetRadius(LANG[project.industry], elementId)
+  return "Target " + target + ". A loose client also passes 12–24."
+}
 function radiusGrade(project, elementId) {
   const lang = LANG[project.industry]
   const industryC = lang.radius
@@ -564,8 +574,10 @@ function radiusGrade(project, elementId) {
   if (shared && C === industryC && B === industryB) return "best"
   if (shared && B === C + PARAMS.radiusStep) return "acceptable"
   const radius = project.elements[elementId].radius
+  const industry = elementId === "background" ? industryB : industryC
+  // The industry number is never Wrong on its own. Editorial's 0 is that number.
+  if (radius === industry) return "bare"
   if (elementId !== "background" && radius > B) return "wrong"
-  if (radius === 0) return "wrong"
   if (radius < 12 || radius > 24) return "wrong"
   return "bare"
 }
@@ -600,6 +612,10 @@ function typeFlowMet(project) {
   return project.reqs.every((req) => (req.group !== "type" && req.group !== "flow") || passes(project, req))
 }
 function holdsShip(project, req) {
+  if (req.prop === "radius" || req.prop === "contrast") {
+    if (req.element === "background" && req.prop === "contrast") return false
+    return grade(project, req.element, req.prop) === "wrong"
+  }
   if (isVisualReq(req)) {
     if (grade(project, req.element, req.prop) !== "wrong") return false
     return project.standard === "exacting" || req.named === true
@@ -608,15 +624,8 @@ function holdsShip(project, req) {
   return false
 }
 function holdingLine(project) {
-  const exacting = project.standard === "exacting"
   for (let i = 0; i < project.reqs.length; i++) {
-    const req = project.reqs[i]
-    if (isVisualReq(req)) {
-      const reached = grade(project, req.element, req.prop)
-      if (reached === "wrong" && (req.named || exacting)) return req
-    } else if ((req.group === "type" || req.group === "flow") && !passes(project, req)) {
-      return req
-    }
+    if (holdsShip(project, project.reqs[i])) return project.reqs[i]
   }
   return null
 }
@@ -643,17 +652,20 @@ function screenFee(project, screen) {
   return using(project, screen.elements, () => feeFor(project))
 }
 function screenWrong(project, screen) {
-  return using(project, screen.elements, () => ELEMENT_IDS.some((id) => {
-    const props = id === "background" ? ["colour", "radius"] : ["colour", "radius", "contrast"]
-    return props.some((prop) => grade(project, id, prop) === "wrong")
+  return using(project, screen.elements, () => project.reqs.some((req) => {
+    if (!isVisualReq(req)) return false
+    return grade(project, req.element, req.prop) === "wrong"
   }))
 }
 function screenBlocks(project, screen) {
-  const reference = referenceScreen(project)
-  if (!reference || screen === reference) return screenFee(project, screen) == null
+  if (!screen) return false
   if (screen.qc === "miss" || screen.qc === "returned") return true
+  // A matching look does not excuse copy, hierarchy, or a null fee.
+  if (screenFee(project, screen) == null) return true
+  const reference = referenceScreen(project)
+  if (!reference || screen === reference) return false
   if (matchesLead(screen, reference)) return false
-  return screenWrong(project, screen) || screenFee(project, screen) == null
+  return screenWrong(project, screen)
 }
 function projectFee(project) {
   const screens = project.screens || []
@@ -668,16 +680,18 @@ function projectFee(project) {
   return lowest
 }
 function firstHold(project) {
-  const screens = project.screens || []
-  for (let i = 0; i < screens.length; i++) {
-    const screen = screens[i]
-    const req = using(project, screen.elements, () => holdingLine(project))
-    if (req) return { screen, req }
-  }
-  return null
+  const problem = shipProblems(project)[0]
+  if (!problem) return null
+  return { screen: problem.screen, req: problem.req }
 }
 function shipButtonLabel(project) {
   if (!project) return "Ship"
+  const problem = shipProblems(project)[0]
+  if (problem) {
+    const part = NAMES[problem.req.element] || problem.req.title || "Part"
+    const prop = problem.req.group || problem.req.prop || "part"
+    return "Ship held · " + problem.screen.name + " · " + part + " " + prop
+  }
   const fee = projectFee(project)
   if (fee == null) return "Ship held"
   return "Ship · $" + fee
@@ -773,6 +787,7 @@ function nextClient() {
   return lap ? name + " " + (lap + 1) : name
 }
 function rollIndustry() {
+  if (state.fork === "specialist" && state.specialty && LANG[state.specialty]) return state.specialty
   if (!gameFlags.specialtyMix || !state.specialty || !LANG[state.specialty]) return pick(INDUSTRIES)
   return state.specialty
 }
@@ -1338,6 +1353,10 @@ function spawn(reason) {
   const project = makeProject()
   state.queue.push(project)
   if (!state.openId) state.openId = project.id
+  if (project.size === "big" && !state.eventSeen) {
+    state.eventSeen = true
+    state.event = { projectId: project.id, client: project.client }
+  }
   if (reason === "timer") state.status = "New client · " + describe(project) + ". Start it when you are ready."
   return project
 }
@@ -1349,6 +1368,7 @@ export function startClient(project) {
   }
   if (!project || project.started) return
   if (state.staff.some((staff) => staff.projectId === project.id)) return
+  noteHand()
   project.started = true
   project.claimedBy = "player"
   state.openId = project.id
@@ -1366,7 +1386,8 @@ function completeShip(project, method, staff) {
   })
   const handsFree = method === "auto" || pressedFree
   const firstFree = handsFree && !state.handsFreeEver
-  state.money += pay
+  state.money = roundMoney(state.money + pay)
+  state.lastIndustry = project.industry
   const onTimeLeft = project.onTimeLeft
   const fit = screenGrade(project) === "best" && typeFlowMet(project)
   if (fit && project.temper === "sound" && onTimeLeft > 0) {
@@ -1385,7 +1406,7 @@ function completeShip(project, method, staff) {
   state.accepted += 1
   if (method === "hand") {
     state.handShips += 1
-    if (state.handShips === 1) teach("components", "Components", "You remember this. Both cards change together. An intern sets both in one step.")
+    if (state.handShips === 1) teach("components", "Components", "Components are for sale in the tree. After you buy them, an intern sets both cards in one step.")
     if (state.handShips === 3) teach("intern", "Intern", "Someone else can take the other frames. You are starting to manage.")
   }
   if (project.size === "big") {
@@ -1481,7 +1502,10 @@ function settlePayroll() {
     return false
   }
   while (active.length && owed() - state.money > 0.001) {
-    const role = active.some((item) => item.staff.role === "permanent") ? "permanent" : "intern"
+    const shortfall = roundMoney(owed() - state.money)
+    const internPay = roundMoney(active.filter((item) => item.staff.role === "intern").reduce((sum, item) => sum + item.amount, 0))
+    const internsCover = internPay + 0.001 >= shortfall && active.some((item) => item.staff.role === "intern")
+    const role = internsCover ? "intern" : active.some((item) => item.staff.role === "permanent") ? "permanent" : "intern"
     if (!dismiss(role)) break
   }
   const paidLines = combineLines(departed.concat(active.map((item) => ({ name: item.name, amount: item.amount }))))
@@ -1509,14 +1533,14 @@ function refreshQualified() {
 // language, or the design process already met every judged requirement.
 // That press does not count as a hand ship for the cap. It is not the win rule.
 //
-// The code today records a hand touch on every Ship press, including a press
-// that does not ship and a press completeShip would treat as hands-free for
-// the cap. Selecting a project does not, unless it steals work from staff,
-// edits a value, or takes a screen back.
+// A hand touch is recorded on select, on an element click, on Start, on a
+// value edit, and on Ship. That is the list in both win paragraphs. Taking a
+// screen back and stealing a project from staff record one too.
 //
-// WIN_HAND_TOUCH selects that current rule.
-// "strict" (default): any recorded hand touch blocks the win, and a Ship press
-// is one. This is what both win paragraphs say, and what handShip does today.
+// WIN_HAND_TOUCH selects the win rule.
+// "strict" (default): any recorded hand touch blocks the win. A Ship press,
+// a select, an element click, and Start each count. This is what both win
+// paragraphs say.
 // "one": a single hand action in the win month still wins. A second one blocks it.
 //
 // Simulation evidence, not a reason to change the default: allowing one hand
@@ -1562,6 +1586,11 @@ export function continueMonth() {
 }
 function hire() {
   if (state.handShips < 3) return
+  if (state.staff.some((staff) => staff.role === "intern")) {
+    state.status = "One intern at a time. They build the other screens. Promote them before the next hire."
+    commit()
+    return
+  }
   let pct
   let miss
   if (typeof state.nextHireFloor === "number") {
@@ -1587,8 +1616,7 @@ function hire() {
   })
   const tokensWereOpen = tokensUnlocked()
   state.everHired = true
-  state.arrivalLeft = interval()
-  if (!tokensWereOpen && tokensUnlocked()) teach("tokens", "Base values", "You remember the base. The intern sets it on every frame in one step.")
+  if (!tokensWereOpen && tokensUnlocked()) teach("tokens", "Base values", "You remember the base. The intern sets fills, corners, or contrast in one step. Base colour does not set the contrast text.")
   state.status = name + " hired. $" + internWage + " a month. They design the other screens from yours."
   if (!state.break) state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
   commit()
@@ -1737,6 +1765,7 @@ function openProject(project, element) {
     project.elements = current.elements
   }
   state.selectedEl = element || null
+  noteHand()
   commit()
 }
 export function setRadius(value, fromBackground) {
@@ -1758,10 +1787,11 @@ function edited(fn) {
   if (!project || !state.selectedEl) return
   const screen = activeScreen(project)
   if (!screenEditable(project, screen)) return
+  if (screen.elements !== project.elements) project.elements = screen.elements
   const ids = selectionIds()
-  const before = JSON.stringify(project.elements) + JSON.stringify(project.flow)
-  ids.forEach((id) => fn(project, project.elements[id], id))
-  const after = JSON.stringify(project.elements) + JSON.stringify(project.flow)
+  const before = JSON.stringify(screen.elements) + JSON.stringify(project.flow)
+  ids.forEach((id) => fn(project, screen.elements[id], id))
+  const after = JSON.stringify(screen.elements) + JSON.stringify(project.flow)
   if (before === after) return
   project.playerEdited = true
   screen.touched = true
@@ -1841,8 +1871,9 @@ export function projectWatch(project) {
     return { needsYou: true, line: name + " is waiting on your frame" }
   }
   const blocking = screens.filter((screen) => screenBlocks(project, screen))
-  if (!blocking.length) return { needsYou: false, line: "Ready to ship" }
-  return { needsYou: false, line: blocking.map((screen) => screenWorker(screen) + " · " + screen.name).join(", ") }
+  if (blocking.length) return { needsYou: false, line: blocking.map((screen) => screenWorker(screen) + " · " + screen.name).join(", ") }
+  if (shipProblems(project).length || projectFee(project) == null) return { needsYou: false, line: "Ship held" }
+  return { needsYou: false, line: "Ready to ship" }
 }
 function elementFailing(project, id) {
   return project.reqs.some((req) => req.focus === id && !passes(project, req))
@@ -1855,15 +1886,11 @@ function shipTarget() {
 }
 function refreshShipOffer() {
   const project = state.break ? null : shipTarget()
-  const fee = project && !firstHold(project) ? projectFee(project) : null
+  const held = project && firstHold(project)
+  const fee = held || !project ? null : projectFee(project)
   state.shipDisabled = fee == null
   state.canShip = fee != null
   state.shipFee = fee
-}
-function commit() {
-  refreshPayrollOffer()
-  refreshShipOffer()
-  notify()
 }
 // Headless clock. Browser play uses start(), which calls this same tick.
 // Scripts call advance(seconds) and spawn(reason). The slice defaults to the
@@ -1982,6 +2009,7 @@ export function openScreen(project, screenId) {
   if (!screen) return
   state.openId = project.id
   project.screenId = screen.id
+  noteHand()
   if (screen.owner === "player" || screen.owner == null) {
     screen.owner = "player"
     project.elements = screen.elements
@@ -2033,13 +2061,44 @@ export function subscribe(fn) {
 }
 
 let started = false
+const SAVE_KEY = "sell-the-system-v4"
+
+function persist() {
+  if (!started || typeof localStorage === "undefined") return
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ state, ledger: payrollLedger }))
+  } catch (error) {
+    void error
+  }
+}
+function restore() {
+  if (typeof localStorage === "undefined") return false
+  try {
+    const raw = localStorage.getItem(SAVE_KEY)
+    if (!raw) return false
+    const data = JSON.parse(raw)
+    if (!data || !data.state || !data.state.studioName) return false
+    Object.assign(state, data.state)
+    payrollLedger = Array.isArray(data.ledger) ? data.ledger : []
+    return true
+  } catch (error) {
+    void error
+    return false
+  }
+}
 export function start() {
   if (started) return
   started = true
-  spawn("start")
-  state.arrivalLeft = interval()
-  state.status = ""
+  const restored = restore()
+  if (!restored) {
+    spawn("start")
+    state.arrivalLeft = interval()
+    state.status = ""
+  }
   notify()
+  if (typeof document !== "undefined") {
+    document.addEventListener("visibilitychange", () => commit())
+  }
   let last = performance.now()
   const frame = (now) => {
     const dt = Math.min(0.25, (now - last) / 1000)
@@ -2049,23 +2108,193 @@ export function start() {
   }
   requestAnimationFrame(frame)
 }
+function commit() {
+  refreshPayrollOffer()
+  refreshShipOffer()
+  persist()
+  notify()
+}
+
+function hiddenWrongs(project, held) {
+  const seen = new Set(held.map((req) => (req.focus || req.element) + ":" + req.prop))
+  const found = []
+  const add = (req) => {
+    const key = (req.focus || req.element) + ":" + req.prop
+    if (seen.has(key)) return
+    seen.add(key)
+    found.push(req)
+  }
+  ELEMENT_IDS.forEach((id) => {
+    const props = id === "background" ? ["colour", "radius"] : ["colour", "radius", "contrast"]
+    props.forEach((prop) => {
+      if (grade(project, id, prop) !== "wrong") return
+      const existing = project.reqs.find((req) => (req.focus || req.element) === id && req.prop === prop)
+      if (existing) add(existing)
+      else add({
+        element: id,
+        focus: id,
+        prop,
+        group: prop,
+        title: NAMES[id],
+        base: prop === "radius" ? radiusHint(project, id) : prop === "contrast" ? "Contrast under 3" : "Hot colour",
+        named: false
+      })
+    })
+  })
+  project.reqs.forEach((req) => {
+    if ((req.group === "type" || req.group === "flow") && !passes(project, req)) add(req)
+  })
+  return found
+}
+function explainBlocked(project, screen) {
+  const held = project.reqs.filter((req) => holdsShip(project, req))
+  if (project.id <= 3 && held.length) return held
+  const rows = held.concat(hiddenWrongs(project, held))
+  if (rows.length) return rows
+  const qc = screen && screen.qc
+  return [{
+    element: "background",
+    focus: "background",
+    prop: "flow",
+    group: "flow",
+    title: screen ? screen.name : "Screen",
+    base: qc === "returned" ? "Sent back" : qc === "miss" ? "Missed" : "Still blocking Ship",
+    named: true
+  }]
+}
+export function shipProblems(project) {
+  if (!project) return []
+  const screens = project.screens && project.screens.length ? project.screens : []
+  const problems = []
+  const push = (screen, req) => {
+    const word = req.group === "type" || req.group === "flow"
+      ? (req.base || "Wrong")
+      : reqGradeWord(grade(project, req.element, req.prop))
+    problems.push({ screen, req, word })
+  }
+  screens.forEach((screen) => {
+    if (!screenBlocks(project, screen)) return
+    using(project, screen.elements, () => {
+      explainBlocked(project, screen).forEach((req) => push(screen, req))
+    })
+  })
+  return problems
+}
+export function shownGrade(project, elementId, prop) {
+  const reached = grade(project, elementId, prop)
+  if (reached !== "wrong") return reqGradeWord(reached)
+  const judged = (project.reqs || []).some((req) => (req.focus || req.element) === elementId && req.prop === prop)
+  if (judged) return "Wrong"
+  const blocking = shipProblems(project).some((problem) => (problem.req.focus || problem.req.element) === elementId && problem.req.prop === prop)
+  return blocking ? "Wrong" : "Not judged"
+}
+export function stageProgress() {
+  if (stage() >= 3) return "Stage 3 is open. New clients include UX."
+  const permanent = state.staff.some((staff) => staff.role === "permanent")
+  const language = INDUSTRIES.filter((id) => state.codified[id]).map((id) => LANG[id].system)
+  const intern = state.staff.find((staff) => staff.role === "intern")
+  const clean = intern ? intern.clean : 0
+  const people = permanent ? "A permanent is on the team." : "Promote an intern after 3 clean screens (" + clean + "/3)."
+  const system = language.length ? language.join(", ") + " is codified." : "Ship a big client, then buy that system."
+  return "Stage 3 needs a permanent and a codified language. " + people + " " + system
+}
+export function chooseFork(choice) {
+  if (state.fork) return
+  if (choice === "specialist") {
+    const industry = state.lastIndustry && LANG[state.lastIndustry] ? state.lastIndustry : "fintech"
+    state.specialty = industry
+    state.fork = "specialist"
+    state.status = "Specialist. New clients are " + LANG[industry].name + "."
+  } else {
+    state.specialty = null
+    state.fork = "generalist"
+    state.status = "Generalist. Clients keep mixing."
+  }
+  commit()
+}
+export function takeBig() {
+  if (!state.event) return
+  const name = state.event.client
+  state.event = null
+  state.status = name + " stays. A big ship pays $36, or $48 once Stage 3 is open. A small ship pays $6, or $3 when it is short."
+  commit()
+}
+export function turnDownBig() {
+  if (!state.event) return
+  const name = state.event.client
+  const id = state.event.projectId
+  state.event = null
+  state.queue = state.queue.filter((project) => project.id !== id)
+  if (state.openId === id) {
+    state.openId = state.queue[0] ? state.queue[0].id : null
+    state.selectedEl = null
+  }
+  state.money = roundMoney(state.money + 6)
+  state.status = "Turned " + name + " down. $6 for the time. A ship fee is $6 or $3, not $12."
+  if (!state.queue.length) spawn("fill")
+  commit()
+}
+export function sellAgency() {
+  const name = state.studioName
+  const wins = state.wins
+  const sold = (state.sold || 0) + 1
+  const keptLang = INDUSTRIES.find((id) => state.codified[id]) || null
+  let keptToken = null
+  if (!keptLang) {
+    if (state.tokens.colour) keptToken = "colour"
+    else if (state.tokens.radius) keptToken = "radius"
+    else if (state.tokens.contrast) keptToken = "contrast"
+  }
+  const keptTool = !keptLang && !keptToken && state.tools.components
+  payrollLedger = []
+  state.money = 24
+  state.accepted = 0
+  state.handShips = 0
+  state.everHired = false
+  state.handsFreeEver = false
+  state.showBanner = false
+  state.monthIndex = 1
+  state.monthLeft = monthLength
+  state.break = null
+  state.arrivalLeft = interval()
+  state.month = { qualified: false, bigShipped: false, handTouch: false, handTouches: 0 }
+  state.tokens = { colour: keptToken === "colour", radius: keptToken === "radius", contrast: keptToken === "contrast" }
+  state.codified = { fintech: keptLang === "fintech", wellness: keptLang === "wellness", editorial: keptLang === "editorial" }
+  state.process = { research: false, wire: false, test: false }
+  state.bigDone = { fintech: false, wellness: false, editorial: false }
+  state.staff = []
+  state.nextStaffId = 1
+  state.queue = []
+  state.projectSeq = 0
+  state.openId = null
+  state.selectedEl = null
+  state.nextHireFloor = null
+  state.headOffer = null
+  state.headUnlocked = false
+  state.wikiOpen = false
+  state.studioName = name
+  state.tools = { swatches: false, radius: false, contrast: false, components: !!keptTool, styles: false }
+  state.notices = []
+  state.fork = null
+  state.event = null
+  state.eventSeen = false
+  state.lastIndustry = keptLang
+  state.specialty = null
+  state.sold = sold
+  state.wins = wins
+  spawn("fill")
+  const perk = keptLang ? LANG[keptLang].system : keptToken ? TOKEN_NAME[keptToken] : keptTool ? "Components" : "the screens"
+  state.status = "Sold the agency. " + perk + " came with you."
+  commit()
+}
 
 export function openParts(project) {
-  if (!project) return []
-  const screen = blockingScreen(project) || activeScreen(project)
-  if (!screen) return []
-  return using(project, screen.elements, () => {
-    const blocking = project.reqs.filter((req) => holdsShip(project, req))
-    const wrong = blocking.length ? blocking : project.reqs.filter((req) => isVisualReq(req) && grade(project, req.element, req.prop) === "wrong")
-    const groups = []
-    ELEMENT_IDS.forEach((id) => {
-      const open = wrong.filter((req) => (req.focus || req.element) === id).map((req) => Object.assign({}, req, {
-        word: reqGradeWord(grade(project, req.element, req.prop))
-      }))
-      if (open.length) groups.push({ id, open, screenId: screen.id, screenName: screen.name })
-    })
-    return groups
-  })
+  return shipProblems(project).map((problem) => ({
+    id: problem.req.focus || problem.req.element,
+    screenId: problem.screen.id,
+    screenName: problem.screen.name,
+    open: [Object.assign({}, problem.req, { word: problem.word })]
+  }))
 }
 
 export {
@@ -2083,6 +2312,7 @@ export {
   reqGradeWord,
   holdsShip,
   radiusFault,
+  radiusHint,
   radiusNeedsBackground,
   feeFor,
   shipButtonLabel,

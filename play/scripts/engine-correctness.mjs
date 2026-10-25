@@ -430,6 +430,124 @@ await check("a finished edit enables Ship before the next tick", async () => {
   assert.match(shipButtonLabel(first), /^Ship · \$/)
 })
 
+await check("a wrong radius on a judged line holds Ship and is listed", async () => {
+  const { state, nameStudio, spawn, advance, openParts, shipButtonLabel, projectWatch, grade } = await load()
+  nameStudio("RadiusHold")
+  state.projectSeq = 3
+  const project = spawn("start")
+  advance(0.05)
+  for (const screen of project.screens) {
+    for (const id of Object.keys(VAGUE)) {
+      screen.elements[id].colour = VAGUE[id]
+      screen.elements[id].radius = id === "background" ? 20 : 16
+      screen.elements[id].contrast = 21
+      screen.elements[id].ink = null
+    }
+  }
+  const radiusReq = project.reqs.find((req) => req.prop === "radius")
+  assert.ok(radiusReq, "client 4 should judge a radius")
+  project.elements[radiusReq.element].radius = 32
+  for (const screen of project.screens) screen.elements[radiusReq.element].radius = 32
+  advance(0.05)
+  assert.equal(grade(project, radiusReq.element, "radius"), "wrong", radiusReq.element + " " + project.elements[radiusReq.element].radius)
+  assert.equal(state.canShip, false, shipButtonLabel(project))
+  assert.match(shipButtonLabel(project), /held/)
+  assert.match(shipButtonLabel(project), /radius/i)
+  assert.notEqual(projectWatch(project).line, "Ready to ship")
+  const parts = openParts(project)
+  assert.ok(parts.length > 0)
+  assert.ok(parts.some((part) => part.open.some((req) => req.prop === "radius")))
+})
+
+await check("copy fixed only on the lead stays listed on the other screen", async () => {
+  const { state, nameStudio, spawn, advance, openParts, shipButtonLabel, projectWatch, frameCopy } = await load()
+  nameStudio("LeadOnly")
+  state.staff = [permanent(1, "Ada")]
+  state.codified.fintech = true
+  state.nextStaffId = 2
+  state.projectSeq = 3
+  state.money = 100
+  const project = spawn("start")
+  assert.equal(project.hasUX, true)
+  const lead = project.screens[0]
+  const other = project.screens[1]
+  const words = frameCopy(project)
+  for (const id of Object.keys(VAGUE)) {
+    lead.elements[id].colour = VAGUE[id]
+    lead.elements[id].radius = id === "background" ? 20 : 16
+    lead.elements[id].contrast = 21
+    lead.elements[id].ink = null
+  }
+  lead.elements.title.hierarchy = "primary"
+  lead.elements.save.hierarchy = "primary"
+  lead.elements.cardA.hierarchy = "body"
+  lead.elements.cardB.hierarchy = "body"
+  lead.elements.title.copy = words.title
+  lead.elements.save.copy = words.action
+  if (project.flow.demand === "empty") project.flow.emptyFixed = true
+  else project.flow.errorFixed = true
+  advance(0.05)
+  assert.equal(state.canShip, false)
+  assert.notEqual(projectWatch(project).line, "Ready to ship")
+  const label = shipButtonLabel(project)
+  assert.match(label, /held/)
+  assert.match(label, new RegExp(other.name))
+  const parts = openParts(project)
+  assert.ok(parts.some((part) => part.screenName === other.name))
+  assert.equal(parts.some((part) => part.screenName === other.name && part.open.some((req) => req.prop === "copy" || req.prop === "hierarchy")), true)
+})
+
+await check("editorial radius 0 is not wrong, and a typed 16 is graded", async () => {
+  const { state, nameStudio, spawn, grade } = await load()
+  nameStudio("Grade")
+  const project = spawn("start")
+  project.industry = "editorial"
+  project.elements.title.radius = 0
+  project.elements.background.radius = 0
+  assert.equal(grade(project, "title", "radius"), "bare")
+  assert.equal(state.tools.radius, false)
+  project.elements.title.radius = 16
+  project.elements.background.radius = 24
+  assert.notEqual(grade(project, "title", "radius"), "wrong")
+})
+
+await check("hiring does not reset the next client or roll a second intern", async () => {
+  const { state, nameStudio, hire, dismissNotice } = await load()
+  nameStudio("Arrival")
+  state.handShips = 3
+  state.money = 100
+  state.arrivalLeft = 17
+  hire()
+  while (state.notices.length) dismissNotice()
+  const miss = state.staff[0].miss
+  hire()
+  assert.equal(state.staff.length, 1)
+  assert.equal(state.staff[0].miss, miss)
+  assert.equal(state.arrivalLeft, 17)
+})
+
+await check("payroll keeps the permanent when the intern covers the gap", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("Order")
+  state.staff = [intern(1, "Ada"), permanent(2, "Ben")]
+  state.nextStaffId = 3
+  state.money = 30
+  state.monthLeft = 0.2
+  advance(1)
+  assert.equal(state.staff.length, 1)
+  assert.equal(state.staff[0].role, "permanent")
+})
+
+await check("starting a client records a hand touch", async () => {
+  const { state, nameStudio, spawn, startClient } = await load()
+  nameStudio("Touch")
+  const project = spawn("start")
+  assert.equal(state.month.handTouches, 0)
+  startClient(project)
+  assert.equal(state.month.handTouches, 1)
+  assert.equal(state.month.handTouch, true)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")
