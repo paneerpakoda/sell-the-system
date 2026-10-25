@@ -7,6 +7,7 @@ import {
   buyProcess,
   buyToken,
   buyTool,
+  canHire,
   hire,
   openParts,
   openProject,
@@ -173,22 +174,26 @@ function People() {
   const { due, next, unpayable, reason, lines } = payrollFacts()
   const locked = state.handShips < 3
   const internOnStaff = state.staff.some((staff) => staff.role === "intern")
-  const short = due > 0 && state.money < due
+  const affordable = canHire()
+  const short = due > 0 && state.money + 0.001 < due
   const dueText = moneyText(due)
   const nextText = moneyText(next)
-  const warn = reason || ("This hire makes payroll $" + moneyText(due + next) + ". You have $" + moneyText(state.money) + ". Someone leaves at the end of the month.")
+  const hireNote = state.payroll && state.payroll.hireNote
+    ? state.payroll.hireNote
+    : "Hire is $" + nextText + " for the rest of this month. The price falls as the month runs, then jumps back to $10 when the next month starts."
+  const warn = reason || ("This hire makes payroll $" + moneyText(due + next) + ". You have $" + moneyText(state.money) + ".")
   const hireTip = locked
     ? "Ship 3 screens yourself. Hire stays locked until then."
     : internOnStaff
-      ? "One intern at a time. They build the other screens. Promote them, then you can hire again."
-      : unpayable
+      ? "One intern can be busy. They build screens someone already started. A second intern would not start clients."
+      : !affordable
         ? warn
-        : "They build the screens you are not designing. $" + nextText + " is the rest of this month at $10. The price falls as the month runs. Next month a hire is $10 again."
+        : hireNote
   return (
     <section className="block studio">
       <header className="block-head">
         <h2>People</h2>
-        {state.staff.length > 0 && <span>{short ? "Short" : "$" + dueText}</span>}
+        {state.staff.length > 0 && <span>{state.payroll.late ? "Late" : short ? "Short" : "$" + dueText}</span>}
       </header>
       {state.staff.map((staff) => (
         <div key={staff.id} className="staff">
@@ -207,13 +212,15 @@ function People() {
           </div>
         </div>
       ))}
-      <p className="hint">{"Payroll due $" + dueText + ". Next hire $" + nextText + " for the rest of this month. It falls as the month runs."}</p>
+      <p className="hint">{hireNote}</p>
+      <p className="hint">{"Payroll due $" + dueText + "."}</p>
       {lines.map((line) => (
         <p key={line.name} className="hint">{line.name + " · $" + moneyText(line.amount)}</p>
       ))}
-      {unpayable && <p className="hint payroll-warn">{warn}</p>}
+      {state.payroll.lateNote && <p className="hint payroll-warn">{state.payroll.lateNote}</p>}
+      {unpayable && !state.payroll.lateNote && <p className="hint payroll-warn">{warn}</p>}
       <span className="tip-wrap" data-tip={hireTip}>
-        <button type="button" className={"buy" + (!locked && !internOnStaff && unpayable ? " warn" : "")} disabled={locked || internOnStaff} onClick={() => hire()}>
+        <button type="button" className="buy" disabled={!affordable} onClick={() => hire()}>
           {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · $" + nextText}
         </button>
       </span>

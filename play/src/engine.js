@@ -131,17 +131,36 @@ const state = {
     atEndLines: [],
     nextHire: 10,
     nextHireUnpayable: false,
-    reason: ""
+    reason: "",
+    late: false,
+    lateNote: "",
+    hireNote: ""
   },
   nextHireCost: 10,
   nextHireUnpayable: false,
-  specialty: null
+  specialty: null,
+  debt: 0,
+  hireMiss: null
 }
 export const gameFlags = {
   specialtyMix: false
 }
 const internWage = 10
 const permanentWage = 30
+// Was $6 / $3, and $10 / $6 in Stage 3. A careful month of hand ships at $10
+// and clean ships at $6 covers the first Intern's $10. Big fees stay $36 / $48.
+const handFee = 10
+const handFeeStage3 = 16
+const autoFee = 6
+const autoFeeStage3 = 10
+const bigFee = 36
+const bigFeeStage3 = 48
+const declineFee = 6
+// A gap of $1 does not cut anyone. It becomes Late debt.
+const trivialShortfall = 1
+// Interns do not start clients. Only a Permanent calls takeUnclaimed.
+// One Intern is the number who can be busy on screens already started.
+const internCap = 1
 let payrollLedger = []
 
 function cap(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : "" }
@@ -242,14 +261,42 @@ export function weekState() {
   return { week, into }
 }
 function shipPay(project) {
-  if (project && project.size === "big") return stage3Active() ? 48 : 36
-  return stage3Active() ? 10 : 6
+  if (project && project.size === "big") return stage3Active() ? bigFeeStage3 : bigFee
+  return stage3Active() ? handFeeStage3 : handFee
 }
 function autoPay() {
-  return stage3Active() ? 6 : 3
+  return stage3Active() ? autoFeeStage3 : autoFee
 }
 function roundMoney(value) {
-  return Math.round((Number(value) || 0) * 100) / 100
+  const number = Number(value)
+  if (!Number.isFinite(number)) return 0
+  return Math.round(number * 100) / 100
+}
+function debtOf() {
+  return roundMoney(Math.max(0, Number(state.debt) || 0))
+}
+function credit(amount) {
+  const gain = roundMoney(amount)
+  let pot = roundMoney(Math.max(0, Number(state.money) || 0))
+  if (gain > 0) pot = roundMoney(pot + gain)
+  const owed = debtOf()
+  if (owed > 0 && pot > 0) {
+    const pay = roundMoney(Math.min(owed, pot))
+    state.debt = roundMoney(owed - pay)
+    pot = roundMoney(pot - pay)
+  } else state.debt = owed
+  state.money = roundMoney(Math.max(0, pot))
+  return gain
+}
+function debit(amount) {
+  const cost = roundMoney(amount)
+  const pot = roundMoney(Math.max(0, Number(state.money) || 0))
+  if (!(cost > 0) || pot + 0.001 < cost) {
+    state.money = pot
+    return false
+  }
+  state.money = roundMoney(pot - cost)
+  return true
 }
 function moneyText(value) {
   const rounded = roundMoney(value)
@@ -298,7 +345,15 @@ function refreshPayrollOffer() {
   const preview = payrollPreview(until)
   const next = nextHireAmount(until)
   const bill = roundMoney(preview.atEnd + next)
-  const unpayable = bill - state.money > 0.001
+  const money = roundMoney(Math.max(0, Number(state.money) || 0))
+  const unpayable = bill - money > 0.001
+  const gap = roundMoney(Math.max(0, preview.atEnd - money))
+  const debt = debtOf()
+  const late = debt > 0 || (gap > 0.001 && gap <= trivialShortfall)
+  let lateNote = ""
+  if (debt > 0) lateNote = "Late means $" + moneyText(debt) + " of payroll is still owed. It comes out of the next fee. Your people stay."
+  else if (gap > 0.001 && gap <= trivialShortfall) lateNote = "Late means payroll is short by $" + moneyText(gap) + ". That stays unpaid until the next fee. Your people stay."
+  else if (gap > trivialShortfall) lateNote = "Payroll is short by $" + moneyText(gap) + ". An intern leaves only when their pay covers that gap. A $" + moneyText(trivialShortfall) + " gap is Late and keeps everyone."
   state.payroll = {
     due: preview.due,
     lines: preview.lines,
@@ -307,8 +362,11 @@ function refreshPayrollOffer() {
     nextHire: next,
     nextHireUnpayable: unpayable,
     reason: unpayable
-      ? "Hiring adds $" + moneyText(next) + " for the rest of this month. Payroll would be $" + moneyText(bill) + " and you have $" + moneyText(state.money) + "."
-      : ""
+      ? "Hiring adds $" + moneyText(next) + " for the rest of this month. Payroll would be $" + moneyText(bill) + " and you have $" + moneyText(money) + "."
+      : "",
+    late,
+    lateNote,
+    hireNote: "Hire is $" + moneyText(next) + " for the rest of this month, at $" + moneyText(internWage) + " a month. The price falls as the month runs, then jumps back to $" + moneyText(internWage) + " when the next month starts."
   }
   state.nextHireCost = next
   state.nextHireUnpayable = unpayable
@@ -326,13 +384,20 @@ function formatPeople(lines) {
 function payrollNote(result) {
   const owed = formatPeople(result.paidLines)
   const gone = formatPeople(result.left)
+  let note
   if (!result.fullyPaid) {
     const paidBit = "Paid $" + moneyText(result.paid) + (result.paid > 0 && owed ? ": " + owed : "") + "."
-    if (gone) return gone + " left unpaid. Payroll was short. " + paidBit
-    return "Payroll was short. " + paidBit
+    if (gone) note = gone + " left unpaid. Payroll was short. " + paidBit
+    else note = "Payroll was short. " + paidBit
+  } else if (result.paid > 0) note = "Payroll paid $" + moneyText(result.paid) + ": " + owed + "."
+  else note = "No payroll due."
+  if (result.late > 0) {
+    const kept = formatPeople(result.kept)
+    note += " Late means $" + moneyText(result.late) + " is still owed. It comes out of the next fee."
+    if (kept) note += " " + kept + (result.kept.length === 1 ? " stays." : " stay.")
+    else note += " Ship the next screen yourself. That fee pays what is Late."
   }
-  if (result.paid > 0) return "Payroll paid $" + moneyText(result.paid) + ": " + owed + "."
-  return "No payroll due."
+  return note
 }
 function tokensUnlocked() { return state.everHired && state.accepted >= 3 }
 function playerJob() {
@@ -1207,6 +1272,8 @@ function maybeShipStaff(project) {
   completeShip(project, "auto", permanent || null)
 }
 function takeUnclaimed(staff) {
+  // Only a Permanent calls this. Interns do not start clients, so Hire stops
+  // at internCap: one Intern, the number who can be busy on a screen already started.
   return state.queue.find((project) => {
     if (project.started || project.claimedBy === "player" || project.flagged) return false
     if (state.staff.some((other) => other.projectId === project.id)) return false
@@ -1436,7 +1503,7 @@ function completeShip(project, method, staff) {
   })
   const handsFree = method === "auto" || pressedFree
   const firstFree = handsFree && !state.handsFreeEver
-  state.money = roundMoney(state.money + pay)
+  credit(pay)
   state.lastIndustry = project.industry
   const onTimeLeft = project.onTimeLeft
   const fit = screenGrade(project) === "best" && typeFlowMet(project)
@@ -1543,21 +1610,41 @@ function settlePayroll() {
     }
     return false
   }
-  while (active.length && owed() - state.money > 0.001) {
+  // $1 or less is Late: nobody leaves. Cut one Intern only when the gap is
+  // larger and that Intern's pay covers it. Do not fire a Permanent for $1.
+  // The last person stays, so payroll cannot end at $0 with nobody.
+  let guard = active.length + 2
+  while (guard-- > 0 && active.length && owed() - state.money > 0.001) {
     const shortfall = roundMoney(owed() - state.money)
-    const internPay = roundMoney(active.filter((item) => item.staff.role === "intern").reduce((sum, item) => sum + item.amount, 0))
-    const internsCover = internPay + 0.001 >= shortfall && active.some((item) => item.staff.role === "intern")
-    const role = internsCover ? "intern" : active.some((item) => item.staff.role === "permanent") ? "permanent" : "intern"
-    if (!dismiss(role)) break
+    if (shortfall <= trivialShortfall) break
+    const covering = active
+      .filter((item) => item.staff.role === "intern" && item.amount + 0.001 >= shortfall)
+      .sort((a, b) => a.amount - b.amount)[0]
+    if (covering) {
+      if (active.length === 1) break
+      const at = active.indexOf(covering)
+      active.splice(at, 1)
+      const staffIndex = state.staff.findIndex((staff) => staff.id === covering.staff.id)
+      if (staffIndex >= 0) releaseStaff(state.staff.splice(staffIndex, 1)[0])
+      if (covering.amount > 0) left.push({ name: covering.name, amount: covering.amount })
+      continue
+    }
+    if (active.length === 1) break
+    if (!active.some((item) => item.staff.role === "permanent")) break
+    if (!dismiss("permanent")) break
   }
-  const paidLines = combineLines(departed.concat(active.map((item) => ({ name: item.name, amount: item.amount }))))
+  const kept = active.map((item) => ({ name: item.name, amount: item.amount }))
+  const paidLines = combineLines(departed.concat(kept))
   const payable = roundMoney(paidLines.reduce((sum, line) => sum + line.amount, 0))
-  const paid = roundMoney(Math.min(state.money, payable))
-  state.money = roundMoney(Math.max(0, state.money - paid))
+  const cash = roundMoney(Math.max(0, Number(state.money) || 0))
+  const paid = roundMoney(Math.min(cash, payable))
+  const late = roundMoney(Math.max(0, payable - paid))
+  state.money = roundMoney(Math.max(0, cash - paid))
+  if (late > 0) state.debt = roundMoney(debtOf() + late)
   payrollLedger = []
   state.staff.forEach((staff) => { staff.startedAt = monthLength })
-  const fullyPaid = left.length === 0 && paid + 0.001 >= payable
-  return { paid, payable, left, paidLines, fullyPaid }
+  const fullyPaid = left.length === 0 && late <= 0.001 && debtOf() <= 0.001 && paid + 0.001 >= payable
+  return { paid, payable, left, paidLines, fullyPaid, late, kept }
 }
 function refreshQualified() {
   if (!stage3Active()) state.month.qualified = false
@@ -1609,23 +1696,42 @@ export function continueMonth() {
   state.status = "Month " + state.monthIndex + ". Week 1."
   commit()
 }
+function rollHireMiss() {
+  // The first hire draws 20–50% once and stores it. Firing and hiring does
+  // not draw again, so the old free reroll is gone. One draw keeps the later
+  // ship rolls on the same stream as a single hire.
+  if (typeof state.hireMiss === "number") return state.hireMiss
+  if (typeof state.nextHireFloor === "number") {
+    state.hireMiss = state.nextHireFloor
+    state.nextHireFloor = null
+    return state.hireMiss
+  }
+  state.hireMiss = (20 + Math.floor(Math.random() * 31)) / 100
+  return state.hireMiss
+}
+export function canHire() {
+  if (state.handShips < 3) return false
+  if (state.staff.filter((staff) => staff.role === "intern").length >= internCap) return false
+  const until = monthElapsed()
+  const next = nextHireAmount(until)
+  const bill = roundMoney(payrollPreview(until).atEnd + next)
+  const money = roundMoney(Math.max(0, Number(state.money) || 0))
+  return bill - money <= 0.001
+}
 function hire() {
   if (state.handShips < 3) return
-  if (state.staff.some((staff) => staff.role === "intern")) {
-    state.status = "One intern at a time. They build the other screens. Promote them before the next hire."
+  if (state.staff.filter((staff) => staff.role === "intern").length >= internCap) {
+    state.status = "One intern at a time. They build screens someone already started. A second intern would not start clients."
     commit()
     return
   }
-  let pct
-  let miss
-  if (typeof state.nextHireFloor === "number") {
-    miss = state.nextHireFloor
-    pct = Math.round(miss * 100)
-    state.nextHireFloor = null
-  } else {
-    pct = 20 + Math.floor(Math.random() * 31)
-    miss = pct / 100
+  if (!canHire()) {
+    const next = nextHireAmount(monthElapsed())
+    state.status = "Hire is $" + moneyText(next) + ". That is more than you can cover before payroll."
+    commit()
+    return
   }
+  const miss = rollHireMiss()
   const name = STAFF_NAMES[state.nextStaffId - 1] || ("Intern " + state.nextStaffId)
   state.staff.push({
     id: state.nextStaffId++,
@@ -1683,8 +1789,7 @@ function promote(id) {
 function buyHead() {
   if (!state.headUnlocked || !state.headOffer || !COLOURS[state.headOffer]) return
   const price = shipPay({ size: "small" })
-  if (state.money < price) return
-  state.money -= price
+  if (!debit(price)) return
   state.status = "Head start offers " + COLOURS[state.headOffer].name + "."
   commit()
 }
@@ -2132,6 +2237,10 @@ export function start() {
   requestAnimationFrame(frame)
 }
 function commit() {
+  const money = Number(state.money)
+  if (!Number.isFinite(money) || money < 0) state.money = 0
+  else state.money = roundMoney(money)
+  state.debt = debtOf()
   refreshPayrollOffer()
   refreshShipOffer()
   persist()
@@ -2238,26 +2347,62 @@ export function chooseFork(choice) {
   }
   commit()
 }
+export function bigClientOffer() {
+  if (!state.event) return null
+  const project = state.queue.find((item) => item.id === state.event.projectId)
+  const payout = shipPay(project && project.size === "big" ? project : { size: "big" })
+  return {
+    client: state.event.client,
+    projectId: state.event.projectId,
+    payout,
+    short: autoPay(),
+    decline: declineFee
+  }
+}
 export function takeBig() {
   if (!state.event) return
-  const name = state.event.client
+  const offer = bigClientOffer()
+  const name = offer.client
   state.event = null
-  state.status = name + " stays. A big ship pays $36, or $48 once Stage 3 is open. A small ship pays $6, or $3 when it is short."
+  state.status = name + " stays. A full ship pays $" + moneyText(offer.payout) + ". A short ship pays $" + moneyText(offer.short) + "."
   commit()
 }
 export function turnDownBig() {
   if (!state.event) return
-  const name = state.event.client
-  const id = state.event.projectId
+  const offer = bigClientOffer()
+  const name = offer.client
+  const id = offer.projectId
+  const project = state.queue.find((item) => item.id === id)
   state.event = null
-  state.queue = state.queue.filter((project) => project.id !== id)
+  if (project) {
+    state.staff.slice().forEach((staff) => {
+      if (staff.projectId === project.id) releaseStaff(staff)
+    })
+    ;(project.screens || []).forEach((screen) => {
+      if (!screen.owner || screen.owner === "player") return
+      const staff = state.staff.find((item) => item.id === screen.owner)
+      if (staff) releaseStaff(staff)
+      else screen.owner = "player"
+    })
+  }
+  state.queue = state.queue.filter((item) => item.id !== id)
+  state.staff.forEach((staff) => {
+    if (staff.projectId === id) {
+      staff.projectId = null
+      staff.screenId = null
+    }
+  })
   if (state.openId === id) {
     state.openId = state.queue[0] ? state.queue[0].id : null
     state.selectedEl = null
   }
-  state.money = roundMoney(state.money + 6)
-  state.status = "Turned " + name + " down. $6 for the time. A ship fee is $6 or $3, not $12."
+  credit(offer.decline)
   if (!state.queue.length) spawn("fill")
+  if (!state.break) state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
+  const intern = state.staff.find((staff) => staff.role === "intern")
+  state.status = "Turned " + name + " down. $" + moneyText(offer.decline) + " for the time."
+  if (intern) state.status += " " + intern.name + " is free."
+  else if (canHire()) state.status += " Hire is open."
   commit()
 }
 export function sellAgency() {
@@ -2295,6 +2440,8 @@ export function sellAgency() {
   state.openId = null
   state.selectedEl = null
   state.nextHireFloor = null
+  state.hireMiss = null
+  state.debt = 0
   state.headOffer = null
   state.headUnlocked = false
   state.wikiOpen = false

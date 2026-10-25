@@ -184,7 +184,7 @@ export function Hud() {
     <>
       <header className="hud">
         <div className="score">
-          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $6, or $10 in Stage 3. A short ship is $3, or $6. A ship does not pay $12.">${moneyText(state.money)}</div>
+          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $10, or $16 in Stage 3. A short ship is $6, or $10. A big client is $36, or $48 in Stage 3.">${moneyText(state.money)}</div>
           <div className="meters">
             <Weeks />
             <div className="meter" data-tip="1 is by hand. 2 is a team. 3 adds UX. Stage 3 needs a permanent and a codified language.">
@@ -196,9 +196,9 @@ export function Hud() {
               <div className="meter-v">{state.everHired ? state.accepted : Math.min(state.handShips, 3) + "/3"}</div>
             </div>
             {due > 0 && (
-              <div className="meter" data-tip="Due when week 4 ends. If the balance is short, people leave.">
-                <div className="meter-k">Payroll</div>
-                <div className={"meter-v" + (state.money < due ? " urgent" : "")}>${moneyText(due)}</div>
+              <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap of $1 or less is Late: nobody leaves, and it comes out of the next fee."}>
+                <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
+                <div className={"meter-v" + (state.money + 0.001 < due ? " urgent" : "")}>${moneyText(due)}</div>
               </div>
             )}
           </div>
@@ -206,6 +206,7 @@ export function Hud() {
             <span className="goal-win">Win a Stage 3 month with a big client, no hand touch, and payroll paid.</span>
             <span className="goal-month">The round clock is the client, 5:00 the first time. The bars are the month.</span>
           </p>
+          {state.payroll.lateNote && <p className="status-line">{state.payroll.lateNote}</p>}
           {state.status && <p className="status-line">{state.status}</p>}
         </div>
       </header>
@@ -216,7 +217,7 @@ export function Hud() {
         aria-disabled={!live}
         data-ship-held={held ? "true" : "false"}
         data-ship-reason={held && check ? check.reason : ""}
-        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : held ? shipLabel : "Full fee $6, or $10 in Stage 3. Short fee $3, or $6. A ship does not pay $12."}
+        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : held ? shipLabel : "Full fee $10, or $16 in Stage 3. Short fee $6, or $10. A big client is $36, or $48 in Stage 3."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >
         {shipLabel}

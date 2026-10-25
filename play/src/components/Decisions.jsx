@@ -1,15 +1,17 @@
-import { chooseFork, state, takeBig, turnDownBig } from "../engine.js"
+import { bigClientOffer, chooseFork, state, takeBig, turnDownBig } from "../engine.js"
 
 export function Decisions() {
   if (!state.studioName || state.break) return null
   if (state.event) {
+    const offer = bigClientOffer()
+    if (!offer) return null
     return (
       <aside className="decision">
-        <h2>{state.event.client} is a big client</h2>
-        <p>Take the brief, or turn it down for $6. A ship pays $6, or $3 when it is short. It does not pay $12.</p>
+        <h2>{offer.client} is a big client</h2>
+        <p>Take the brief. A full ship pays ${offer.payout}. A short ship pays ${offer.short}. Turn it down for ${offer.decline}.</p>
         <div className="decision-row">
-          <button type="button" onClick={() => takeBig()}>Take it</button>
-          <button type="button" onClick={() => turnDownBig()}>Turn it down</button>
+          <button type="button" onClick={() => takeBig()}>Take it · ${offer.payout}</button>
+          <button type="button" onClick={() => turnDownBig()}>Turn it down · ${offer.decline}</button>
         </div>
       </aside>
     )
