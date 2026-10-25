@@ -1,9 +1,10 @@
-import { useLayoutEffect, useRef, useState } from "react"
+import { memo, useLayoutEffect, useRef, useState } from "react"
 import {
   continueMonth,
   deadlineLength,
   sellAgency,
   handShip,
+  listStamp,
   openProject,
   payrollDue,
   projectWatch,
@@ -16,9 +17,11 @@ import {
   weekState
 } from "../engine.js"
 import { useModal } from "./focusTrap.js"
+import { useClock } from "../useGame.js"
 import { TargetChip, formatClock, guidingFirst, moneyText, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
 
 function Weeks() {
+  useClock()
   const { week, into } = weekState()
   const clock = weekClock(into)
   const held = state.clocksLive === false
@@ -114,6 +117,7 @@ export function ClockCard() {
 }
 
 function DeadlineClock({ project, alert }) {
+  useClock()
   const waiting = !project.started
   const left = Math.max(0, project.onTimeLeft)
   const total = project.onTimeTotal || deadlineLength
@@ -138,6 +142,40 @@ function DeadlineClock({ project, alert }) {
         />
       </svg>
       <b>{label}</b>
+    </div>
+  )
+}
+
+const ClientWidget = memo(function ClientWidget({ project, stamp, line, needsYou, open, waiting, target }) {
+  void stamp
+  return (
+    <button
+      type="button"
+      data-id={project.id}
+      className={"client-widget" + (open ? " on" : "") + (needsYou ? " call" : "") + (target ? " has-target" : "")}
+      aria-current={open ? "true" : undefined}
+      aria-label={project.client + (target ? ", target " + target : "") + ", " + line}
+      data-tip={needsYou ? line : waiting ? "Start this client. The round clock starts at 5:00. That is the client's time, not the week or the month." : project.onTimeLeft <= 0 ? "Late means this client's clock hit 0. The project stays. Ship still pays. This is not the month clock." : "On time if you ship within " + timeLabel(project.onTimeTotal) + "."}
+      onClick={() => { resetView(); if (waiting) startClient(project); else openProject(project, null) }}
+    >
+      <span className="widget-copy">
+        <span className="widget-client">{project.client}</span>
+        <TargetChip project={project} />
+        <span className={"widget-meta" + (needsYou ? " call" : "")}>{line}</span>
+      </span>
+      <DeadlineClock project={project} alert={needsYou} />
+    </button>
+  )
+})
+
+function PayrollMeter() {
+  useClock()
+  const due = payrollDue()
+  if (!(due > 0)) return null
+  return (
+    <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap of $1 or less is Late: nobody leaves, and it comes out of the next fee."}>
+      <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
+      <div className={"meter-v" + (state.money + 0.001 < due ? " urgent" : "")}>${moneyText(due)}</div>
     </div>
   )
 }
@@ -199,34 +237,18 @@ function ClientWidgets() {
     <div className="widget-rail" ref={railRef}>
       <div className="widget-track" ref={trackRef} onPointerDown={onPointerDown}>
         {state.queue.map((project) => {
-          const open = project.id === state.openId
-          const waiting = !project.started
-          const late = project.started && project.onTimeLeft <= 0
           const watch = projectWatch(project)
-          const target = targetFor(project)
-          const clockTip = waiting
-            ? "Start this client. The round clock starts at 5:00. That is the client's time, not the week or the month."
-            : late
-              ? "Late means this client's clock hit 0. The project stays. Ship still pays. This is not the month clock."
-              : "On time if you ship within " + timeLabel(project.onTimeTotal) + "."
           return (
-            <button
+            <ClientWidget
               key={project.id}
-              type="button"
-              data-id={project.id}
-              className={"client-widget" + (open ? " on" : "") + (watch.needsYou ? " call" : "") + (target ? " has-target" : "")}
-              aria-current={open ? "true" : undefined}
-              aria-label={project.client + (target ? ", target " + target : "") + ", " + watch.line}
-              data-tip={watch.needsYou ? watch.line : clockTip}
-              onClick={() => { resetView(); if (waiting) startClient(project); else openProject(project, null) }}
-            >
-              <span className="widget-copy">
-                <span className="widget-client">{project.client}</span>
-                <TargetChip project={project} />
-                <span className={"widget-meta" + (watch.needsYou ? " call" : "")}>{watch.line}</span>
-              </span>
-              <DeadlineClock project={project} alert={watch.needsYou} />
-            </button>
+              project={project}
+              stamp={listStamp(project)}
+              line={watch.line}
+              needsYou={watch.needsYou}
+              open={project.id === state.openId}
+              waiting={!project.started}
+              target={targetFor(project)}
+            />
           )
         })}
       </div>

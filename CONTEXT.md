@@ -84,6 +84,10 @@ _Avoid_: Leadership as a Service, a mood bar, Figma
 A token covers its vague property. A language covers that Industry's colour, corner radius, and contrast. A process step covers its UX requirement. A miss lands only on a judged property with no cover. A fully covered brief is clean.
 _Avoid_: a miss on a line something already covers
 
+**Hand touch**:
+Pressing Ship while it is held, selecting a client, opening it, and Start do not increment the hand counter. Only a real value change does. Taking a screen back does not count. Setting a value back to a different value does.
+_Avoid_: counting a held Ship, a select, an open, or Start
+
 **Hands-free**:
 A clean auto-ship, or Ship pressed with nothing edited because tokens, a language, or the design process already met every judged requirement. That ship lifts the big-client cap. Opening a miss and fixing it is a hand ship.
 _Avoid_: a ship you repaired, a cap lifted by a lucky fix

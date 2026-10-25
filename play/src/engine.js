@@ -107,6 +107,7 @@ const state = {
   openId: null,
   selectedEl: null,
   status: "",
+  saveNote: "",
   renderKey: "",
   nextHireFloor: null,
   headOffer: null,
@@ -162,6 +163,8 @@ const trivialShortfall = 1
 // One Intern is the number who can be busy on screens already started.
 const internCap = 1
 let payrollLedger = []
+export const saveVersion = 5
+export const saveThrottleMs = 1000
 
 function cap(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : "" }
 function teach(id, title, body) {
@@ -811,6 +814,41 @@ export function shipCheck(clientId) {
 function shipButtonLabel(project) {
   if (!project) return "Ship"
   return shipCheck(project.id).label
+}
+// Selector for the Ship control. Track A replaces this with shipCheck(clientId)
+// for the button, the To Ship list, and the fee. Until then the attributes
+// follow the same label the button already shows.
+export function shipControl(project) {
+  const label = shipButtonLabel(project)
+  const held = typeof label === "string" && label.indexOf("held") !== -1
+  let reason = ""
+  if (held) {
+    reason = label.replace(/^Ship held\s*·?\s*/, "").trim()
+    if (!reason) reason = "Still needs work"
+  }
+  return { held: held ? "true" : "false", reason }
+}
+export function listStamp(project) {
+  if (!project) return ""
+  const screens = project.screens && project.screens.length ? project.screens : []
+  return screens.map((screen) => {
+    const elements = screen.elements || {}
+    const look = Object.keys(elements).map((id) => {
+      const item = elements[id] || {}
+      return id + ":" + (item.colour || "") + ":" + (item.radius ?? "") + ":" + (item.hierarchy || "") + ":" + (item.copy || "") + ":" + (item.contrast ?? "")
+    }).join(",")
+    const flow = project.flow || {}
+    return [
+      screen.id,
+      screen.owner || "",
+      screen.qc || "",
+      screen.held ? 1 : 0,
+      look,
+      flow.showing || "",
+      flow.emptyFixed ? 1 : 0,
+      flow.errorFixed ? 1 : 0
+    ].join("|")
+  }).join(";")
 }
 function isCovered(project, req) {
   if (req.prop === "copy") return state.process.research
@@ -2044,7 +2082,10 @@ function tick(dt) {
     // that hold. Undefined keeps older saves and headless runs moving.
     if (state.clocksLive !== false) {
       state.monthLeft -= dt
-      if (state.monthLeft <= 0) openBreak()
+      if (state.monthLeft <= 0) {
+        openBreak()
+        saveNow()
+      }
     }
     // A teaching card pauses the client clock only. Closing it (empty
     // notices) resumes that clock. Do not latch a separate pause flag.
@@ -2060,13 +2101,23 @@ function tick(dt) {
     }
   }
   refreshQualified()
-  commit()
+  const stamp = structuralStamp()
+  if (stamp !== lastStamp) {
+    lastStamp = stamp
+    refreshPayrollOffer()
+    refreshShipOffer()
+    notify()
+  }
+  if (!worldPaused()) notifyClock()
+  scheduleSave()
 }
 
 export const view = { z: 0.64, x: 0, y: 0, stretch: 0, springing: false }
 const ZMIN = 0.2
 const ZMAX = 2.4
-function notifyView() { notify() }
+function notifyView() {
+  viewListeners.forEach((fn) => fn())
+}
 export function resetView() {
   view.z = 0.64
   view.x = 0
@@ -2189,37 +2240,160 @@ export function blockingScreen(project) {
 }
 
 const listeners = new Set()
+const clockListeners = new Set()
+const viewListeners = new Set()
+let lastStamp = ""
+let saveTimer = null
+let lastSaveAt = 0
+
 function notify() {
   listeners.forEach((fn) => fn())
+}
+function notifyClock() {
+  refreshPayrollOffer()
+  clockListeners.forEach((fn) => fn())
 }
 export function subscribe(fn) {
   listeners.add(fn)
   return () => listeners.delete(fn)
 }
+export function subscribeClock(fn) {
+  clockListeners.add(fn)
+  return () => clockListeners.delete(fn)
+}
+export function subscribeView(fn) {
+  viewListeners.add(fn)
+  return () => viewListeners.delete(fn)
+}
+
+function timeBucket(project) {
+  if (!project || !project.started) return "wait"
+  if (project.onTimeLeft <= 0) return "late"
+  if (project.onTimeLeft <= 30) return "urgent"
+  return "ok"
+}
+function structuralStamp() {
+  const queue = state.queue.map((project) => [
+    project.id,
+    project.started ? 1 : 0,
+    project.client,
+    project.claimedBy || "",
+    project.flagged ? 1 : 0,
+    project.missNote || "",
+    project.screenId || "",
+    timeBucket(project),
+    listStamp(project)
+  ].join("~")).join("#")
+  const staff = state.staff.map((member) => [
+    member.id,
+    member.role,
+    member.pay,
+    member.projectId || "",
+    member.screenId || "",
+    member.clean,
+    member.miss,
+    member.name
+  ].join(":")).join(",")
+  return [
+    queue,
+    staff,
+    state.money,
+    state.status,
+    state.saveNote,
+    state.openId || "",
+    state.selectedEl || "",
+    state.break ? 1 : 0,
+    state.studioName,
+    state.monthIndex,
+    state.wins,
+    state.handShips,
+    state.accepted,
+    state.canShip ? 1 : 0,
+    state.shipDisabled ? 1 : 0,
+    state.shipFee ?? "",
+    state.notices.length,
+    state.showBanner ? 1 : 0,
+    state.month.handTouches,
+    state.month.qualified ? 1 : 0,
+    state.month.bigShipped ? 1 : 0,
+    state.everHired ? 1 : 0,
+    state.wikiOpen ? 1 : 0,
+    state.headUnlocked ? 1 : 0,
+    state.sold,
+    state.specialty || "",
+    JSON.stringify(state.tokens),
+    JSON.stringify(state.process),
+    JSON.stringify(state.codified),
+    JSON.stringify(state.tools),
+    JSON.stringify(state.bigDone)
+  ].join("||")
+}
 
 let started = false
 const SAVE_KEY = "sell-the-system-v4"
 
-function persist() {
+function writeSave() {
   if (!started || typeof localStorage === "undefined") return
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ state, ledger: payrollLedger }))
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ saveVersion, state, ledger: payrollLedger }))
+    lastSaveAt = Date.now()
   } catch (error) {
     void error
   }
 }
+function scheduleSave() {
+  if (!started) return
+  const now = Date.now()
+  if (now - lastSaveAt >= saveThrottleMs) {
+    if (saveTimer) {
+      clearTimeout(saveTimer)
+      saveTimer = null
+    }
+    writeSave()
+    return
+  }
+  if (saveTimer) return
+  const wait = Math.max(0, saveThrottleMs - (now - lastSaveAt))
+  saveTimer = setTimeout(() => {
+    saveTimer = null
+    writeSave()
+  }, wait)
+  if (saveTimer && typeof saveTimer.unref === "function") saveTimer.unref()
+}
+function saveNow() {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  writeSave()
+}
+export function acceptSave(data) {
+  if (!data || typeof data !== "object") return { ok: false, reason: "corrupt" }
+  if (data.saveVersion !== saveVersion) return { ok: false, reason: "version" }
+  if (!data.state || !data.state.studioName) return { ok: false, reason: "empty" }
+  return { ok: true }
+}
 function restore() {
   if (typeof localStorage === "undefined") return false
+  let raw = null
   try {
-    const raw = localStorage.getItem(SAVE_KEY)
+    raw = localStorage.getItem(SAVE_KEY)
     if (!raw) return false
     const data = JSON.parse(raw)
-    if (!data || !data.state || !data.state.studioName) return false
+    const accepted = acceptSave(data)
+    if (!accepted.ok) {
+      state.saveNote = accepted.reason === "version"
+        ? "A saved game from another version was not loaded."
+        : "A saved game could not be read and was not loaded."
+      return false
+    }
     Object.assign(state, data.state)
+    state.saveNote = ""
     payrollLedger = Array.isArray(data.ledger) ? data.ledger : []
     return true
   } catch (error) {
     void error
+    if (raw) state.saveNote = "A saved game could not be read and was not loaded."
     return false
   }
 }
@@ -2230,12 +2404,20 @@ export function start() {
   if (!restored) {
     spawn("start")
     state.arrivalLeft = interval()
-    state.status = ""
+    state.status = state.saveNote || ""
     state.clocksLive = false // week and month wait for the first Start
   }
+  refreshPayrollOffer()
+  refreshShipOffer()
+  lastStamp = structuralStamp()
   notify()
   if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", () => commit())
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) saveNow()
+    })
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("pagehide", () => saveNow())
   }
   let last = performance.now()
   const frame = (now) => {
@@ -2253,7 +2435,8 @@ function commit() {
   state.debt = debtOf()
   refreshPayrollOffer()
   refreshShipOffer()
-  persist()
+  lastStamp = structuralStamp()
+  scheduleSave()
   notify()
 }
 

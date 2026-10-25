@@ -67,8 +67,7 @@ export function shipClickEnabled(waiting, project) {
     return true
   }
   if (!project || !project.started) return false
-  return !shipCheck(project.id).held
-}
+  return !shipCheck(project.id).held}
 
 export function moneyText(value) {
   if (typeof value !== "number" || !isFinite(value)) return ""

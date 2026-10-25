@@ -250,7 +250,7 @@ function purchase(api, opts, bag) {
 
 function shipNow(api, project, bag) {
   const label = api.shipButtonLabel(project)
-  if (typeof label === "string" && label.indexOf("Ship held") === 0) return false
+  if (api.shipControl(project).held === "true") return false
   const clean = api.state.staff.find((staff) => staff.role === "intern")
   api.handShip()
   note(bag, "ship " + label + " -> $" + api.state.money + " clean " + (clean ? clean.clean : "-"))

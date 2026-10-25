@@ -2,7 +2,9 @@
 
 Incremental game about running a design agency. Vite + React.
 
-The source stays in this private repo. The game is hosted on Vercel: https://sell-the-system-harsh-s-projects-17430105.vercel.app/
+The source stays in this private repo. The game auto-deploys from main to https://sell-the-system.vercel.app/
+
+This branch is the round 5 preview. Main is still the previous build until this pull request is merged.
 
     cd play && npm install && npm run dev
 

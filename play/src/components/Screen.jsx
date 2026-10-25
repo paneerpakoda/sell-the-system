@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from "react"
+import { useView } from "../useGame.js"
 import {
   COLOURS,
   clampRadius,
@@ -70,6 +71,7 @@ function radiusFromCorner(node, corner, clientX, clientY) {
 }
 
 export function Screen() {
+  useView()
   const viewport = useRef(null)
   const phoneRef = useRef(null)
   const nodes = useRef({})

@@ -29,6 +29,7 @@ export function Gate() {
       >
         <h1 id="studio-title">Name the studio</h1>
         <p>Click what pulses. The round clock is the client's 5:00. The bars are the month: four one-minute weeks, then payroll.</p>
+        {state.saveNote && <p role="status">{state.saveNote}</p>}
         <label htmlFor="studio-name">Studio name</label>
         <input
           ref={input}
