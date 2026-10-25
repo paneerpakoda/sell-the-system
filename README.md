@@ -2,7 +2,7 @@
 
 Incremental game about running a design agency. Vite + React.
 
-Play it at https://paneerpakoda.github.io/sell-the-system/
+The source stays in this private repo. The game is hosted on Vercel.
 
     cd play && npm install && npm run dev
 
