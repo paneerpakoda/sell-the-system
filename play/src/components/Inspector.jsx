@@ -172,11 +172,11 @@ export function Inspector() {
     return () => window.removeEventListener("pointerdown", close)
   }, [open])
 
-  if (!project) return <aside className="inspector" />
+  if (!project) return <aside className="inspector" aria-label="Editor" />
   const screen = activeScreen(project)
   if (!screenEditable(project, screen) || !state.selectedEl || state.openId !== project.id) {
     return (
-      <aside className="inspector">
+      <aside className="inspector" aria-label="Editor">
         <Brief project={project} />
       </aside>
     )
@@ -264,7 +264,7 @@ export function Inspector() {
   }
 
   return (
-    <aside className="inspector" ref={root}>
+    <aside className="inspector" aria-label="Editor" ref={root}>
       <Brief project={project} />
       <div className="layer-name">
         <h2 data-tip={component ? "Both cards take this edit." : undefined}>{component ? "Card" : NAMES[id]}</h2>

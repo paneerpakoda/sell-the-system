@@ -1970,6 +1970,22 @@ export function setRadius(value, fromBackground) {
     screen.elements.background.radius = clampRadius(component + PARAMS.radiusStep)
   })
 }
+function elementHeld(project, elementId) {
+  return shipProblems(project).some((problem) => (problem.req.focus || problem.req.element) === elementId)
+}
+function followSelection(project) {
+  const problems = shipProblems(project)
+  const next = problems[0]
+  if (!next) {
+    state.selectedEl = null
+    return
+  }
+  if (next.screen) {
+    project.screenId = next.screen.id
+    project.elements = next.screen.elements
+  }
+  state.selectedEl = next.req.focus || next.req.element
+}
 function edited(fn) {
   const project = state.queue.find((item) => item.id === state.openId)
   if (!project || !state.selectedEl) return
@@ -1977,6 +1993,7 @@ function edited(fn) {
   if (!screenEditable(project, screen)) return
   if (screen.elements !== project.elements) project.elements = screen.elements
   const ids = selectionIds()
+  const heldBefore = elementHeld(project, state.selectedEl)
   const before = JSON.stringify(screen.elements) + JSON.stringify(project.flow)
   ids.forEach((id) => fn(project, screen.elements[id], id))
   const after = JSON.stringify(screen.elements) + JSON.stringify(project.flow)
@@ -1984,6 +2001,7 @@ function edited(fn) {
   project.playerEdited = true
   screen.touched = true
   if (screen.qc === "passed") screen.qc = null
+  if (heldBefore && !elementHeld(project, state.selectedEl)) followSelection(project)
   noteHand()
   state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
   commit()

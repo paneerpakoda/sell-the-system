@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-25 — round 6 batch 3
+
+Wrong and the hire warning use #ff7d5c, which is at least 4.5:1 on the side panel and on a raised row. On a selected row the warning is #ffd8cc. The Start and Ship buttons use #0870c4 so white text clears 4.5:1. A lime-on-lime card and a hot-on-hot Save say Wrong, and To Ship does not say Clear while Save is hidden. Save stays above the cards, and Title, Card A, Card B, and Save each have a button when the shape itself is hard to see.
+
+Fixing the selected line moves the panel to the next held part, or clears it when Ship is open. Clicking a To Ship row selects that part. Stage 3 names the next action, "Promote a Permanent: 0/3", and says to click Promote. The layout stays inside the window from a narrow phone width through a short, zoomed window, and Next month stays on screen.
+
 ## 2026-10-25 — round 6 batch 2
 
 A reload paints the restored studio. The screen listens before the game starts, and a second start paints again, so the name gate does not cover a save that loaded. A save with no studio name is a new game and does not say the save failed. A save is not written until the studio has a name, so an unnamed tab cannot wipe a run.

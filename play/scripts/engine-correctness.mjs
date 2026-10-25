@@ -1074,6 +1074,36 @@ await check("an empty queue can start the first client", async () => {
   assert.ok(state.queue[0].client)
 })
 
+await check("a fixed line moves the selection, and a hidden Save is not Clear", async () => {
+  const api = await load()
+  api.nameStudio("Select")
+  const project = api.spawn("start")
+  api.startClient(project)
+  api.state.openId = project.id
+  const colour = project.reqs.find((req) => req.prop === "colour")
+  api.state.selectedEl = colour.element
+  const target = api.LANG[project.industry].colour[colour.element]
+  api.edited((_, item) => { item.colour = target })
+  if (api.shipCheck(project.id).held) {
+    const next = api.openParts(project)[0]
+    assert.equal(api.state.selectedEl, next.id)
+  } else {
+    assert.equal(api.state.selectedEl, null)
+  }
+  project.elements.cardA.colour = "lime"
+  project.elements.cardA.ink = "lime"
+  assert.equal(api.shownGrade(project, "cardA", "contrast"), "Wrong")
+  assert.notEqual(api.shownGrade(project, "cardA", "contrast"), "Not judged")
+  project.elements.save.colour = "hot"
+  project.elements.save.ink = "hot"
+  const hidden = api.shipCheck(project.id)
+  assert.equal(hidden.held, true)
+  assert.doesNotMatch(hidden.label, /Clear/)
+  assert.ok(api.openParts(project).some((part) => part.id === "save"))
+  api.selectPart(project, project.screens[0].id, "save")
+  assert.equal(api.state.selectedEl, "save")
+})
+
 await check("a click stays under 200ms with 30 clients", async () => {
   const api = await load()
   api.nameStudio("Rows")

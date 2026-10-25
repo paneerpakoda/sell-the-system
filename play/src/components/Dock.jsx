@@ -127,7 +127,7 @@ export function Dock() {
   const guideNow = !!(guide && guide.started && !guide.shipLive && !guide.onLead && parts[0] && project && project.id === guide.project.id && parts[0].id === (guide.lead && guide.lead.id))
 
   return (
-    <aside className="dock">
+    <aside className="dock" aria-label="Studio">
       <section className="block clients-block">
         <header className="block-head">
           <h2>Clients</h2>
@@ -184,7 +184,7 @@ export function Dock() {
           {gradesOpen && project && (
             <div className="grades">
               {!project.reqs.some((req) => req.group === "radius") && (
-                <p className="hint">{radiusHint(project, "title")} Background is already round, so a corner from 12 to 24 is not Wrong.</p>
+                <p className="hint">{radiusHint(project, "title")} Background is already round, so a corner from 8 to 24 is not Wrong.</p>
               )}
               {GROUPS.map(([group, label]) => {
                 const reqs = project.reqs.filter((req) => req.group === group)
@@ -352,13 +352,28 @@ function StageProgress() {
     }
   ]
   const pct = Math.round(steps.reduce((sum, step) => sum + step.fill, 0) / steps.length * 100)
+  const next = steps.find((step) => !step.done)
+  const nextTitle = !next
+    ? "Stage 3 is open"
+    : next.id === "permanent"
+      ? "Promote a Permanent: " + clean + "/3"
+      : next.id === "language"
+        ? "Buy a language: 0/1"
+        : "Next: " + next.label
+  const nextClick = !next
+    ? "New clients include UX."
+    : next.id === "permanent"
+      ? "Click Promote on the intern. It stays locked until 3 clean screens."
+      : next.id === "language"
+        ? "Ship a big client, then click that language in the tree."
+        : "Click " + next.label + " in the tree."
   return (
     <section className="block stage-progress">
       <header className="block-head">
         <h2>Stage 3</h2>
-        <span>{pct}%</span>
       </header>
-      <div className="progress-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={"Stage 3 progress, " + pct + " percent"}>
+      <p className="next-action"><b>{nextTitle}</b> {nextClick}</p>
+      <div className="progress-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={nextTitle}>
         <span style={{ width: pct + "%" }} />
       </div>
       <ol className="progress-steps">

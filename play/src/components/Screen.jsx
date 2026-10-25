@@ -8,6 +8,7 @@ import {
   paintedContrast,
   focused,
   inkHex,
+  NAMES,
   openParts,
   openProject,
   openScreen,
@@ -196,6 +197,11 @@ export function Screen() {
                   {locked && (
                     <button type="button" className="takeover" data-tip="Pull this frame back. The intern stops." onClick={() => takeScreen(project, screen.id)}>Take over</button>
                   )}
+                </div>
+                <div className="layer-jumps">
+                  {["title", "cardA", "cardB", "save"].map((id) => (
+                    <button key={id} type="button" className={live && picked.has(id) ? "on" : ""} onClick={() => openEditor(project, screen, id)}>{NAMES[id]}</button>
+                  ))}
                 </div>
                 <div
                   className="frame-body"

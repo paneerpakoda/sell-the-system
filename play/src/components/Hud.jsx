@@ -102,7 +102,7 @@ export function ClockCard() {
   modal.onEnter.current = () => setClosed(true)
   if (!show) return null
   return (
-    <aside ref={modal.ref} className="clock-card" role="dialog" aria-modal="true" aria-labelledby="clock-card-title">
+    <div ref={modal.ref} className="clock-card" role="dialog" aria-modal="true" aria-labelledby="clock-card-title">
       <h2 id="clock-card-title">Three clocks</h2>
       <ul>
         <li><b>Client, 5:00.</b> The round clock on a client. It starts when you press Start. Late means that clock reached 0. The project stays, and Ship still pays. The on-time reward is closed.</li>
@@ -112,7 +112,7 @@ export function ClockCard() {
       <div className="decision-row">
         <button type="button" data-confirm onClick={() => setClosed(true)}>Got it</button>
       </div>
-    </aside>
+    </div>
   )
 }
 

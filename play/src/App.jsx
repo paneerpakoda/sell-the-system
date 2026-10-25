@@ -43,6 +43,7 @@ export function App() {
     <div className="app">
       <Dock />
       <main className="stage">
+        <h1 className="sr-only">Sell the system</h1>
         {state.studioName && <div className="studio-name">{state.studioName}</div>}
         <Hud />
         <Screen />

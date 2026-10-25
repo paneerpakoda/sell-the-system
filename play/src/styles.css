@@ -8,8 +8,9 @@
   --muted: rgba(255, 255, 255, 0.7);
   --faint: rgba(255, 255, 255, 0.62);
   --blue: #0d99ff;
+  --action: #0870c4;
   --select: rgba(13, 153, 255, 0.28);
-  --danger: #f24822;
+  --danger: #ff7d5c;
   --ok: #14ae5c;
   --warn: #ffcd29;
 }
@@ -28,7 +29,9 @@ button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .app {
-  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr) 260px;
 }
@@ -94,6 +97,7 @@ button { cursor: pointer; }
 .who { grid-column: 1; grid-row: 1; font-size: 15px; font-weight: 550; display: flex; align-items: center; gap: 6px; min-width: 0; }
 .meta { grid-column: 1; grid-row: 2; min-width: 0; color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .meta.call { color: var(--danger); font-weight: 550; }
+.client.on .meta.call { color: #ffd8cc; }
 .client.call { box-shadow: inset 3px 0 0 var(--danger); }
 .time {
   grid-column: 2;
@@ -317,12 +321,12 @@ button.node:disabled { opacity: 0.45; }
   padding: 0 16px;
   border: 0;
   border-radius: 6px;
-  background: var(--blue);
+  background: var(--action);
   color: #fff;
   font-size: 16px;
   font-weight: 550;
 }
-.gate-card button:hover { background: #0b86e0; }
+.gate-card button:hover { background: #075a9e; }
 .gate-card button:disabled { background: var(--raised); color: var(--muted); cursor: default; }
 .intro {
   position: absolute;
@@ -556,6 +560,8 @@ button.node:disabled { opacity: 0.45; }
   pointer-events: none;
 }
 .stage-progress { margin-top: 0; }
+.next-action { margin: 0 0 8px; font-size: 14px; line-height: 1.35; }
+.next-action b { font-weight: 550; }
 .progress-bar {
   height: 8px;
   border-radius: 99px;
@@ -605,16 +611,17 @@ button.node:disabled { opacity: 0.45; }
   position: absolute;
   z-index: 3;
   left: 50%;
-  top: 208px;
+  top: min(208px, calc(100% - 168px));
   transform: translateX(-50%);
   min-width: 168px;
+  max-width: calc(100% - 24px);
   max-width: min(440px, calc(100% - 32px));
   height: auto;
   min-height: 40px;
   padding: 8px 14px;
   border: 0;
   border-radius: 6px;
-  background: var(--blue);
+  background: var(--action);
   color: #fff;
   font-size: 16px;
   font-weight: 550;
@@ -622,7 +629,7 @@ button.node:disabled { opacity: 0.45; }
   white-space: normal;
   text-align: center;
 }
-.ship:hover { background: #0b86e0; }
+.ship:hover { background: #075a9e; }
 .ship.held { background: var(--raised); color: var(--muted); }
 .ship.held:hover { background: #444; }
 .ship:disabled,
@@ -715,11 +722,11 @@ button.node:disabled { opacity: 0.45; }
   padding: 0 14px;
   border: 0;
   border-radius: 6px;
-  background: var(--blue);
+  background: var(--action);
   color: #fff;
   font-weight: 550;
 }
-.modal button:hover { background: #0b86e0; }
+.modal button:hover { background: #075a9e; }
 .tip {
   position: fixed;
   z-index: 35;
@@ -820,6 +827,16 @@ button.node:disabled { opacity: 0.45; }
   text-align: left;
 }
 .frame-name span { font-weight: 450; }
+.layer-jumps { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
+.layer-jumps button {
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 2px 4px;
+}
+.layer-jumps button.on { color: var(--blue); }
 .figma-frame.on .frame-name { color: var(--blue); }
 .frame-body {
   position: relative;
@@ -836,8 +853,9 @@ button.node:disabled { opacity: 0.45; }
 .screen.on, .part.on { outline: 2px solid var(--blue); outline-offset: 2px; }
 .part { font: inherit; cursor: pointer; border: 0; }
 .frame-body .part { position: relative; z-index: 1; }
-.frame-body .part.save { z-index: 2; }
-.frame-body .part.low-contrast { z-index: 3; box-shadow: inset 0 0 0 2px #1c1917; }
+.frame-body .part.low-contrast { z-index: 2; box-shadow: inset 0 0 0 2px #1c1917; }
+.frame-body .part.save { z-index: 4; }
+.frame-body .part.save.low-contrast { z-index: 5; }
 .title {
   align-self: stretch;
   background: transparent;
@@ -918,7 +936,7 @@ button.node:disabled { opacity: 0.45; }
   font: inherit;
   font-size: 13px;
 }
-.choice.on { background: var(--blue); color: #fff; }
+.choice.on { background: var(--action); color: #fff; }
 .fig-anchor { position: relative; }
 .fill-row {
   position: relative;
@@ -1059,9 +1077,14 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
 @media (max-width: 860px) {
   .app {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(180px, 1fr) minmax(140px, 34vh) minmax(120px, 28vh);
+    grid-template-rows: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.8fr);
   }
-  .stage { grid-row: 1; }
+  .stage { grid-row: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .studio-name { position: relative; top: auto; left: auto; max-width: none; padding: 8px 12px 0; }
+  .hud { position: relative; top: auto; left: auto; right: auto; }
+  .ship { position: relative; top: auto; bottom: auto; left: auto; transform: none; margin: 8px auto; }
+  .viewport { position: relative; inset: auto; flex: 1; min-height: 120px; }
+  .widget-rail { position: relative; left: auto; right: auto; bottom: auto; height: 76px; }
   .dock {
     grid-row: 2;
     border-right: 0;
@@ -1072,6 +1095,33 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
     border-left: 0;
     border-top: 1px solid #000;
   }
+  .money { font-size: 28px; }
+  .client-widget, .client-widget.has-target { height: 64px; width: 168px; }
+}
+@media (max-width: 420px) {
+  .money { font-size: 22px; }
+  .meters { gap: 8px; }
+  .ship { min-width: 0; }
+}
+@media (max-height: 520px) {
+  .app {
+    height: auto;
+    max-height: none;
+    min-height: 100dvh;
+    overflow: auto;
+    grid-template-rows: auto auto auto;
+  }
+  .stage { min-height: 220px; }
+  .money { font-size: 20px; }
+  .meters { gap: 6px; }
+  .widget-rail { display: none; }
+  .clock-card { bottom: 8px; max-height: min(46vh, 220px); }
+  .gate { overflow: auto; align-items: start; padding: 8px 0; }
+  .gate-card, .week-pause .gate-card { padding: 12px; }
+  .gate-card h1, .gate-card input { font-size: 22px; }
+  .week-pause { align-items: stretch; padding: 8px; }
+  .week-pause .gate-card { width: 100%; max-height: calc(100dvh - 16px); }
+  .week-pause .gate-actions button { width: 100%; }
 }
 @media (max-width: 480px) {
   .week-pause { align-items: stretch; padding: 8px; }
