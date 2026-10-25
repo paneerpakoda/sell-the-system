@@ -129,7 +129,11 @@ const state = {
     reason: ""
   },
   nextHireCost: 10,
-  nextHireUnpayable: false
+  nextHireUnpayable: false,
+  specialty: null
+}
+export const gameFlags = {
+  specialtyMix: false
 }
 const internWage = 10
 const permanentWage = 30
@@ -768,8 +772,15 @@ function nextClient() {
   const lap = Math.floor(index / CLIENTS.length)
   return lap ? name + " " + (lap + 1) : name
 }
+function rollIndustry() {
+  if (!gameFlags.specialtyMix || !state.specialty || !LANG[state.specialty]) return pick(INDUSTRIES)
+  return state.specialty
+}
+export function setSpecialty(industry) {
+  state.specialty = LANG[industry] ? industry : null
+}
 function makeProject() {
-  const industry = pick(INDUSTRIES)
+  const industry = rollIndustry()
   let size = "small"
   if (state.accepted >= 3 && Math.random() < 0.25) size = "big"
   const waitingBig = state.queue.filter((project) => project.size === "big").length

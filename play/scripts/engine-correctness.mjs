@@ -323,6 +323,26 @@ await check("the strict hand rule is the default and a Ship press blocks the win
   assert.doesNotMatch(touched.state.break.note, /Won the month/)
 })
 
+await check("specialty mix stays off and does not change arrivals", async () => {
+  const { state, nameStudio, spawn, setSpecialty, gameFlags } = await load()
+  assert.equal(gameFlags.specialtyMix, false)
+  nameStudio("Mix")
+  setSpecialty("fintech")
+  const open = new Set()
+  for (let i = 0; i < 36; i++) open.add(spawn("timer").industry)
+  assert.ok(open.size > 1, "flag off still mixed industries")
+  gameFlags.specialtyMix = true
+  setSpecialty("wellness")
+  const forced = new Set()
+  for (let i = 0; i < 12; i++) forced.add(spawn("timer").industry)
+  assert.deepEqual([...forced], ["wellness"])
+  setSpecialty(null)
+  const general = new Set()
+  for (let i = 0; i < 36; i++) general.add(spawn("timer").industry)
+  assert.ok(general.size > 1, "generalist stays mixed")
+  assert.equal(state.specialty, null)
+})
+
 await check("a Permanent can take the open unstarted project", async () => {
   const { state, nameStudio, spawn, advance } = await load()
   nameStudio("Open")
