@@ -818,19 +818,38 @@ function makeProject() {
   }
   if (project.hasUX) applyBrokenUX(project)
   applyPrefill(project)
-  project.reqs = buildReqs(project)
-  attachScreens(project)
+  if (project.id <= 3) applyOpening(project)
+  else {
+    project.reqs = buildReqs(project)
+    attachScreens(project)
+  }
   return project
+}
+function openingLines(step) {
+  if (step === 1) return ["title"]
+  if (step === 2) return ["title", "cardA"]
+  return ["title", "cardA", "save"]
+}
+function applyOpening(project) {
+  const mode = project.size === "big" ? "strict" : "vague"
+  project.reqs = openingLines(project.id).map((element) => makeReq(project, {
+    element,
+    prop: "colour",
+    mode,
+    group: "colour",
+    named: true
+  }))
+  attachScreens(project, project.id === 1 ? 1 : null)
 }
 function cloneElements(elements) {
   const copy = {}
   Object.keys(elements).forEach((id) => { copy[id] = Object.assign({}, elements[id]) })
   return copy
 }
-function attachScreens(project) {
+function attachScreens(project, count) {
   const specs = productScreens(project)
-  const count = project.size === "big" ? 3 : 2
-  project.screens = specs.slice(0, count).map((spec, index) => {
+  const total = count == null ? (project.size === "big" ? 3 : 2) : count
+  project.screens = specs.slice(0, total).map((spec, index) => {
     const elements = index === 0 ? project.elements : cloneElements(project.elements)
     paintCopy(elements, spec, index === 0)
     return {

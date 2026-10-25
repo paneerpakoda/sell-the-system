@@ -55,7 +55,10 @@ await check("covered contrast includes Background and a Permanent ships", async 
   state.nextStaffId = 2
   state.money = 500
   state.monthLeft = 10000
+  // Clients 1–3 are the opening ramp. Contrast on Background is a later client.
+  state.projectSeq = 3
   const project = spawn("start")
+  assert.equal(project.id, 4)
   // Isolate this case from the open-project claim rule.
   state.openId = null
   let shippedAt = null
@@ -341,6 +344,63 @@ await check("specialty mix stays off and does not change arrivals", async () => 
   for (let i = 0; i < 36; i++) general.add(spawn("timer").industry)
   assert.ok(general.size > 1, "generalist stays mixed")
   assert.equal(state.specialty, null)
+})
+
+function calmNamedColours(project, elements) {
+  const wanted = new Set(elements)
+  for (const screen of project.screens) {
+    for (const id of wanted) screen.elements[id].colour = "paper"
+  }
+}
+
+await check("the first three clients gate Ship with one, two, and three lines", async () => {
+  const { nameStudio, spawn, feeFor } = await load()
+  nameStudio("Ramp")
+  const [first, second, third, fourth] = [spawn("start"), spawn("timer"), spawn("timer"), spawn("timer")]
+  const named = (project) => project.reqs.filter((req) => req.named)
+  const elementsOf = (project) => named(project).map((req) => req.element)
+
+  assert.equal(first.id, 1)
+  assert.equal(first.screens.length, 1)
+  assert.deepEqual(elementsOf(first), ["title"])
+  assert.equal(first.reqs.length, 1)
+  assert.equal(first.reqs[0].prop, "colour")
+  assert.equal(first.reqs[0].named, true)
+  assert.equal(feeFor(first), null)
+  calmNamedColours(first, ["title"])
+  assert.equal(first.elements.cardA.colour, "lime")
+  assert.equal(first.elements.save.colour, "hot")
+  assert.equal(typeof feeFor(first), "number")
+
+  assert.equal(second.id, 2)
+  assert.equal(second.screens.length, 2)
+  assert.deepEqual(elementsOf(second), ["title", "cardA"])
+  assert.equal(second.reqs.length, 2)
+  assert.ok(second.reqs.every((req) => req.named && req.prop === "colour"))
+  assert.equal(feeFor(second), null)
+  calmNamedColours(second, ["title"])
+  assert.equal(feeFor(second), null)
+  calmNamedColours(second, ["cardA"])
+  assert.equal(second.elements.save.colour, "hot")
+  assert.equal(typeof feeFor(second), "number")
+
+  assert.equal(third.id, 3)
+  assert.equal(third.screens.length, 2)
+  assert.deepEqual(elementsOf(third), ["title", "cardA", "save"])
+  assert.equal(third.reqs.length, 3)
+  assert.ok(third.reqs.every((req) => req.named && req.prop === "colour"))
+  assert.equal(feeFor(third), null)
+  calmNamedColours(third, ["title", "cardA"])
+  assert.equal(feeFor(third), null)
+  calmNamedColours(third, ["save"])
+  assert.equal(third.elements.background.colour, "hot")
+  assert.equal(typeof feeFor(third), "number")
+
+  assert.equal(fourth.id, 4)
+  assert.equal(fourth.screens.length, 2)
+  const namedVisual = fourth.reqs.filter((req) => req.named && (req.group === "colour" || req.group === "radius" || req.group === "contrast"))
+  assert.equal(namedVisual.length, 3)
+  assert.ok(fourth.reqs.length > namedVisual.length)
 })
 
 await check("a Permanent can take the open unstarted project", async () => {
