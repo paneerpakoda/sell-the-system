@@ -514,6 +514,20 @@ button.node:disabled { opacity: 0.45; }
   background: #2c2c2c;
 }
 .week-pause .gate-card button { margin-top: 0; }
+.week-pause-stack { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(440px, 100%); }
+.finish-nudge {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--warn);
+  color: #1c1917;
+  font-size: 14px;
+  font-weight: 650;
+}
+.week-pause .gate-actions button[data-confirm]:focus {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
 .clock-card {
   position: absolute;
   z-index: 5;

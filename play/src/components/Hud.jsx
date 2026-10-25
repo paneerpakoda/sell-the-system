@@ -1,4 +1,4 @@
-import { memo, useLayoutEffect, useRef, useState } from "react"
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   continueMonth,
   deadlineLength,
@@ -60,32 +60,46 @@ function MonthClock() {
 
 export function WeekPause() {
   const open = !!state.break
+  const [nudge, setNudge] = useState(false)
   const modal = useModal(open)
-  modal.onEscape.current = () => continueMonth()
+  modal.onEscape.current = () => {}
   modal.onEnter.current = () => {
     const current = document.activeElement
     if (current && modal.ref.current && modal.ref.current.contains(current) && current.tagName === "BUTTON") current.click()
-    else continueMonth()
   }
+  useEffect(() => {
+    if (!open) setNudge(false)
+  }, [open])
   if (!open) return null
   return (
-    <div className="week-pause">
-      <form
-        ref={modal.ref}
-        className="gate-card"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="month-end-title"
-        onSubmit={(event) => { event.preventDefault(); continueMonth() }}
-      >
-        <h1 id="month-end-title">Month {state.monthIndex}</h1>
-        <p>Four weeks are done. {state.break.note} The tree stays open.</p>
-        <div className="gate-actions">
-          <button type="submit" data-confirm>{state.break.won ? "Keep going" : "Next month"}</button>
-          {state.break.won && <button type="button" onClick={() => sellAgency()}>Sell the agency</button>}
-        </div>
-        {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
-      </form>
+    <div
+      className="week-pause"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) setNudge(true)
+      }}
+    >
+      <div className="week-pause-stack">
+        {nudge && <p className="finish-nudge" role="status">Finish this first</p>}
+        <form
+          ref={modal.ref}
+          className="gate-card"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="month-end-title"
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (event.submitter && event.submitter.hasAttribute("data-confirm")) continueMonth()
+          }}
+        >
+          <h1 id="month-end-title">Month {state.monthIndex}</h1>
+          <p>Four weeks are done. {state.break.note} The tree stays open.</p>
+          <div className="gate-actions">
+            <button type="submit" data-confirm>{state.break.won ? "Keep going" : "Next month"}</button>
+            {state.break.won && <button type="button" onClick={() => sellAgency()}>Sell the agency</button>}
+          </div>
+          {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
+        </form>
+      </div>
     </div>
   )
 }
