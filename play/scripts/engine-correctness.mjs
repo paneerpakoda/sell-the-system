@@ -194,10 +194,11 @@ await check("a big screen that is not best practice pays the short fee", async (
   paintLoose(project)
   project.size = "big"
   project.standard = "exacting"
-  assert.equal(feeFor(project), 3)
+  // Rebalance: auto-ship is $6, or $10 in Stage 3. Was $3 and $6.
+  assert.equal(feeFor(project), 6)
   state.staff = [permanent(1, "Ada")]
   state.codified.editorial = true
-  assert.equal(feeFor(project), 6)
+  assert.equal(feeFor(project), 10)
 })
 
 function close(actual, expected, label) {
@@ -584,6 +585,156 @@ await check("a Permanent can take the open unstarted project", async () => {
   assert.equal(state.staff[0].projectId, project.id)
   assert.equal(project.started, true)
 })
+
+await check("a $1 shortfall does not fire the permanent", async () => {
+  const { state, nameStudio, advance } = await load()
+  nameStudio("LateGap")
+  state.staff = [
+    { id: 1, name: "Ada", role: "intern", pay: 10, miss: 0.2, clean: 0, projectId: null, screenId: null, workLeft: 0, startedAt: 230.4 },
+    { id: 2, name: "Ben", role: "permanent", pay: 30, miss: 0.2, clean: 3, projectId: null, screenId: null, workLeft: 0, startedAt: 0 }
+  ]
+  state.nextStaffId = 3
+  state.money = 29.4
+  state.monthLeft = 0.2
+  advance(1)
+  assert.equal(state.staff.length, 2)
+  assert.equal(state.staff.some((staff) => staff.role === "permanent"), true)
+  assert.equal(state.staff.some((staff) => staff.role === "intern"), true)
+  close(state.debt, 1)
+  assert.match(state.break.note, /Late/)
+  cents(state.money, "late money")
+})
+
+await check("an intern is cut only when their pay covers the gap", async () => {
+  const covered = await load()
+  covered.nameStudio("CoverGap")
+  covered.state.staff = [intern(1, "Ada"), permanent(2, "Ben")]
+  covered.state.nextStaffId = 3
+  covered.state.money = 30
+  covered.state.monthLeft = 0.2
+  covered.advance(1)
+  assert.equal(covered.state.staff.length, 1)
+  assert.equal(covered.state.staff[0].role, "permanent")
+
+  const tiny = await load()
+  tiny.nameStudio("TinyIntern")
+  tiny.state.staff = [
+    { id: 1, name: "Ada", role: "intern", pay: 10, miss: 0.2, clean: 0, projectId: null, screenId: null, workLeft: 0, startedAt: 230.4 },
+    { id: 2, name: "Ben", role: "permanent", pay: 30, miss: 0.2, clean: 3, projectId: null, screenId: null, workLeft: 0, startedAt: 0 }
+  ]
+  tiny.state.money = 20
+  tiny.state.monthLeft = 0.2
+  tiny.advance(1)
+  assert.equal(tiny.state.staff.some((staff) => staff.role === "intern"), true, "intern pay does not cover the gap")
+})
+
+await check("the big client card shows the ship payout", async () => {
+  const api = await load()
+  api.nameStudio("Card")
+  api.state.accepted = 3
+  api.state.eventSeen = false
+  api.state.queue = []
+  let project = null
+  for (let i = 0; i < 40; i++) {
+    const made = api.spawn("timer")
+    if (made.size === "big" && api.state.event) { project = made; break }
+    api.state.queue = api.state.queue.filter((item) => item.id !== made.id)
+    api.state.event = null
+    api.state.eventSeen = false
+  }
+  assert.ok(project)
+  const offer = api.bigClientOffer()
+  assert.equal(offer.payout, 36)
+  assert.equal(offer.decline, 6)
+  const before = api.state.money
+  api.takeBig()
+  assert.equal(api.state.money, before)
+  api.state.staff = [{ id: 1, name: "Ada", role: "permanent", pay: 30, miss: 0.2, clean: 3, projectId: null, screenId: null, workLeft: 0, startedAt: 0 }]
+  api.state.codified.fintech = true
+  api.state.event = { projectId: project.id, client: project.client }
+  api.state.queue.push(project)
+  assert.equal(api.bigClientOffer().payout, 48)
+})
+
+await check("turning down a big client frees the intern and leaves hire usable", async () => {
+  const api = await load()
+  api.nameStudio("Decline")
+  api.state.handShips = 3
+  api.state.money = 80
+  api.state.monthLeft = 240
+  api.hire()
+  const internId = api.state.staff[0].id
+  api.state.accepted = 3
+  api.state.eventSeen = false
+  api.state.queue = []
+  let project = null
+  for (let i = 0; i < 40; i++) {
+    const made = api.spawn("timer")
+    if (made.size === "big" && api.state.event) { project = made; break }
+    api.state.queue = api.state.queue.filter((item) => item.id !== made.id)
+    api.state.event = null
+    api.state.eventSeen = false
+  }
+  const intern = api.state.staff.find((staff) => staff.id === internId)
+  intern.projectId = project.id
+  const before = api.state.money
+  api.turnDownBig()
+  assert.equal(api.state.queue.some((item) => item.id === project.id), false)
+  assert.equal(intern.projectId, null)
+  close(api.state.money - before, 6)
+  api.hire()
+  assert.equal(api.state.staff.length, 1)
+  api.fire(internId)
+  api.state.money = 80
+  api.state.monthLeft = 240
+  assert.equal(api.canHire(), true)
+  api.hire()
+  assert.equal(api.state.staff.length, 1)
+})
+
+await check("hire does not reroll and stays closed when unaffordable", async () => {
+  const api = await load()
+  api.nameStudio("NoReroll")
+  api.state.handShips = 3
+  api.state.money = 3
+  api.state.monthLeft = 240
+  api.nameStudio("NoReroll")
+  assert.equal(api.canHire(), false)
+  api.hire()
+  assert.equal(api.state.staff.length, 0)
+  api.state.money = 100
+  const random = Math.random
+  let rolls = 0
+  Math.random = () => { rolls += 1; return 0.99 }
+  api.hire()
+  const miss = api.state.staff[0].miss
+  api.fire(api.state.staff[0].id)
+  api.state.money = 100
+  api.state.monthLeft = 240
+  api.hire()
+  Math.random = random
+  assert.equal(rolls, 1)
+  assert.equal(api.state.staff[0].miss, miss)
+  cents(api.state.money, "hire money")
+})
+
+await check("money stays in cents and does not go negative", async () => {
+  const api = await load()
+  api.nameStudio("Cents")
+  api.state.money = 0.1 + 0.2
+  api.nameStudio("Cents")
+  cents(api.state.money, "commit")
+  assert.ok(api.state.money >= 0)
+  api.state.money = -4
+  api.nameStudio("Cents")
+  assert.equal(api.state.money, 0)
+})
+
+function cents(value, label) {
+  assert.equal(typeof value, "number", label)
+  assert.ok(Number.isFinite(value), label)
+  assert.ok(Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, (label || "money") + " " + value)
+}
 
 if (failures.length) {
   console.error("engine-correctness: " + failures.length + " failed")
