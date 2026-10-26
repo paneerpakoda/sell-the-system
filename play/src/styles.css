@@ -1197,7 +1197,7 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
   color: var(--text-on-ink, #f1ead9);
 }
 @media (max-width: 1023px) and (min-width: 861px) {
-  .app { grid-template-columns: minmax(0, 1fr) 220px; }
+  .app { grid-template-columns: 220px minmax(0, 1fr); }
   .inspector {
     position: fixed;
     z-index: 30;
