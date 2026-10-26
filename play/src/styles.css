@@ -1145,7 +1145,7 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
 .note { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
 
 @media (max-width: 1536px) {
-  .app { grid-template-columns: 220px minmax(0, 1fr) 220px; }
+  .app { grid-template-columns: 260px minmax(0, 1fr) 260px; }
   .stage { overflow: auto; display: flex; flex-direction: column; }
   .studio-name { position: relative; top: auto; left: auto; max-width: none; padding: 8px 12px 0; flex: none; }
   .hud { position: relative; top: auto; left: auto; right: auto; flex: none; }
@@ -1167,19 +1167,52 @@ button.lib-row.on { background: rgba(255, 255, 255, 0.08); }
   .decision-reopen { margin: 8px 16px 16px; width: fit-content; }
   .client, .target-chip, .who, .meta { min-width: 0; }
 }
-@media (max-width: 1440px) {
-  .app { grid-template-columns: 200px minmax(0, 1fr) 200px; }
+@media (max-width: 1535px) {
+  .app { grid-template-columns: 240px minmax(0, 1fr) 240px; }
+}
+@media (max-width: 1439px) {
+  .app { grid-template-columns: 232px minmax(0, 1fr) 232px; }
   .money { font-size: 36px; }
 }
-@media (max-width: 1366px) {
-  .app { grid-template-columns: 180px minmax(0, 1fr) 180px; }
+@media (max-width: 1365px) {
+  .app { grid-template-columns: 220px minmax(0, 1fr) 220px; }
 }
-@media (max-width: 1280px) {
-  .app { grid-template-columns: 168px minmax(0, 1fr) 168px; }
+@media (max-width: 1279px) {
   .money { font-size: 32px; }
+  .meters { flex-wrap: nowrap; }
+  .meter { flex: none; }
+}
+.sk-drawer-open {
+  display: none;
+  position: absolute;
+  z-index: 6;
+  top: 12px;
+  right: 12px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border: 2px solid var(--ink-950, #0c0c0e);
+  border-radius: 8px;
+  background: var(--ink-900, #17171a);
+  color: var(--text-on-ink, #f1ead9);
+}
+@media (max-width: 1023px) and (min-width: 861px) {
+  .app { grid-template-columns: minmax(0, 1fr) 220px; }
+  .inspector {
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(320px, 100%);
+    transform: translateX(110%);
+    background: var(--panel);
+    border-left: 1px solid var(--line-control);
+  }
+  .inspector.is-open { transform: none; }
+  .sk-drawer-open { display: inline-flex; }
 }
 @media (max-width: 960px) {
-  .app { grid-template-columns: 150px minmax(0, 1fr) 150px; }
   .money { font-size: 28px; }
   .meters { gap: 10px; }
 }

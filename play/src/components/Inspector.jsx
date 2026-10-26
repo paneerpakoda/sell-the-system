@@ -155,12 +155,25 @@ function FillRow({ colour, open, onToggle, onPick, label, pulse }) {
 export function Inspector() {
   const project = focused()
   const [open, setOpen] = useState(null)
+  const [drawer, setDrawer] = useState(false)
   const root = useRef(null)
+  const drawerClass = "inspector" + (drawer ? " is-open" : "")
   useEffect(() => {
     const onEscape = () => setOpen(null)
     window.addEventListener("close-popovers", onEscape)
     return () => window.removeEventListener("close-popovers", onEscape)
   }, [])
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key === "Escape") setDrawer(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [])
+  useEffect(() => {
+    if (!drawer || !root.current) return
+    root.current.querySelector("button, input, select, textarea, [href]")?.focus()
+  }, [drawer, state.openId, state.selectedEl])
   useEffect(() => {
     if (!open) return undefined
     const close = (event) => {
@@ -172,13 +185,17 @@ export function Inspector() {
     return () => window.removeEventListener("pointerdown", close)
   }, [open])
 
-  if (!project) return <aside className="inspector" aria-label="Editor" />
+  const drawerButton = <button type="button" className="sk-drawer-open" onClick={() => setDrawer(true)}>Edit part</button>
+  if (!project) return <>{drawerButton}<aside ref={root} className={drawerClass} aria-label="Editor" /></>
   const screen = activeScreen(project)
   if (!screenEditable(project, screen) || !state.selectedEl || state.openId !== project.id) {
     return (
-      <aside className="inspector" aria-label="Editor">
-        <Brief project={project} />
-      </aside>
+      <>
+        {drawerButton}
+        <aside ref={root} className={drawerClass} aria-label="Editor">
+          <Brief project={project} />
+        </aside>
+      </>
     )
   }
 
@@ -264,7 +281,9 @@ export function Inspector() {
   }
 
   return (
-    <aside className="inspector" aria-label="Editor" ref={root}>
+    <>
+    {drawerButton}
+    <aside className={drawerClass} aria-label="Editor" ref={root}>
       <Brief project={project} />
       <div className="layer-name">
         <h2 data-tip={component ? "Both cards take this edit." : undefined}>{component ? "Card" : NAMES[id]}</h2>
@@ -274,6 +293,7 @@ export function Inspector() {
       {project.hasUX && id !== "background" && <TypeSection project={project} id={id} el={el} />}
       {ORDER.map((key) => sections[key])}
     </aside>
+    </>
   )
 }
 
