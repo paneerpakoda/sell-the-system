@@ -118,7 +118,7 @@ function ColourLibrary({ anchor, selected, onPick }) {
   }, [anchor])
   if (!box) return null
   return (
-    <div className="library" style={{ top: box.top, right: box.right }} role="listbox" aria-label="Colours">
+    <div className="library sk-panel" style={{ top: box.top, right: box.right }} role="listbox" aria-label="Colours">
       {SWATCHES.map((name) => (
         <button
           key={name}

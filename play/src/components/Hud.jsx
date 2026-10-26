@@ -28,9 +28,9 @@ function Weeks() {
   const held = state.clocksLive === false
   const weekText = held ? clock.text + " held" : clock.text + " left"
   return (
-      <div className="weeks" role="group" aria-label={"Week " + week + " of 4, " + weekText + ". Each week is one minute. The week clock waits until the first Start."} data-tip="Each week is one minute. It waits until the first Start. This is not the client's round clock.">
-      <div className="meter-k">Week</div>
-      <div className="week-marks" aria-hidden="true">
+      <div className="weeks sk-panel" role="group" aria-label={"Week " + week + " of 4, " + weekText + ". Each week is one minute. The week clock waits until the first Start."} data-tip="Each week is one minute. It waits until the first Start. This is not the client's round clock.">
+      <div className="meter-k sk-panel-head">Week</div>
+      <div className="week-marks sk-weekbar" aria-hidden="true">
         {[0, 1, 2, 3].map((index) => {
           const amount = index < week - 1 ? 1 : index === week - 1 ? into : 0
           return (
@@ -137,7 +137,7 @@ function DeadlineClock({ project, alert }) {
           strokeDashoffset={c * (1 - p)}
         />
       </svg>
-      <b>{label}</b>
+      <b className={urgent || late ? "sk-deadline" : undefined}>{label}</b>
     </div>
   )
 }
@@ -324,6 +324,29 @@ export function Hud() {
         {!live && check && check.reason && <p className="sk-cbtn-reason">{check.reason}</p>}
       </div>
       <ClientWidgets />
+      <ShipMoment />
+    </>
+  )
+}
+
+function ShipMoment() {
+  const { currency } = useCurrency()
+  const seen = useRef(state.accepted)
+  const [moment, setMoment] = useState(null)
+  useEffect(() => {
+    if (state.accepted <= seen.current) return undefined
+    seen.current = state.accepted
+    const match = /(?:^Shipped | shipped )(.+?) · \$(\d+(?:\.\d+)?)/.exec(state.status || "")
+    if (!match) return undefined
+    setMoment({ client: match[1], amount: Number(match[2]) })
+    const timer = window.setTimeout(() => setMoment(null), 1500)
+    return () => window.clearTimeout(timer)
+  }, [state.accepted])
+  if (!moment) return null
+  return (
+    <>
+      <p className="sk-stamp">Shipped!</p>
+      <p className="sk-toast" role="status">Shipped {moment.client} {formatMoney(moment.amount, { currency, sign: true })}</p>
     </>
   )
 }

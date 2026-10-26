@@ -209,4 +209,71 @@
   .sk-bezel { padding: 12px; border-width: 1.5px; }
   .sk-cbtn, .sk-ship-plate .ship { min-height: 36px; border-width: 1.5px; box-shadow: none; }
   .sk-cbtn:active { transform: none; }
+  .sk-panel { border-width: 1px; }
+}
+
+.stage.sk-backdrop { background: var(--ink-900, #17171a); }
+
+.sk-panel {
+  background: var(--ink-900, #17171a);
+  color: var(--text-on-ink, #f1ead9);
+  border: 2px solid var(--panel-edge, rgba(241, 234, 217, 0.4));
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.sk-panel .block-head h2,
+.sk-panel-head {
+  color: var(--text-on-ink-muted, rgba(241, 234, 217, 0.72));
+}
+
+.weeks.sk-panel { padding: 6px 8px; }
+
+.week-marks.sk-weekbar i { background: var(--sk-track, rgba(241, 234, 217, 0.4)); }
+.week-marks.sk-weekbar b { background: var(--fill-week, #f1ead9); }
+
+.node.sk-slot,
+button.node.sk-slot {
+  background: var(--ink-800, #232327);
+  color: var(--text-on-ink, #f1ead9);
+  border: 1px solid var(--slot-edge-m, rgba(241, 234, 217, 0.4));
+  opacity: 1;
+}
+
+.node.done.sk-slot { color: var(--text-on-ink-muted, rgba(241, 234, 217, 0.72)); }
+.node.locked.sk-slot { background: var(--ink-800, #232327); }
+.sk-lock-chip { display: block; font-size: 12px; color: var(--text-on-ink-faint, rgba(241, 234, 217, 0.62)); }
+
+.sk-deadline { color: var(--deadline-text, #ffcd29); }
+
+.sk-stamp,
+.sk-toast {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  pointer-events: none;
+}
+
+.sk-stamp {
+  top: min(156px, calc(100% - 230px));
+  padding: 4px 10px;
+  background: var(--cream-100, #f1ead9);
+  color: var(--ink-900, #17171a);
+  border: 2px solid var(--ink-950, #0c0c0e);
+  font-family: "Lilita One", ui-sans-serif, system-ui, sans-serif;
+}
+
+.sk-toast {
+  bottom: 132px;
+  max-width: min(480px, calc(100% - 32px));
+  padding: 8px 12px;
+  background: var(--ink-800, #232327);
+  color: var(--text-on-ink, #f1ead9);
+  border-radius: 8px;
+}
+
+@media (max-width: 1536px) {
+  .sk-stamp, .sk-toast { position: relative; left: auto; top: auto; bottom: auto; transform: none; margin: 8px auto; }
 }
