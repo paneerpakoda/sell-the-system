@@ -1,29 +1,22 @@
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { dismissNotice, state } from "../engine.js"
-import { useModal } from "./focusTrap.js"
+import { SkModal } from "./SkModal.jsx"
 
 export function Notice() {
   const note = state.break ? null : state.notices[0]
-  const modal = useModal(!!note)
-  modal.onEscape.current = () => dismissNotice()
-  modal.onEnter.current = () => dismissNotice()
-  if (!note) return null
   return (
-    <div className="modal-back" onClick={() => dismissNotice()}>
-      <div
-        ref={modal.ref}
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="notice-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id="notice-title">{note.title}</h2>
-        <p>{note.body}</p>
-        <button type="button" data-confirm onClick={() => dismissNotice()}>Got it</button>
-      </div>
-    </div>
+    <SkModal id="coach-notice" open={!!note} scrim="soft" scrimCloses labelledBy="notice-title" onEscape={() => dismissNotice()}>
+      {note && (
+        <>
+          <h2 id="notice-title" className="sk-title">{note.title}</h2>
+          <div className="sk-bezel-body"><p>{note.body}</p></div>
+          <div className="sk-bezel-actions">
+            <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => dismissNotice()}>Got it</button>
+          </div>
+        </>
+      )}
+    </SkModal>
   )
 }
 
