@@ -1,11 +1,10 @@
 import { bigClientOffer, chooseFork, chooseMidgame, dismissNotice, gameFlags, LANG, state, takeBig, turnDownBig } from "../engine.js"
 import { useModal } from "./focusTrap.js"
 import { undoForkChoice } from "./guidance.jsx"
+import { formatMoney, useCurrency } from "../ui/money.js"
 
 const SPECIALIST = "New clients stay in one industry, so a language comes faster. You stop seeing the other industries."
 const GENERALIST = "Clients keep mixing across industries. A language takes longer, because big clients are spread out."
-const CHASE = "Big clients arrive twice as often. Each new month costs $8. The winning month is still one big client, with payroll paid and no hand touch."
-const STEADY = "Big clients stop arriving. A small ship pays $4 more. The winning month is four small ships, with payroll paid and no hand touch."
 
 function publish() {
   if (state.notices.length === 0) dismissNotice()
@@ -17,6 +16,10 @@ function industryName() {
 }
 
 export function Decisions() {
+  const { currency } = useCurrency()
+  const money = (value, options) => formatMoney(value, { currency, ...options })
+  const chase = "Big clients arrive twice as often. Each new month costs " + money(8) + ". The winning month is still one big client, with payroll paid and no hand touch."
+  const steady = "Big clients stop arriving. A small ship pays " + money(4) + " more. The winning month is four small ships, with payroll paid and no hand touch."
   const noticeUp = state.notices.length > 0
   const offer = bigClientOffer()
   const eventOpen = !noticeUp && !!offer && !state.eventClosed && !!state.studioName && !state.break
@@ -40,11 +43,11 @@ export function Decisions() {
     return (
       <div ref={modal.ref} className="decision" role="dialog" aria-modal="true" aria-labelledby="big-client-title">
         <h2 id="big-client-title">{offer.client} is a big client</h2>
-        <p>Take the brief. A full ship pays ${offer.payout}. A short ship pays ${offer.short}. Turn it down for ${offer.decline}.</p>
+        <p>Take the brief. A full ship pays {money(offer.payout)}. A short ship pays {money(offer.short)}. Turn it down for {money(offer.decline)}.</p>
         <p className="clock-running">Clock is running</p>
         <div className="decision-row">
-          <button type="button" data-confirm onClick={() => takeBig()}>Take it · ${offer.payout}</button>
-          <button type="button" onClick={() => turnDownBig()}>Turn it down · ${offer.decline}</button>
+          <button type="button" data-confirm onClick={() => takeBig()}>Take it · {money(offer.payout)}</button>
+          <button type="button" onClick={() => turnDownBig()}>Turn it down · {money(offer.decline)}</button>
         </div>
       </div>
     )
@@ -60,8 +63,8 @@ export function Decisions() {
     return (
       <div ref={modal.ref} className="decision" role="dialog" aria-modal="true" aria-labelledby="midgame-title">
         <h2 id="midgame-title">Big clients or a steady book</h2>
-        <p><b>Chase big clients.</b> {CHASE}</p>
-        <p><b>Keep a steady book.</b> {STEADY}</p>
+        <p><b>Chase big clients.</b> {chase}</p>
+        <p><b>Keep a steady book.</b> {steady}</p>
         <p className="clock-running">Clock is running</p>
         <div className="decision-row">
           <button type="button" data-confirm onClick={() => chooseMidgame("chase")}>Chase big clients</button>

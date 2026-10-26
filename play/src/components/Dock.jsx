@@ -31,7 +31,8 @@ import {
   studioOpen
 } from "../engine.js"
 import { useClock } from "../useGame.js"
-import { TargetChip, guidingFirst, moneyText, payrollFacts } from "./guidance.jsx"
+import { TargetChip, guidingFirst, payrollFacts } from "./guidance.jsx"
+import { formatMoney, useCurrency } from "../ui/money.js"
 
 const GROUPS = [
   ["colour", "Colour"],
@@ -219,17 +220,19 @@ export function Dock() {
 
 function People() {
   const [pendingFire, setPendingFire] = useState(null)
+  const { currency } = useCurrency()
+  const money = (value) => formatMoney(value, { currency })
   const { due, next, unpayable, reason, lines } = payrollFacts()
   const locked = state.handShips < 3
   const internOnStaff = state.staff.some((staff) => staff.role === "intern")
   const affordable = canHire()
   const short = due > 0 && state.money + 0.001 < due
-  const dueText = moneyText(due)
-  const nextText = moneyText(next)
+  const dueText = money(due)
+  const nextText = money(next)
   const hireNote = state.payroll && state.payroll.hireNote
     ? state.payroll.hireNote
-    : "Hire is $" + nextText + " for the rest of this month. The price falls as the month runs, then jumps back to $10 when the next month starts."
-  const warn = reason || ("This hire makes payroll $" + moneyText(due + next) + ". You have $" + moneyText(state.money) + ".")
+    : "Hire is " + nextText + " for the rest of this month. The price falls as the month runs, then jumps back to " + money(10) + " when the next month starts."
+  const warn = reason || ("This hire makes payroll " + money(due + next) + ". You have " + money(state.money) + ".")
   const hireTip = locked
     ? "Ship 3 screens yourself. Hire stays locked until then."
     : internOnStaff
@@ -241,11 +244,11 @@ function People() {
     <section className="block studio">
       <header className="block-head">
         <h2>People</h2>
-        {state.staff.length > 0 && <span>{state.payroll.late ? "Late" : short ? "Short" : "$" + dueText}</span>}
+        {state.staff.length > 0 && <span className="sk-num">{state.payroll.late ? "Late" : short ? "Short" : dueText}</span>}
       </header>
       {state.staff.map((staff) => (
         <div key={staff.id} className="staff">
-          <p>{staff.name} · {staff.role === "permanent" ? "Permanent" : "Intern"} · ${staff.pay}</p>
+          <p>{staff.name} · {staff.role === "permanent" ? "Permanent" : "Intern"} · <span className="sk-num">{money(staff.pay)}</span></p>
           <p className="hint">{staffTask(staff)}</p>
           {staff.role === "intern" && <p className="pace">{paceText(state.queue.find((item) => item.id === staff.projectId))} · {missText(staff, state.queue.find((item) => item.id === staff.projectId))}</p>}
           <div className="staff-actions">
@@ -253,7 +256,7 @@ function People() {
               <button type="button" onClick={() => setPendingFire(staff)}>Fire</button>
             </span>
             {staff.role === "intern" && (
-              <span className="tip-wrap" data-tip={staff.clean < 3 ? "Three clean screens, then they start clients for you." : "Starts clients you have not started, then checks the intern. $30 a month."}>
+              <span className="tip-wrap" data-tip={staff.clean < 3 ? "Three clean screens, then they start clients for you." : "Starts clients you have not started, then checks the intern. " + money(30) + " a month."}>
                 <button type="button" disabled={staff.clean < 3} onClick={() => promote(staff.id)}>Permanent {staff.clean}/3</button>
               </span>
             )}
@@ -261,15 +264,15 @@ function People() {
         </div>
       ))}
       <p className="hint">{hireNote}</p>
-      <p className="hint">{"Payroll due $" + dueText + "."}</p>
+      <p className="hint">{"Payroll due " + dueText + "."}</p>
       {lines.map((line) => (
-        <p key={line.name} className="hint">{line.name + " · $" + moneyText(line.amount)}</p>
+        <p key={line.name} className="hint">{line.name + " · " + money(line.amount)}</p>
       ))}
       {state.payroll.lateNote && <p className="hint payroll-warn">{state.payroll.lateNote}</p>}
       {unpayable && !state.payroll.lateNote && <p className="hint payroll-warn">{warn}</p>}
       <span className="tip-wrap" data-tip={hireTip}>
         <button type="button" className="buy" disabled={!affordable} onClick={() => hire()}>
-          {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · $" + nextText}
+          {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · " + nextText}
         </button>
       </span>
       <FireConfirm staff={pendingFire} onCancel={() => setPendingFire(null)} onFire={() => { fire(pendingFire.id); setPendingFire(null) }} />
@@ -389,6 +392,8 @@ function StageProgress() {
 }
 
 function HowToWin() {
+  const { currency } = useCurrency()
+  const money = (value) => formatMoney(value, { currency })
   return (
     <section className="block how-win">
       <header className="block-head">
@@ -396,7 +401,7 @@ function HowToWin() {
       </header>
       <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
       <ul>
-        <li data-tip="After you hire, pick one. Chase: big clients arrive twice as often, and each month costs $8. Steady: big clients stop, a small ship pays $4 more, and four small ships win the month.">
+        <li data-tip={"After you hire, pick one. Chase: big clients arrive twice as often, and each month costs " + money(8) + ". Steady: big clients stop, a small ship pays " + money(4) + " more, and four small ships win the month."}>
           <b>The choice.</b> After you hire, pick big clients or a steady book. Until you pick, a month cannot be won.
         </li>
         <li data-tip="After 3 ships, some arrivals name every element and pay the higher fee. The winning month needs one of them shipped, unless you kept a steady book.">
@@ -451,6 +456,8 @@ const PROCESS_ROWS = [
 ]
 
 function Tree() {
+  const { currency } = useCurrency()
+  const money = (value) => formatMoney(value, { currency })
   const tokensReady = state.everHired && state.accepted >= 3
   const rows = []
   if (!state.everHired && state.handShips < 1) {
@@ -495,7 +502,7 @@ function Tree() {
       ) : (
         <span key={row.id} className="tip-wrap" data-tip={row.tip}>
           <button type="button" className="node" disabled={state.money < row.cost} onClick={row.buy}>
-            {row.name} · ${row.cost}
+            {row.name} · {money(row.cost)}
           </button>
         </span>
       ))}
