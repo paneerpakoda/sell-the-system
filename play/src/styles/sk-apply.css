@@ -277,3 +277,74 @@ button.node.sk-slot {
 @media (max-width: 1536px) {
   .sk-stamp, .sk-toast { position: relative; left: auto; top: auto; bottom: auto; transform: none; margin: 8px auto; }
 }
+
+.choice,
+.layer-jumps button,
+.radius-stop,
+.lib-row,
+.fill-row,
+.client,
+.client-widget,
+.decision-reopen,
+.grades-toggle,
+.now,
+.more,
+button.node {
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1), color 150ms cubic-bezier(0.22, 1, 0.36, 1), transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.choice:hover,
+.layer-jumps button:hover,
+.radius-stop:hover,
+.fill-row:hover,
+.client:hover,
+.grades-toggle:hover,
+.decision-reopen:hover,
+.now:hover,
+.more:hover { background: rgba(255, 255, 255, 0.08); }
+
+button.node.sk-slot:hover,
+.client-widget:hover { background: var(--ink-700, #2f2f35); }
+
+.choice:active,
+.layer-jumps button:active,
+.radius-stop:active,
+.lib-row:active,
+.fill-row:active,
+.client:active,
+.client-widget:active,
+.decision-reopen:active,
+button.node:active { transform: translateY(2px); }
+
+.choice:focus-visible,
+.layer-jumps button:focus-visible,
+.radius-stop:focus-visible,
+.lib-row:focus-visible,
+.fill-row:focus-visible,
+.client:focus-visible,
+.client-widget:focus-visible,
+.decision-reopen:focus-visible,
+.dock button:focus-visible,
+.inspector button:focus-visible,
+.node:focus-visible,
+.grades-toggle:focus-visible {
+  outline: 2px solid var(--focus-on-ink, #f1ead9);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .guide-pulse { animation: none !important; box-shadow: 0 0 0 2px var(--focus-on-ink, #f1ead9); }
+  .sk-cbtn:active,
+  .sk-rbtn:active,
+  button.node:active,
+  .client-widget:active,
+  .choice:active { transform: none; }
+  .sk-stamp, .sk-sticker { animation: none !important; }
+}
