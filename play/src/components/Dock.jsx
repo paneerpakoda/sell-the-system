@@ -1,5 +1,5 @@
 import { memo, useState } from "react"
-import { useModal } from "./focusTrap.js"
+import { SkModal } from "./SkModal.jsx"
 import {
   NAMES,
   describe,
@@ -253,7 +253,7 @@ function People() {
           {staff.role === "intern" && <p className="pace">{paceText(state.queue.find((item) => item.id === staff.projectId))} · {missText(staff, state.queue.find((item) => item.id === staff.projectId))}</p>}
           <div className="staff-actions">
             <span className="tip-wrap" data-tip="They leave now. Unfinished frames come back to you. You confirm before they go.">
-              <button type="button" onClick={() => setPendingFire(staff)}>Fire</button>
+              <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => setPendingFire(staff)}>Fire</button>
             </span>
             {staff.role === "intern" && (
               <span className="tip-wrap" data-tip={staff.clean < 3 ? "Three clean screens, then they start clients for you." : "Starts clients you have not started, then checks the intern. " + money(30) + " a month."}>
@@ -271,9 +271,10 @@ function People() {
       {state.payroll.lateNote && <p className="hint payroll-warn">{state.payroll.lateNote}</p>}
       {unpayable && !state.payroll.lateNote && <p className="hint payroll-warn">{warn}</p>}
       <span className="tip-wrap" data-tip={hireTip}>
-        <button type="button" className="buy" disabled={!affordable} onClick={() => hire()}>
+        <button type="button" className="buy sk-cbtn sk-cbtn--secondary" disabled={!affordable} onClick={() => hire()}>
           {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · " + nextText}
         </button>
+        {!affordable && <span className="sk-cbtn-reason">{locked ? "Ship 3 screens yourself" : internOnStaff ? "One intern is already hired" : "Need " + nextText}</span>}
       </span>
       <FireConfirm staff={pendingFire} onCancel={() => setPendingFire(null)} onFire={() => { fire(pendingFire.id); setPendingFire(null) }} />
     </section>
@@ -281,32 +282,22 @@ function People() {
 }
 
 function FireConfirm({ staff, onCancel, onFire }) {
-  const modal = useModal(!!staff)
-  modal.onEscape.current = () => onCancel()
-  modal.onEnter.current = () => {
-    const current = document.activeElement
-    if (current && modal.ref.current && modal.ref.current.contains(current) && current.tagName === "BUTTON") current.click()
-    else onFire()
-  }
-  if (!staff) return null
   return (
-    <div className="modal-back" onClick={onCancel}>
-      <div
-        ref={modal.ref}
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="fire-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id="fire-title">Fire {staff.name}?</h2>
-        <p>{staff.name} leaves now. Frames they have not finished come back to you. Pay for time already worked still comes due. Tokens, languages, and process steps stay.</p>
-        <div className="decision-row">
-          <button type="button" data-confirm onClick={onFire}>Fire</button>
-          <button type="button" onClick={onCancel}>Cancel</button>
-        </div>
-      </div>
-    </div>
+    <SkModal id="fire-confirm" open={!!staff} blocking role="alertdialog" scrim="hard" scrimCloses labelledBy="fire-title" onEscape={onCancel}>
+      {staff && (
+        <>
+          <h2 id="fire-title" className="sk-title">Fire {staff.name}?</h2>
+          <div className="sk-bezel-body">
+            <p>{staff.name} leaves now. Frames they have not finished come back to you. Pay for time already worked still comes due. Tokens, languages, and process steps stay.</p>
+            <p className="sk-danger-note">This can't be undone.</p>
+          </div>
+          <div className="sk-bezel-actions">
+            <button type="button" className="sk-cbtn sk-cbtn--secondary" data-initial-focus onClick={onCancel}>Cancel</button>
+            <button type="button" className="sk-cbtn sk-cbtn--danger" onClick={onFire}>Fire {staff.name}</button>
+          </div>
+        </>
+      )}
+    </SkModal>
   )
 }
 

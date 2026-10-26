@@ -2,7 +2,6 @@ import { memo, useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
   continueMonth,
   deadlineLength,
-  gameFlags,
   sellAgency,
   handShip,
   listStamp,
@@ -17,7 +16,7 @@ import {
   timeLabel,
   weekState
 } from "../engine.js"
-import { useModal } from "./focusTrap.js"
+import { SkModal } from "./SkModal.jsx"
 import { useClock } from "../useGame.js"
 import { TargetChip, formatClock, guidingFirst, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
 import { CurrencySwitch, formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
@@ -62,75 +61,54 @@ function MonthClock() {
 export function WeekPause() {
   const open = !!state.break
   const [nudge, setNudge] = useState(false)
-  const modal = useModal(open)
-  modal.onEscape.current = () => {}
-  modal.onEnter.current = () => {
-    const current = document.activeElement
-    if (current && modal.ref.current && modal.ref.current.contains(current) && current.tagName === "BUTTON") current.click()
-  }
   useEffect(() => {
     if (!open) setNudge(false)
   }, [open])
-  if (!open) return null
   return (
-    <div
-      className="week-pause"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) setNudge(true)
-      }}
+    <SkModal
+      id="month-end"
+      open={open}
+      blocking
+      scrim="hard"
+      labelledBy="month-end-title"
+      onScrim={() => setNudge(true)}
     >
-      <div className="week-pause-stack">
-        {nudge && <p className="finish-nudge" role="status">Finish this first</p>}
-        <form
-          ref={modal.ref}
-          className="gate-card"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="month-end-title"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (event.submitter && event.submitter.hasAttribute("data-confirm")) continueMonth()
-          }}
-        >
-          <h1 id="month-end-title">Month {state.monthIndex}</h1>
-          <p>Four weeks are done. {state.break.note} The tree stays open.</p>
-          <div className="gate-actions">
-            <button type="submit" data-confirm>{state.break.won ? "Keep going" : "Next month"}</button>
-            {state.break.won && <button type="button" onClick={() => sellAgency()}>Sell the agency</button>}
+      {open && (
+        <>
+          {nudge && <p className="finish-nudge" role="status">Finish this first</p>}
+          <h1 id="month-end-title" className="sk-title">Month {state.monthIndex}</h1>
+          <div className="sk-bezel-body">
+            <p>Four weeks are done. {state.break.note} The tree stays open.</p>
+            {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
           </div>
-          {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
-        </form>
-      </div>
-    </div>
+          <div className="sk-bezel-actions">
+            <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => continueMonth()}>{state.break.won ? "Keep going" : "Next month"}</button>
+            {state.break.won && <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => sellAgency()}>Sell the agency</button>}
+          </div>
+        </>
+      )}
+    </SkModal>
   )
 }
 
 export function ClockCard() {
   const [closed, setClosed] = useState(false)
-  const decision = !!(
-    (state.event && !state.eventClosed) ||
-    (gameFlags.midgameChoice && !state.midgame && !state.midgameClosed && state.everHired && state.accepted >= 3) ||
-    (!state.fork && !state.forkClosed && state.everHired && state.accepted >= 3) ||
-    (state.fork && !state.forkClosed)
-  )
-  const show = !closed && !!state.studioName && !state.tabNote && state.queue.length > 0 && state.clocksLive === false && !state.break && state.notices.length === 0 && !decision
-  const modal = useModal(show)
-  modal.onEscape.current = () => setClosed(true)
-  modal.onEnter.current = () => setClosed(true)
-  if (!show) return null
+  const show = !closed && !!state.studioName && !state.tabNote && state.queue.length > 0 && state.clocksLive === false
   return (
-    <div ref={modal.ref} className="clock-card" role="dialog" aria-modal="true" aria-labelledby="clock-card-title">
-      <h2 id="clock-card-title">Three clocks</h2>
-      <ul>
-        <li><b>Client, 5:00.</b> The round clock on a client. It starts when you press Start. Late means that clock reached 0. The project stays, and Ship still pays. The on-time reward is closed.</li>
-        <li><b>Week.</b> Each bar is one minute. The week clock waits until the first Start.</li>
-        <li><b>Month.</b> Four weeks, about four minutes, then payroll. The month timer is on screen from month 1. It waits with the week clock until the first Start.</li>
-      </ul>
-      <p className="clock-running">Clock is running</p>
-      <div className="decision-row">
-        <button type="button" data-confirm onClick={() => setClosed(true)}>Got it</button>
+    <SkModal id="coach-clocks" open={show} scrim="soft" scrimCloses labelledBy="clock-card-title" onEscape={() => setClosed(true)}>
+      <h2 id="clock-card-title" className="sk-title">Three clocks</h2>
+      <div className="sk-bezel-body">
+        <ul>
+          <li><b>Client, 5:00.</b> The round clock on a client. It starts when you press Start. Late means that clock reached 0. The project stays, and Ship still pays. The on-time reward is closed.</li>
+          <li><b>Week.</b> Each bar is one minute. The week clock waits until the first Start.</li>
+          <li><b>Month.</b> Four weeks, about four minutes, then payroll. The month timer is on screen from month 1. It waits with the week clock until the first Start.</li>
+        </ul>
+        <p className="sk-clock-note">Clock is running</p>
       </div>
-    </div>
+      <div className="sk-bezel-actions">
+        <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => setClosed(true)}>Got it</button>
+      </div>
+    </SkModal>
   )
 }
 
@@ -328,20 +306,23 @@ export function Hud() {
           {state.status && <p className="status-line">{state.status}</p>}
         </div>
       </header>
-      <button
-        type="button"
-        tabIndex={1}
-        className={"ship" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
-        disabled={!live}
-        aria-disabled={!live}
-        data-ship-held={held ? "true" : "false"}
-        data-ship-reason={check && check.reason ? check.reason : ""}
-        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."}
-        onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
-      >
-        {shipLabel}
-        {(guideStart || guideShip) && <span className="sr-only"> Next click.</span>}
-      </button>
+      <div className="sk-bezel sk-ship-plate">
+        <button
+          type="button"
+          tabIndex={1}
+          className={"ship sk-cbtn sk-cbtn--primary" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
+          disabled={!live}
+          aria-disabled={!live}
+          data-ship-held={held ? "true" : "false"}
+          data-ship-reason={check && check.reason ? check.reason : ""}
+          data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."}
+          onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
+        >
+          {shipLabel}
+          {(guideStart || guideShip) && <span className="sr-only"> Next click.</span>}
+        </button>
+        {!live && check && check.reason && <p className="sk-cbtn-reason">{check.reason}</p>}
+      </div>
       <ClientWidgets />
     </>
   )

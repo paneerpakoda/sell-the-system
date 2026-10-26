@@ -53,3 +53,160 @@
   background: #17171a;
   color: #f1ead9;
 }
+
+.sk-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.sk-scrim--hard { background: rgba(22, 22, 22, 0.72); }
+
+.sk-bezel {
+  background: var(--cream-100, #f1ead9);
+  color: var(--text-on-cream, #17171a);
+  border: 2px solid var(--ink-950, #0c0c0e);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: none;
+  max-width: min(420px, 100%);
+}
+
+.sk-title {
+  margin: 0;
+  font-family: "Lilita One", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--text-on-cream, #17171a);
+}
+
+.sk-bezel-body { margin-top: 8px; }
+.sk-bezel-body p { margin: 8px 0 0; color: var(--text-on-cream, #17171a); }
+.sk-bezel-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: flex-end; margin-top: 16px; }
+.sk-clock-note { margin: 8px 0 0; font-weight: 650; color: var(--text-on-cream-muted, #5a5244); }
+.sk-danger-note { margin: 8px 0 0; font-weight: 650; color: var(--hot-text-on-cream, #b02a17); }
+.sk-waiting { margin: 0 0 8px; font-size: 12px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-on-cream-muted, #5a5244); }
+.sk-cbtn-reason { display: block; margin-top: 4px; font-size: 12px; color: var(--text-on-cream-muted, #5a5244); }
+
+.sk-bezel :focus-visible {
+  outline: 2px solid var(--focus-on-cream, #0c0c0e);
+  outline-offset: 2px;
+}
+
+.sk-cbtn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 2px solid var(--ink-950, #0c0c0e);
+  border-radius: 8px;
+  box-shadow: 0 2px 0 var(--ink-950, #0c0c0e);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sk-cbtn:active { transform: translateY(2px); box-shadow: none; }
+.sk-cbtn--primary { background: var(--ink-900, #17171a); color: var(--text-on-ink, #f1ead9); }
+.sk-cbtn--primary:hover { background: var(--ink-700, #2f2f35); }
+.sk-cbtn--secondary { background: var(--cream-200, #e0d6c0); color: var(--text-on-cream, #17171a); }
+.sk-cbtn--secondary:hover { background: var(--cream-50, #fbf6ea); }
+.sk-cbtn--quiet { background: transparent; color: #5a5244; border-color: transparent; box-shadow: none; }
+.sk-cbtn--danger { background: var(--hot, #d6331f); color: #fff; }
+.sk-cbtn--danger:hover { background: var(--hot-hover, #bc2c1a); }
+.sk-cbtn:disabled,
+.sk-cbtn[aria-disabled="true"] {
+  background: transparent;
+  color: #5a5244;
+  border: 2px dashed #5a5244;
+  box-shadow: none;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sk-ship-plate {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: min(208px, calc(100% - 168px));
+  transform: translateX(-50%);
+  padding: 8px;
+  pointer-events: auto;
+}
+
+.sk-ship-plate .ship {
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  margin: 0;
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+.sk-ship-plate .ship.sk-cbtn--primary {
+  background: var(--ink-900, #17171a);
+  color: var(--text-on-ink, #f1ead9);
+  border: 2px solid var(--ink-950, #0c0c0e);
+}
+
+.sk-ship-plate .ship:disabled,
+.sk-ship-plate .ship[aria-disabled="true"],
+.sk-ship-plate .ship.held,
+.sk-ship-plate .ship.held:disabled,
+.buy.sk-cbtn:disabled {
+  opacity: 1;
+  background: transparent;
+  color: #5a5244;
+  border: 2px dashed #5a5244;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.sk-ship-plate .ship:focus-visible {
+  outline: 2px solid var(--focus-on-cream, #0c0c0e);
+  outline-offset: 2px;
+}
+
+.dock .sk-cbtn-reason { color: var(--text-faint, rgba(255, 255, 255, 0.62)); }
+
+.staff-actions .sk-cbtn--secondary,
+.buy.sk-cbtn--secondary {
+  background: var(--cream-200, #e0d6c0);
+  color: var(--text-on-cream, #17171a);
+  border: 2px solid var(--ink-950, #0c0c0e);
+}
+
+.staff-actions .sk-cbtn--secondary:hover,
+.buy.sk-cbtn--secondary:hover { background: var(--cream-50, #fbf6ea); }
+
+.dock .sk-cbtn:focus-visible {
+  outline: 2px solid var(--focus-on-ink, #f1ead9);
+  outline-offset: 2px;
+  box-shadow: 0 2px 0 var(--ink-950, #0c0c0e);
+}
+
+@media (max-width: 1536px) {
+  .sk-ship-plate {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+    margin: 8px auto;
+    flex: none;
+  }
+}
+
+@media (max-width: 1280px) {
+  .sk-cbtn, .sk-ship-plate .ship { min-height: 40px; }
+}
+
+@media (max-width: 960px) {
+  .sk-bezel { padding: 12px; border-width: 1.5px; }
+  .sk-cbtn, .sk-ship-plate .ship { min-height: 36px; border-width: 1.5px; box-shadow: none; }
+  .sk-cbtn:active { transform: none; }
+}
