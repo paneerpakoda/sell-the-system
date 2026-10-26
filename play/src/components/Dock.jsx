@@ -129,8 +129,8 @@ export function Dock() {
 
   return (
     <aside className="dock" aria-label="Studio">
-      <section className="block clients-block">
-        <header className="block-head">
+      <section className="block clients-block sk-panel">
+        <header className="block-head sk-panel-head">
           <h2>Clients</h2>
           <span>{state.queue.length}</span>
         </header>
@@ -154,8 +154,8 @@ export function Dock() {
       <div className="dock-scroll">
         <HowToWin />
         <StageProgress />
-        <section className="block">
-          <header className="block-head">
+        <section className="block sk-panel">
+          <header className="block-head sk-panel-head">
           <h2>To Ship</h2>
           <span>{parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") : heldShip ? "Held" : "Clear"}</span>
         </header>
@@ -241,8 +241,8 @@ function People() {
         ? warn
         : hireNote
   return (
-    <section className="block studio">
-      <header className="block-head">
+    <section className="block studio sk-panel">
+      <header className="block-head sk-panel-head">
         <h2>People</h2>
         {state.staff.length > 0 && <span className="sk-num">{state.payroll.late ? "Late" : short ? "Short" : dueText}</span>}
       </header>
@@ -362,8 +362,8 @@ function StageProgress() {
         ? "Ship a big client, then click that language in the tree."
         : "Click " + next.label + " in the tree."
   return (
-    <section className="block stage-progress">
-      <header className="block-head">
+    <section className="block stage-progress sk-panel">
+      <header className="block-head sk-panel-head">
         <h2>Stage 3</h2>
       </header>
       <p className="next-action"><b>{nextTitle}</b> {nextClick}</p>
@@ -386,8 +386,8 @@ function HowToWin() {
   const { currency } = useCurrency()
   const money = (value) => formatMoney(value, { currency })
   return (
-    <section className="block how-win">
-      <header className="block-head">
+    <section className="block how-win sk-panel">
+      <header className="block-head sk-panel-head">
         <h2>How to win</h2>
       </header>
       <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
@@ -421,13 +421,13 @@ function System() {
   const rows = systemOwned()
   if (!rows.length) return null
   return (
-    <section className="block studio">
-      <header className="block-head">
+    <section className="block studio sk-panel">
+      <header className="block-head sk-panel-head">
         <h2>System</h2>
         <span>{paceText(null)}</span>
       </header>
       {rows.map((row) => (
-        <div key={row.id} className="node done" data-tip={row.effect}>
+          <div key={row.id} className="node done sk-slot" data-tip={row.effect}>
           <span>{row.name}</span>
           <span className="detail">{row.effect}</span>
         </div>
@@ -480,19 +480,20 @@ function Tree() {
   }
   if (!rows.length && state.accepted < 1 && !state.everHired) return null
   return (
-    <section className="block studio">
-      <header className="block-head">
+    <section className="block studio sk-panel">
+      <header className="block-head sk-panel-head">
         <h2>Tree</h2>
       </header>
       {!rows.length && <p className="hint">Nothing to buy until that line moves.</p>}
       {rows.map((row) => row.locked ? (
-        <div key={row.id} className="node locked" data-tip={row.tip}>
+        <div key={row.id} className="node locked sk-slot sk-slot--locked" data-tip={row.tip}>
           <span>{row.name}</span>
           {row.detail && <span className="detail">{row.detail}</span>}
+          <span className="sk-lock-chip">{row.tip || "Locked"}</span>
         </div>
       ) : (
         <span key={row.id} className="tip-wrap" data-tip={row.tip}>
-          <button type="button" className="node" disabled={state.money < row.cost} onClick={row.buy}>
+          <button type="button" className="node sk-slot" disabled={state.money < row.cost} onClick={row.buy}>
             {row.name} · {money(row.cost)}
           </button>
           {state.money < row.cost && <span className="sk-cbtn-reason">Need {money(row.cost)}</span>}

@@ -42,7 +42,7 @@ export function App() {
   return (
     <div className="app">
       <Dock />
-      <main className="stage">
+      <main className="stage sk-backdrop">
         <h1 className="sr-only">Sell the system</h1>
         {state.studioName && <div className="studio-name">{state.studioName}</div>}
         <Hud />
