@@ -25,3 +25,31 @@
 .meters {
   flex-wrap: nowrap;
 }
+
+.sk-currency {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 18ch;
+  pointer-events: auto;
+}
+
+.sk-currency-label {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sk-currency button {
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+
+.sk-currency button[aria-pressed="true"] {
+  background: #17171a;
+  color: #f1ead9;
+}

@@ -20,7 +20,7 @@ import {
 import { useModal } from "./focusTrap.js"
 import { useClock } from "../useGame.js"
 import { TargetChip, formatClock, guidingFirst, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
-import { formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
+import { CurrencySwitch, formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
 
 function Weeks() {
   useClock()
@@ -302,6 +302,7 @@ export function Hud() {
       <header className="hud">
         <div className="score">
           <div className="money sk-num" data-tip={feeTip(money)} aria-label={Math.abs(state.money) >= 100000 ? moneyLabel(state.money, currency) : undefined}>{money(state.money, { compact: true })}</div>
+          <CurrencySwitch />
           <div className="meters">
             <Weeks />
             <MonthClock />
