@@ -1,0 +1,9 @@
+:root {
+  --track: rgba(255,255,255,.40);          /* restore tokens value; skin.css overrode it */
+  --sk-track: rgba(241,234,217,.40);       /* skin week-bar track, 3.39:1 on #17171a */
+  --danger-fill: var(--hot);               /* one red: #d6331f, white text 4.82:1 */
+  --danger-fill-hover: var(--hot-hover);
+  --focus: #f1ead9;                        /* decided ring: cream on dark (legacy greys 8.12-15.75:1) */
+}
+.sk-weekbar { background: var(--sk-track); }
+@font-face { font-family: "Lilita One"; src: url("/fonts/LilitaOne-Regular.woff2") format("woff2"); font-display: swap; }
