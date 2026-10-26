@@ -6,6 +6,7 @@
     "dev": "vite",
     "build": "vite build",
     "check:contrast": "node scripts/check-contrast.mjs",
+    "check:money": "node scripts/money.test.mjs",
     "scripts": "node scripts/check-params.mjs && node scripts/engine-correctness.mjs && node scripts/ship-agree.mjs && node scripts/simulate.mjs && node scripts/win-month-choice.mjs"
   },
   "dependencies": {
