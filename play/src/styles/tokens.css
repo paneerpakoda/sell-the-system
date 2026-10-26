@@ -1,0 +1,128 @@
+/* Sell the system: design language v1 (draft by Designer Dia, 2026-10-26)
+   Based on the round-6 stylesheet index-C9qwrgz4.css. Existing colours are kept;
+   values are changed only where measured WCAG contrast failed. Every ratio in
+   these comments comes from /workspace/dia/verify_tokens.py (WCAG 2.x formula,
+   alpha composited over the named surface). Text needs 4.5:1, non-text 3:1.
+   Presentation only: no game rules, fees or win-table values are touched. */
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- Surfaces (unchanged) ---------- */
+  --bg: #1e1e1e;            /* stage */
+  --panel: #2c2c2c;         /* docks, cards, modals, picker */
+  --raised: #383838;        /* fields, rows, secondary buttons */
+  --raised-hover: #444444;  /* existing hover value */
+  --gate: #161616;          /* full-screen name gate (opaque screen, not a scrim) */
+  --tip-bg: #111111;
+
+  /* ---------- Text roles ---------- */
+  --text: #ffffff;                       /* bg 16.67, panel 13.97, raised 11.73 */
+  --text-muted: rgba(255,255,255,.70);   /* bg 8.73, panel 7.65, raised 6.67 */
+  --text-faint: rgba(255,255,255,.62);   /* bg 7.13, panel 6.35, raised 5.62 */
+  --text-disabled: var(--text-faint);    /* NEW: replaces opacity .4/.45 (2.20-3.79:1 measured) */
+  --text-link: #0d99ff;                  /* bg 5.57, panel 4.67. Do NOT use on --raised (3.92 fail) */
+  --text-link-on-raised: #4db2ff;        /* NEW for .var-name etc. on raised: 5.10 (bg 7.25, panel 6.07) */
+  --text-danger: #ff7d5c;                /* bg 6.62, panel 5.55, raised 4.66 */
+  --text-warn: #ffcd29;                  /* bg 11.13, panel 9.32, raised 7.83 */
+  --text-ok: #22c46b;                    /* CHANGED from #14ae5c (raised 4.04 fail) -> raised 5.12, panel 6.10, bg 7.28 */
+  --text-on-accent: #ffffff;             /* on --accent 5.09, on --danger-fill 5.25 */
+
+  /* ---------- Accent / action ---------- */
+  --focus: #0d99ff;          /* ring: bg 5.57, panel 4.67, raised 3.92 (non-text, passes 3:1) */
+  --accent: #0870c4;         /* primary fill; white text 5.09 */
+  --accent-hover: #075a9e;   /* white text 7.08 */
+  --accent-pressed: #064c86;
+  --select: rgba(13,153,255,.28); /* selected row; white text 9.28 */
+  --danger-fill: #c8361a;    /* NEW destructive button (Fire); white text 5.25 */
+  --danger-fill-hover: #b83218; /* white text 5.99 */
+  --ok-fill: #14ae5c;        /* fills/marks only, not text on raised */
+  --warn-fill: #ffcd29;
+
+  /* ---------- Lines and boundaries ---------- */
+  --line: rgba(255,255,255,.10);        /* decorative dividers only (1.37 on panel: not for controls) */
+  --line-control: rgba(255,255,255,.40);/* NEW: control/swatch/track edges. bg 3.78, panel 3.56, raised 3.29 */
+  --line-strong: rgba(255,255,255,.45); /* NEW: frame outline, input edge. bg 4.41, panel 4.10, raised 3.75 */
+  --track: rgba(255,255,255,.40);       /* week-bar + progress track: bg 3.78, panel 3.56 (was .12: 1.45/1.47) */
+  --swatch-ring: inset 0 0 0 1px var(--line-strong); /* Ink swatch: was 1.25/1.49, ring 4.10/3.75 */
+  --target-outline: 0 0 0 2px #1c1917, 0 0 0 4px #ffffff; /* every canvas target; dark ring on hot 5.44 */
+
+  /* ---------- Type: six steps (was 12,13,14,15,16,18,20,22,28,44) ---------- */
+  --font: ui-sans-serif, system-ui, sans-serif;
+  --fs-xs: 12px;   /* kickers, chips, tooltips, radius labels (absorbs 13) */
+  --fs-sm: 14px;   /* body, rows, buttons (absorbs 15) */
+  --fs-md: 16px;   /* panel headings, primary buttons, card titles (absorbs 18) */
+  --fs-lg: 20px;   /* stats, deadline, bezel (absorbs 22) */
+  --fs-xl: 28px;   /* gate title, frame names */
+  --fs-hero: 44px; /* money */
+  --lh-tight: 1.2; --lh-body: 1.4;
+  --fw-regular: 450; --fw-medium: 550; --fw-bold: 650; /* was 400/450/550/600/650 */
+
+  /* ---------- Spacing: 4/8 grid (was also 6, 7, 10, 14, 18) ---------- */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-hair: 2px; /* hairline gaps only */
+
+  /* ---------- Radii: three (was 0,4,6,8,12,20 + 50% + 99px) ---------- */
+  --radius-sm: 4px;    /* chips, layer tabs, swatches */
+  --radius-md: 8px;    /* buttons, fields, rows, cards, picker */
+  --radius-lg: 20px;   /* floating client widgets, modals */
+  --radius-round: 999px; /* exception: circles/pills only (dots, handles, week marks) */
+
+  /* ---------- Scrims: two (was none / 45% black / 72% #161616 / opaque) ---------- */
+  --scrim-1: rgba(0,0,0,.45);      /* coach popups AND decision cards (one kind) */
+  --scrim-2: rgba(22,22,22,.72);   /* month-end / blocking modals */
+
+  /* ---------- Elevation: three (was 5 different shadows) ---------- */
+  --elev-1: 0 8px 20px rgba(0,0,0,.45);   /* tooltip, toast */
+  --elev-2: 0 12px 32px rgba(0,0,0,.45);  /* picker, params, cards, widgets */
+  --elev-3: 0 16px 40px rgba(0,0,0,.45);  /* modals */
+  --z-canvas: 1; --z-hud: 4; --z-card: 5; --z-popover: 20; --z-tip: 35; --z-modal: 50; --z-gate: 60;
+
+  /* ---------- Motion (was: 0 transitions; widget-in .42s not covered by reduced-motion) ---------- */
+  --dur-fast: 150ms;   /* hover, press, focus */
+  --dur-base: 200ms;   /* popovers, cards, toasts, widget-in */
+  --ease-out: cubic-bezier(.22,1,.36,1);
+
+  /* ---------- Sizes ---------- */
+  --target-min: 24px;     /* WCAG 2.2 floor, never below */
+  --target-comfort: 44px; /* where space allows */
+  --control-h: 36px;      /* compact controls inside docks (pad hit area to 44 where possible) */
+  --handle-size: 24px;    /* was 14 */
+  --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
+}
+
+/* ---------- States (apply to every interactive element) ---------- */
+:where(button, [role="button"], a, input, select, .client, .node, .choice, .radius-stop, .lib-row, .fill-row, .client-widget, .layer-jumps button) {
+  transition: background-color var(--dur-fast) var(--ease-out),
+              color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out),
+              border-color var(--dur-fast) var(--ease-out);
+  min-height: var(--target-min);
+}
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+input:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; } /* never outline:none */
+
+.btn            { height: var(--control-h); padding: 0 var(--space-3); border-radius: var(--radius-md); font-size: var(--fs-sm); font-weight: var(--fw-medium); border: 1px solid transparent; }
+.btn-primary    { background: var(--accent); color: var(--text-on-accent); }
+.btn-primary:hover  { background: var(--accent-hover); }
+.btn-primary:active { background: var(--accent-pressed); }
+.btn-secondary  { background: var(--raised); color: var(--text); border-color: var(--line-control); }
+.btn-secondary:hover  { background: var(--raised-hover); }
+.btn-quiet      { background: transparent; color: var(--text-muted); }
+.btn-quiet:hover { background: rgba(255,255,255,.06); color: var(--text); }
+.btn-danger     { background: var(--danger-fill); color: var(--text-on-accent); }
+.btn-danger:hover { background: var(--danger-fill-hover); }
+/* Disabled: readable, clearly different (no opacity fade). faint text on raised 5.62 */
+.btn:disabled, .btn[aria-disabled="true"] {
+  background: transparent; color: var(--text-disabled);
+  border: 1px dashed var(--line-control); cursor: not-allowed;
+}
+
+/* ---------- Reduced motion: covers ALL motion, not only .guide-pulse ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important; scroll-behavior: auto !important;
+  }
+  .guide-pulse { animation: none; box-shadow: 0 0 0 2px var(--focus); }
+}

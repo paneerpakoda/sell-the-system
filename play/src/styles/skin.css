@@ -1,0 +1,268 @@
+/* Sell the system: SKIN v1 "Dark corporate" (Designer Dia, 2026-10-26)
+   Layer this AFTER tokens.css. It does not replace it: spacing (--space-*), radii
+   (--radius-sm/md/lg/round), type sizes (--fs-*), motion (--dur-*, --ease-out) and the
+   reduced-motion block all come from tokens.css. Presentation only: no game rules,
+   fees or win-table values are touched.
+   Style: chunky sk-sticker UI. 3px ink outlines, cream bezels framing dark inset slots,
+   hard offset shadows, tilted sk-sticker badges, heavy display type for titles only.
+   Every ratio below is MEASURED by /workspace/dia/verify_skin.py, which reads this
+   :root block directly (WCAG 2.x; alpha composited over the named surface).
+   Full table: /workspace/dia/skin-contrast.txt. Text >= 4.5:1, non-text >= 3:1.
+
+   Font: "Lilita One" (Google Fonts, SIL Open Font License 1.1, designer Juan Montoreano),
+   single weight 400 that reads as heavy. Load in index.html:
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
+   (or self-host the .woff2; OFL allows bundling). Titles only. Never body text or numbers. */
+
+:root {
+  /* ---------- Palette: ink ---------- */
+  --ink-950: #0c0c0e;   /* outlines, hard shadows, lock chips */
+  --ink-900: #17171a;   /* backdrop base, primary button fill, modal body */
+  --ink-800: #232327;   /* inset sk-slot */
+  --ink-700: #2f2f35;   /* sk-slot hover, primary hover */
+
+  /* ---------- Palette: cream (bezels) ---------- */
+  --cream-50: #fbf6ea;  /* secondary hover */
+  --cream-100: #f1ead9; /* sk-bezel face. vs ink-900 14.92, vs sk-slot ink-800 13.06 */
+  --cream-200: #e0d6c0; /* sk-bezel lip, secondary button fill */
+  --cream-300: #cdc1a6; /* secondary pressed */
+
+  /* ---------- The one hot accent: signal vermilion ----------
+     Why #d6331f: red-orange reads as "danger / irreversible" for Fire, matches the
+     red round buttons in the reference, and is the only candidate tested that passes
+     all three jobs at once: white text 4.82, and 3:1+ as a fill on BOTH cream (4.02)
+     and ink (3.71 on ink-900, 3.25 on sk-slot ink-800). Brighter reds (#e03a1e 4.38,
+     #e5322d 4.35) fail white text; darker (#c8361a) falls below 3:1 on the sk-slot (2.98).
+     Used ONLY for: Fire/danger, round icon buttons, focus ring, the ship-moment sk-stamp. */
+  --hot: #d6331f;          /* white text 4.82 | vs cream 4.02 | vs ink-900 3.71 | vs slot 3.25 */
+  --hot-hover: #bc2c1a;    /* white text 5.98 */
+  --hot-pressed: #a32614;  /* white text 7.38 */
+  --text-on-hot: #ffffff;
+  --hot-text: #ff7d5c;          /* hot copy on ink: ink-900 7.10, sk-slot 6.22 (same value as tokens --text-danger) */
+  --hot-text-on-cream: #b02a17; /* hot copy on sk-bezel: 5.49 */
+
+  /* ---------- Text roles ---------- */
+  --text-on-ink: #f1ead9;                 /* ink-900 14.92, sk-slot 13.06, ink-700 11.09, ink-950 16.30 */
+  --text-on-ink-muted: rgba(241,234,217,.72); /* ink-900 8.18, sk-slot 7.43, ink-700 6.56 */
+  --text-on-ink-faint: rgba(241,234,217,.62); /* sk-slot 5.89, ink-700 5.29, ink-950 chip 6.60 */
+  --text-on-cream: #17171a;               /* cream-100 14.92, -200 12.39, -50 16.59, -300 10.03 */
+  --text-on-cream-muted: #5a5244;         /* cream-100 6.43, cream-200 5.34 */
+  --text-disabled-on-cream: #5a5244;      /* 6.43; disabled is signalled by dashed edge + no fill + reason text, not by fading */
+
+  /* ---------- Semantic status: TEXT ON INK ONLY ---------- */
+  --ok-text: #22c46b;    /* ink-900 7.82, sk-slot 6.84. On cream 1.91 = FORBIDDEN */
+  --warn-text: #ffcd29;  /* ink-900 11.94, sk-slot 10.45. On cream 1.25 = FORBIDDEN */
+
+  /* ---------- Lines, slots, marks ---------- */
+  --outline: #0c0c0e;    /* vs cream-100 16.30, vs cream-200 13.54 */
+  --outline-w: 3px;
+  --sk-focus: #d6331f;      /* skin-only ring: cream 4.02, ink-900 3.71, slot 3.25. Prefixed so tokens --focus (blue) stays on unskinned surfaces: hot on legacy panel #2c2c2c 2.89, raised #383838 2.43 = FAIL there */
+  --slot-edge: rgba(241,234,217,.40);  /* open-slot inner edge on ink-800: 3.30 */
+  --slot-selected: #f1ead9;            /* selected sk-slot ring on ink-800: 13.06 */
+  --lock-mark: rgba(241,234,217,.55);  /* no-entry mark: vs sk-slot 4.95, vs hatch stripe 4.67 */
+  --hatch: #2b2b30;                    /* locked hatch stripe vs sk-slot 1.11 (decorative; the mark carries meaning) */
+  --disabled-edge: #5a5244;            /* dashed disabled edge on cream 6.43 */
+  --track: rgba(241,234,217,.40);      /* week-bar track on ink-900: 3.39 */
+  --fill-week: #f1ead9;                /* week-bar fill vs ink-900 14.92, vs track 4.40 */
+  --pattern: #1c1c20;                  /* backdrop mark vs ink-900 1.05: deliberately near-invisible */
+  --gloss: rgba(255,255,255,.22);      /* round-button highlight; white icon over it 3.55 (passes 3:1 as non-text; keep icon centred, off the highlight) */
+  --shadow: #0c0c0e;                   /* hard shadow vs ink-900 1.09 (decorative; outline carries the edge) */
+
+  /* ---------- Shape ---------- */
+  --shadow-off: 4px;                   /* hard offset, on the 4px grid */
+  --shadow-hard: 0 var(--shadow-off) 0 0 var(--shadow);
+  --bezel-pad: var(--space-4, 16px);
+  --bezel-gap: var(--space-3, 12px);
+  --bezel-radius: var(--radius-lg, 20px);
+  --slot-radius: var(--radius-md, 8px);
+  --btn-h: 44px;                       /* = tokens --target-comfort */
+  --btn-round: 48px;
+  --tilt: -3deg;
+  --stamp-tilt: -6deg;
+
+  /* ---------- Type ---------- */
+  --font-title: "Lilita One", "Arial Rounded MT Bold", "Arial Black", "Helvetica Neue", system-ui, sans-serif;
+  --font-body: var(--font, ui-sans-serif, system-ui, sans-serif); /* body + numbers stay plain */
+
+  /* ---------- Backdrop: static, low-contrast, NO text sits on it ---------- */
+  --backdrop-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Cg fill='none' stroke='%231c1c20' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M6 18 L18 6'/%3E%3Cpath d='M30 42 L42 30'/%3E%3C/g%3E%3Ccircle cx='36' cy='12' r='3' fill='%231c1c20'/%3E%3Ccircle cx='12' cy='36' r='3' fill='%231c1c20'/%3E%3C/svg%3E");
+}
+
+/* ===================== Backdrop ===================== */
+.sk-backdrop {
+  background: var(--ink-900) var(--backdrop-pattern) repeat;
+  background-attachment: fixed;            /* static: never animated */
+  color: var(--text-on-ink);
+  font-family: var(--font-body);
+}
+/* Rule: text is never a direct child of .sk-backdrop. Put it in a .sk-bezel, .sk-slot or chip. */
+
+/* ===================== Display titles ===================== */
+.sk-title {
+  font-family: var(--font-title);
+  font-weight: 400;                         /* Lilita has one weight; do not faux-bold */
+  font-size: var(--fs-xl, 28px);
+  line-height: var(--lh-tight, 1.2);
+  letter-spacing: .01em;
+  color: var(--text-on-cream);              /* on sk-bezel 14.92 */
+  margin: 0;
+}
+.sk-title--hero { font-size: var(--fs-hero, 44px); }
+.sk-title--sm   { font-size: var(--fs-lg, 20px); }
+.sk-slot .sk-title, .sk-bezel-body .sk-title { color: var(--text-on-ink); } /* on ink 14.92 */
+.sk-num { font-family: var(--font-body); font-variant-numeric: tabular-nums; } /* money, counters: never display font */
+
+/* ===================== Bezel (cream frame) ===================== */
+.sk-bezel {
+  background: var(--cream-100);
+  color: var(--text-on-cream);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--bezel-radius);
+  padding: var(--bezel-pad);
+  box-shadow: inset 0 calc(-1 * var(--shadow-off)) 0 0 var(--cream-200), var(--shadow-hard);
+  display: flex; flex-direction: column; gap: var(--bezel-gap);
+}
+.sk-bezel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2, 8px); }
+.sk-bezel-label { font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 650); letter-spacing: .06em; text-transform: uppercase; color: var(--text-on-cream-muted); }
+/* dark inset well inside a sk-bezel (modal body, sidebar list) */
+.sk-bezel-body {
+  background: var(--ink-900); color: var(--text-on-ink);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--slot-radius);
+  padding: var(--space-3, 12px);
+  box-shadow: inset 0 var(--shadow-off) 0 0 var(--ink-950);
+}
+
+/* ===================== Slots (dark inset cells) ===================== */
+.sk-slot-grid { display: grid; grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr)); gap: var(--space-2, 8px); }
+.sk-slot {
+  position: relative; min-height: 64px;   /* compact: 48 */
+  background: var(--ink-800); color: var(--text-on-ink);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--slot-radius);
+  box-shadow: inset 0 0 0 1px var(--slot-edge), inset 0 var(--shadow-off) 0 0 var(--ink-950);
+  display: grid; place-items: center; text-align: center;
+  font-size: var(--fs-xs, 12px); padding: var(--space-1, 4px);
+  transition: background-color var(--dur-fast,150ms) var(--ease-out), box-shadow var(--dur-fast,150ms) var(--ease-out);
+}
+button.sk-slot { cursor: pointer; font: inherit; }
+.sk-slot:hover:not(.sk-slot--locked) { background: var(--ink-700); }
+.sk-slot[aria-pressed="true"], .sk-slot--selected { box-shadow: inset 0 0 0 3px var(--slot-selected), inset 0 var(--shadow-off) 0 0 var(--ink-950); }
+.sk-slot--locked {
+  cursor: not-allowed;
+  background: repeating-linear-gradient(135deg, var(--ink-800) 0 8px, var(--hatch) 8px 16px);
+}
+.sk-slot--locked::after {               /* no-entry mark: circle + bar, 4.95 / 4.67 */
+  content: ""; width: var(--lock-size, 28px); height: var(--lock-size, 28px); box-sizing: border-box; border-radius: var(--radius-round, 999px);
+  border: 3px solid var(--lock-mark);
+  background: linear-gradient(135deg, transparent calc(50% - 1.5px), var(--lock-mark) calc(50% - 1.5px) calc(50% + 1.5px), transparent calc(50% + 1.5px));
+}
+/* lock reason sits on a SOLID chip, never on the hatch */
+.sk-lock-chip { position: absolute; bottom: var(--space-1,4px); left: 50%; transform: translateX(-50%);
+  background: var(--ink-950); color: var(--text-on-ink-faint); /* 6.60 */
+  font-size: var(--fs-xs, 12px); padding: 0 var(--space-1, 4px); border-radius: var(--radius-sm, 4px); white-space: nowrap; }
+
+/* ===================== Chunky buttons ===================== */
+.sk-cbtn {
+  --_fill: var(--cream-200); --_fill-h: var(--cream-50); --_fill-a: var(--cream-300); --_ink: var(--text-on-cream);
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2, 8px);
+  min-height: var(--btn-h); padding: 0 var(--space-4, 16px);
+  font: var(--fw-bold, 650) var(--fs-md, 16px)/1 var(--font-body);
+  color: var(--_ink); background: var(--_fill);
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-hard);
+  cursor: pointer; user-select: none;
+  transition: transform var(--dur-fast,150ms) var(--ease-out), box-shadow var(--dur-fast,150ms) var(--ease-out), background-color var(--dur-fast,150ms) var(--ease-out);
+}
+.sk-cbtn:hover  { background: var(--_fill-h); }
+.sk-cbtn:active, .sk-cbtn.is-active { background: var(--_fill-a); transform: translateY(var(--shadow-off)); box-shadow: 0 0 0 0 var(--shadow); }
+.sk-cbtn:focus-visible, .sk-rbtn:focus-visible, button.sk-slot:focus-visible { outline: 3px solid var(--sk-focus); outline-offset: 3px; }
+/* primary: ink on cream sk-bezel. cream text: rest 14.92, hover 11.09, pressed 16.30 */
+.sk-cbtn--primary   { --_fill: var(--ink-900); --_fill-h: var(--ink-700); --_fill-a: var(--ink-950); --_ink: var(--text-on-ink); }
+/* secondary: cream-200 fill, ink text: rest 12.39, hover 16.59, pressed 10.03 */
+.sk-cbtn--secondary { --_fill: var(--cream-200); --_fill-h: var(--cream-50); --_fill-a: var(--cream-300); --_ink: var(--text-on-cream); }
+/* quiet: no shadow, no fill until hover. ink-muted text 6.43 on cream */
+.sk-cbtn--quiet     { --_fill: transparent; --_fill-h: var(--cream-200); --_fill-a: var(--cream-300); --_ink: var(--text-on-cream-muted); border-color: transparent; box-shadow: none; }
+.sk-cbtn--quiet:hover, .sk-cbtn--quiet:active, .sk-cbtn--quiet.is-active { color: var(--text-on-cream); } /* hover 12.39, pressed 10.03; muted on cream-300 would be 4.32 FAIL */
+.sk-cbtn--quiet:active { transform: none; }
+/* danger (Fire): white text rest 4.82, hover 5.98, pressed 7.38 */
+.sk-cbtn--danger    { --_fill: var(--hot); --_fill-h: var(--hot-hover); --_fill-a: var(--hot-pressed); --_ink: var(--text-on-hot); }
+/* disabled: no fill, dashed edge 6.43, text 6.43, no shadow, no press. Pair with a visible reason. */
+.sk-cbtn:disabled, .sk-cbtn[aria-disabled="true"] {
+  background: transparent; color: var(--text-disabled-on-cream);
+  border: var(--outline-w) dashed var(--disabled-edge); box-shadow: none; transform: none; cursor: not-allowed;
+}
+.sk-cbtn-reason { font-size: var(--fs-xs, 12px); color: var(--text-on-cream-muted); }
+
+/* ===================== Round icon button (red, white icon) ===================== */
+.sk-rbtn {
+  width: var(--btn-round); height: var(--btn-round); padding: 0;
+  display: inline-grid; place-items: center;
+  border-radius: var(--radius-round, 999px);
+  background: radial-gradient(circle at 35% 30%, var(--gloss) 0 22%, transparent 23%), var(--hot); /* gloss highlight; icon sits on the 4.82 base */
+  color: var(--text-on-hot);
+  border: var(--outline-w) solid var(--outline);
+  box-shadow: var(--shadow-hard);
+  cursor: pointer;
+  transition: transform var(--dur-fast,150ms) var(--ease-out), box-shadow var(--dur-fast,150ms) var(--ease-out), background-color var(--dur-fast,150ms);
+}
+.sk-rbtn:hover { background-color: var(--hot-hover); background-image: radial-gradient(circle at 35% 30%, var(--gloss) 0 22%, transparent 23%); }
+.sk-rbtn:active { transform: translateY(var(--shadow-off)); box-shadow: none; }
+.sk-rbtn svg { width: 24px; height: 24px; }  /* icons: keep strokes clear of the gloss highlight */
+
+/* ===================== Sticker badge + sk-stamp ===================== */
+.sk-sticker {
+  display: inline-flex; align-items: center; gap: var(--space-1, 4px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  font: var(--fw-bold, 650) var(--fs-xs, 12px)/1 var(--font-body); letter-spacing: .06em; text-transform: uppercase;
+  background: var(--cream-100); color: var(--text-on-cream);   /* 14.92 */
+  border: var(--outline-w) solid var(--outline);
+  border-radius: var(--radius-round, 999px);
+  box-shadow: 0 2px 0 0 var(--shadow);
+  transform: rotate(var(--tilt));
+}
+.sk-sticker--hot { background: var(--hot); color: var(--text-on-hot); } /* 4.82: keep >= 12px bold */
+.sk-stamp {      /* ship-moment sk-stamp */
+  display: inline-block; padding: var(--space-2, 8px) var(--space-4, 16px);
+  font-family: var(--font-title); font-size: var(--fs-xl, 28px); line-height: 1;
+  background: var(--hot); color: var(--text-on-hot);           /* 4.82 at 28px */
+  border: var(--outline-w) solid var(--outline); border-radius: var(--radius-md, 8px);
+  box-shadow: var(--shadow-hard);
+  transform: rotate(var(--stamp-tilt));
+  animation: sk-stamp-in var(--dur-base, 200ms) var(--ease-out) both;
+}
+@keyframes sk-stamp-in { from { transform: rotate(var(--stamp-tilt)) scale(1.25); opacity: 0; } }
+
+/* ===================== Week bar (inside a .sk-bezel-body, on ink) ===================== */
+.sk-weekbar { height: 12px; border-radius: var(--radius-round, 999px); background: var(--track); border: 2px solid var(--outline); overflow: hidden; }
+.sk-weekbar > span { display: block; height: 100%; background: var(--fill-week); }
+
+/* ===================== Modal ===================== */
+.sk-modal { max-width: 420px; }
+.sk-modal .sk-bezel-actions { display: flex; gap: var(--space-3, 12px); justify-content: flex-end; }
+
+/* ===================== Compact modes ===================== */
+@media (max-width: 1280px) {
+  :root { --bezel-pad: var(--space-3, 12px); --bezel-gap: var(--space-2, 8px); --btn-h: 40px; --btn-round: 44px; }
+}
+@media (max-width: 960px) {
+  :root {
+    --outline-w: 2px; --shadow-off: 2px;
+    --bezel-pad: var(--space-2, 8px); --bezel-gap: var(--space-2, 8px);
+    --bezel-radius: var(--radius-md, 8px); --slot-radius: var(--radius-sm, 4px);
+    --btn-h: 36px; --btn-round: 40px; --lock-size: 20px;   /* still >= 24px target floor; pad hit area to 44 where possible */
+  }
+  .sk-title { font-size: var(--fs-lg, 20px); }
+  .sk-title--hero { font-size: var(--fs-xl, 28px); }
+  .sk-slot--locked { background: repeating-linear-gradient(135deg, var(--ink-800) 0 4px, var(--hatch) 4px 8px); }
+}
+
+/* ===================== Reduced motion ===================== */
+@media (prefers-reduced-motion: reduce) {
+  .sk-sticker, .sk-stamp { transform: none; animation: none; }   /* no tilt, no sk-stamp pop */
+  .sk-cbtn:active, .sk-cbtn.is-active, .sk-rbtn:active { transform: none; } /* press shown by fill + shadow removal only */
+  .sk-cbtn, .sk-rbtn, .sk-slot { transition: none; }
+}

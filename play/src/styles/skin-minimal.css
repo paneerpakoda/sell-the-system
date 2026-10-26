@@ -1,0 +1,127 @@
+/* Sell the system: SKIN v1 "Dark corporate", MINIMAL level (Designer Dia, 2026-10-26)
+   Load order: tokens.css -> skin.css -> skin-minimal.css (-> sk-bridge.css in the repo).
+   Minimal is the DEFAULT. It applies whenever <html> does NOT carry data-skin="chunky":
+     <html data-skin="minimal">  (or no attribute)  -> minimal
+     <html data-skin="chunky">                     -> the full sticker look from skin.css
+   Same palette (ink + cream), same classes. Presentation only: no game rules touched.
+   Every ratio below is MEASURED by /workspace/dia/verify_minimal.py, which reads the
+   :root of skin.css and the first block of this file. Table: skin-minimal-contrast.txt.
+
+   What minimal removes vs chunky:
+   - outline 2px (1.5px at <=960) instead of 3px
+   - hard shadow 2px on buttons only (0 at <=960); bezels, stickers, slots: no shadow
+   - no tilt on stickers or the stamp; no gloss on round buttons
+   - hot red ONLY for Fire/danger (round buttons go ink, stamp goes cream, focus ring is
+     cream/ink, "today's task" sticker is retired)
+   - cream bezels only on the stage/Ship plate and modals; sidebar + tree = flat .sk-panel
+   - Lilita only on .sk-title (modal titles), .sk-title--hero and the stamp
+   - plain ink backdrop, no pattern
+   Focus ring (Harsh, decided): plain 2px ring, 2px offset. Cream on ink surfaces, ink on
+   cream surfaces. It sits in the offset gap on the PARENT surface, so the colour is set by
+   the surface (custom property inherited from .sk-bezel / .sk-panel / .sk-bezel-body).
+   Fallback for any surface where one colour fails 3:1: .sk-focus-double (ink inner, cream outer). */
+
+/* Focus ring: decided by Harsh, applies at BOTH levels (minimal and chunky). */
+:root {
+  --focus-w: 2px;
+  --focus-off: 2px;
+  --focus-on-ink: #f1ead9;             /* ink-900 14.92, ink-800 13.06, ink-700 11.09, ink-950 16.30; legacy greys 8.12-15.75 */
+  --focus-on-cream: #0c0c0e;           /* cream-100 16.30, cream-200 13.54, cream-50 18.12 */
+  --sk-focus: #f1ead9;                 /* default surface is ink; replaces skin.css hot ring */
+}
+.sk-bezel { --sk-focus: var(--focus-on-cream); }
+.sk-bezel-body, .sk-panel { --sk-focus: var(--focus-on-ink); }
+.sk-cbtn:focus-visible, .sk-rbtn:focus-visible, button.sk-slot:focus-visible, .sk-panel :focus-visible {
+  outline: var(--focus-w) solid var(--sk-focus); outline-offset: var(--focus-off);
+}
+
+:root:not([data-skin="chunky"]) {
+  --outline-w: 2px;
+  --shadow-off: 2px;                   /* buttons only */
+  --tilt: 0deg;
+  --stamp-tilt: 0deg;
+  --bezel-radius: var(--radius-md, 8px);
+  --panel-edge: rgba(241,234,217,.40); /* flat panel edge: vs ink-900 3.39, vs ink-950 (outside) 3.35 */
+  --slot-edge-m: rgba(241,234,217,.40);/* slot edge on ink-800 3.30 */
+  --ink-600: #3b3b42;                  /* round-button hover; cream icon 9.26 */
+  --rbtn-fill: #2f2f35;                /* round button = ink-700, cream icon 11.09 */
+  --rbtn-edge: rgba(241,234,217,.55);  /* round button edge vs ink-900 backdrop 5.27, vs its fill 4.51 */
+  --deadline-text: #ffcd29;            /* urgent deadline copy on ink 11.94 (hot is reserved for danger) */
+}
+
+/* Backdrop: plain ink, no pattern */
+:root:not([data-skin="chunky"]) .sk-backdrop { background: var(--ink-900); background-image: none; }
+
+/* Titles: Lilita only on .sk-title, --hero and the stamp. Small group headings go plain. */
+:root:not([data-skin="chunky"]) .sk-title--sm {
+  font-family: var(--font-body); font-weight: var(--fw-bold, 650);
+  font-size: var(--fs-md, 16px); letter-spacing: 0;
+}
+
+/* Bezel: flat cream card, no lip, no shadow. Use ONLY for the stage Ship plate and modals. */
+:root:not([data-skin="chunky"]) .sk-bezel { box-shadow: none; }
+:root:not([data-skin="chunky"]) .sk-bezel-body { box-shadow: none; border-width: 0; }
+
+/* NEW: flat panel for sidebar groups and the tree. Ink, 2px cream .40 edge (1px at <=960). */
+.sk-panel {
+  background: var(--ink-900); color: var(--text-on-ink);
+  border: var(--panel-edge-w, 2px) solid var(--panel-edge, rgba(241,234,217,.40));
+  border-radius: var(--radius-md, 8px);
+  padding: var(--space-3, 12px);
+  display: flex; flex-direction: column; gap: var(--space-2, 8px);
+}
+.sk-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2, 8px);
+  font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 650); letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-on-ink-muted); }                       /* 8.18 on ink-900 */
+
+/* Slots: thin cream edge, no dark outline, no inset shadow */
+:root:not([data-skin="chunky"]) .sk-slot {
+  border: 1px solid var(--slot-edge-m); box-shadow: none; min-height: 56px;
+}
+:root:not([data-skin="chunky"]) .sk-slot[aria-pressed="true"],
+:root:not([data-skin="chunky"]) .sk-slot--selected { box-shadow: inset 0 0 0 2px var(--slot-selected); } /* 13.06 */
+
+/* Buttons: 2px outline, 2px hard shadow, 2px press */
+:root:not([data-skin="chunky"]) .sk-cbtn:active,
+:root:not([data-skin="chunky"]) .sk-cbtn.is-active { transform: translateY(var(--shadow-off)); }
+
+/* Fallback: doubled ring for any surface where a single colour fails 3:1 (mixed or unknown background) */
+.sk-focus-double:focus-visible, .sk-focus-double.is-focus {
+  outline: 2px solid var(--focus-on-cream, #0c0c0e); outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--focus-on-ink, #f1ead9);     /* cream band sits outside the ink ring */
+}
+
+/* Round icon button: ink, cream icon, no gloss, no hot */
+:root:not([data-skin="chunky"]) .sk-rbtn {
+  background: var(--rbtn-fill); color: var(--text-on-ink);
+  border: var(--outline-w) solid var(--rbtn-edge);
+  box-shadow: none;
+}
+:root:not([data-skin="chunky"]) .sk-rbtn:hover { background: var(--ink-600); background-image: none; }
+:root:not([data-skin="chunky"]) .sk-rbtn:active { background: var(--ink-950); transform: none; }
+
+/* Stickers: only NEW and the Shipped stamp. No tilt, no shadow. Hot sticker retired. */
+:root:not([data-skin="chunky"]) .sk-sticker { transform: none; box-shadow: none; }
+:root:not([data-skin="chunky"]) .sk-sticker--hot { background: var(--cream-100); color: var(--text-on-cream); }
+:root:not([data-skin="chunky"]) .sk-stamp {
+  background: var(--cream-100); color: var(--text-on-cream);   /* 14.92 */
+  box-shadow: none; transform: none;
+  animation-name: sk-stamp-in-m;
+}
+@keyframes sk-stamp-in-m { from { transform: scale(1.15); opacity: 0; } }
+
+/* Week bar: no dark outline (ink on ink carries nothing) */
+:root:not([data-skin="chunky"]) .sk-weekbar { border: 0; height: 8px; }
+.sk-deadline { color: var(--deadline-text, #ffcd29); font-size: var(--fs-xs, 12px); font-weight: var(--fw-bold, 650); }
+
+/* Compact */
+@media (max-width: 960px) {
+  :root:not([data-skin="chunky"]) { --outline-w: 1.5px; --shadow-off: 0px; --panel-edge-w: 1px; --focus-w: 2px; }
+  :root:not([data-skin="chunky"]) .sk-slot { min-height: 44px; }
+  :root:not([data-skin="chunky"]) .sk-cbtn { box-shadow: none; }
+}
+
+/* Reduced motion: stamp appears without the pop */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-skin="chunky"]) .sk-stamp { animation: none; }
+}
