@@ -19,7 +19,8 @@ import {
 } from "../engine.js"
 import { useModal } from "./focusTrap.js"
 import { useClock } from "../useGame.js"
-import { TargetChip, formatClock, guidingFirst, moneyText, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
+import { TargetChip, formatClock, guidingFirst, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
+import { CurrencySwitch, formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
 
 function Weeks() {
   useClock()
@@ -185,14 +186,24 @@ const ClientWidget = memo(function ClientWidget({ project, stamp, line, needsYou
   )
 })
 
+function payrollTip(money) {
+  return state.payroll.lateNote || ("Due when week 4 ends. A gap up to " + money(2.5) + ", one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down.")
+}
+
+function feeTip(money) {
+  return "Paid fees. Payroll comes out when week 4 ends. A full ship is " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."
+}
+
 function PayrollMeter() {
   useClock()
+  const { currency } = useCurrency()
+  const money = (value, options) => formatMoney(value, { currency, ...options })
   const due = payrollDue()
   if (!(due > 0)) return null
   return (
-    <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap up to $2.50, one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down."}>
+    <div className="meter" data-tip={payrollTip(money)}>
       <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
-      <div className={"meter-v" + (state.money + 0.001 < due ? " urgent" : "")}>${moneyText(due)}</div>
+      <div className={"meter-v sk-num" + (state.money + 0.001 < due ? " urgent" : "")}>{money(due)}</div>
     </div>
   )
 }
@@ -274,6 +285,8 @@ function ClientWidgets() {
 }
 
 export function Hud() {
+  const { currency } = useCurrency()
+  const money = (value, options) => formatMoney(value, { currency, ...options })
   const due = payrollDue()
   const open = state.queue.find((item) => item.id === state.openId) || null
   const waiting = !!(open && !open.started)
@@ -288,7 +301,8 @@ export function Hud() {
     <>
       <header className="hud">
         <div className="score">
-          <div className="money" data-tip="Paid fees. Payroll comes out when week 4 ends. A full ship is $10, or $16 in Stage 3. A short ship is $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3.">${moneyText(state.money)}</div>
+          <div className="money sk-num" data-tip={feeTip(money)} aria-label={Math.abs(state.money) >= 100000 ? moneyLabel(state.money, currency) : undefined}>{money(state.money, { compact: true })}</div>
+          <CurrencySwitch />
           <div className="meters">
             <Weeks />
             <MonthClock />
@@ -301,9 +315,9 @@ export function Hud() {
               <div className="meter-v">{state.everHired ? state.accepted : Math.min(state.handShips, 3) + "/3"}</div>
             </div>
             {due > 0 && (
-              <div className="meter" data-tip={state.payroll.lateNote || "Due when week 4 ends. A gap up to $2.50, one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down."}>
+              <div className="meter" data-tip={payrollTip(money)}>
                 <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
-                <div className={"meter-v" + (state.money + 0.001 < due ? " urgent" : "")}>${moneyText(due)}</div>
+                <div className={"meter-v sk-num" + (state.money + 0.001 < due ? " urgent" : "")}>{money(due)}</div>
               </div>
             )}
           </div>
@@ -322,7 +336,7 @@ export function Hud() {
         aria-disabled={!live}
         data-ship-held={held ? "true" : "false"}
         data-ship-reason={check && check.reason ? check.reason : ""}
-        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee $10, or $16 in Stage 3. A short ship is $10. A big client is $36, or $48. A short big-client ship is $3 before Stage 3."}
+        data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."}
         onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
       >
         {shipLabel}
