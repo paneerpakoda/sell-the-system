@@ -1,3 +1,4 @@
+import { Button } from "@/components/unlumen-ui/primitives/button"
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { dismissNotice, state } from "../engine.js"
@@ -12,7 +13,7 @@ export function Notice() {
           <h2 id="notice-title" className="sk-title">{note.title}</h2>
           <div className="sk-bezel-body"><p>{note.body}</p></div>
           <div className="sk-bezel-actions">
-            <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => dismissNotice()}>Got it</button>
+            <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => dismissNotice()}>Got it</Button>
           </div>
         </>
       )}

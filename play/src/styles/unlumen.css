@@ -1,0 +1,12 @@
+/* Unlumen utilities only. Preflight is omitted so the game stylesheet keeps its own reset. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+:root {
+  --foreground: #f1ead9;
+  --background: #17171a;
+  --primary: #17171a;
+  --border: rgba(241, 234, 217, 0.4);
+  --ring: #f1ead9;
+}

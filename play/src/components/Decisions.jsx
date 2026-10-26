@@ -1,3 +1,4 @@
+import { Button } from "@/components/unlumen-ui/primitives/button"
 import { bigClientOffer, chooseFork, chooseMidgame, dismissNotice, gameFlags, LANG, state, takeBig, turnDownBig } from "../engine.js"
 import { SkModal } from "./SkModal.jsx"
 import { undoForkChoice } from "./guidance.jsx"
@@ -47,8 +48,8 @@ export function Decisions() {
               <p className="sk-clock-note">Clock is running</p>
             </div>
             <div className="sk-bezel-actions">
-              <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => takeBig()}>Take it · {money(offer.payout)}</button>
-              <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => turnDownBig()}>Turn it down · {money(offer.decline)}</button>
+              <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => takeBig()}>Take it · {money(offer.payout)}</Button>
+              <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => turnDownBig()}>Turn it down · {money(offer.decline)}</Button>
             </div>
           </>
         )}
@@ -61,8 +62,8 @@ export function Decisions() {
               <p className="sk-clock-note">Clock is running</p>
             </div>
             <div className="sk-bezel-actions">
-              <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => chooseMidgame("chase")}>Chase big clients</button>
-              <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => chooseMidgame("steady")}>Keep a steady book</button>
+              <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => chooseMidgame("chase")}>Chase big clients</Button>
+              <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => chooseMidgame("steady")}>Keep a steady book</Button>
             </div>
           </>
         )}
@@ -74,8 +75,8 @@ export function Decisions() {
               <p><b>Generalist.</b> {GENERALIST}</p>
             </div>
             <div className="sk-bezel-actions">
-              <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => chooseFork("specialist")}>Specialist</button>
-              <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => chooseFork("generalist")}>Generalist</button>
+              <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => chooseFork("specialist")}>Specialist</Button>
+              <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => chooseFork("generalist")}>Generalist</Button>
             </div>
           </>
         )}
@@ -86,8 +87,8 @@ export function Decisions() {
               <p>{picked ? "You chose specialist. " + SPECIALIST + " New clients are " + industryName() + "." : "You chose generalist. " + GENERALIST}</p>
             </div>
             <div className="sk-bezel-actions">
-              <button type="button" className="sk-cbtn sk-cbtn--secondary" data-initial-focus onClick={() => undoForkChoice()}>Undo</button>
-              <button type="button" className="sk-cbtn sk-cbtn--primary" onClick={() => { state.forkClosed = true; publish() }}>Close</button>
+              <Button type="button" className="sk-cbtn sk-cbtn--secondary" data-initial-focus onClick={() => undoForkChoice()}>Undo</Button>
+              <Button type="button" className="sk-cbtn sk-cbtn--primary" onClick={() => { state.forkClosed = true; publish() }}>Close</Button>
             </div>
           </>
         )}

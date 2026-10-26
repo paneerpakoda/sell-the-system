@@ -26,12 +26,14 @@
   flex-wrap: nowrap;
 }
 
-.sk-currency {
+.sk-currency,
+.sk-currency-switch {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   min-width: 18ch;
   pointer-events: auto;
+  color: var(--text-on-ink, #f1ead9);
 }
 
 .sk-currency-label {

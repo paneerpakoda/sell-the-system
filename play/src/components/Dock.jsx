@@ -1,3 +1,5 @@
+import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
+import { Button } from "@/components/unlumen-ui/primitives/button"
 import { memo, useState } from "react"
 import { SkModal } from "./SkModal.jsx"
 import {
@@ -252,9 +254,9 @@ function People() {
           <p className="hint">{staffTask(staff)}</p>
           {staff.role === "intern" && <p className="pace">{paceText(state.queue.find((item) => item.id === staff.projectId))} · {missText(staff, state.queue.find((item) => item.id === staff.projectId))}</p>}
           <div className="staff-actions">
-            <span className="tip-wrap" data-tip="They leave now. Unfinished frames come back to you. You confirm before they go.">
-              <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => setPendingFire(staff)}>Fire</button>
-            </span>
+            <FloatingTooltip.Trigger content="They leave now. Unfinished frames come back to you. You confirm before they go.">
+              <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => setPendingFire(staff)}>Fire</Button>
+            </FloatingTooltip.Trigger>
             {staff.role === "intern" && (
               <span className="tip-wrap" data-tip={staff.clean < 3 ? "Three clean screens, then they start clients for you." : "Starts clients you have not started, then checks the intern. " + money(30) + " a month."}>
                 <button type="button" disabled={staff.clean < 3} onClick={() => promote(staff.id)}>Permanent {staff.clean}/3</button>
@@ -270,12 +272,12 @@ function People() {
       ))}
       {state.payroll.lateNote && <p className="hint payroll-warn">{state.payroll.lateNote}</p>}
       {unpayable && !state.payroll.lateNote && <p className="hint payroll-warn">{warn}</p>}
-      <span className="tip-wrap" data-tip={hireTip}>
-        <button type="button" className="buy sk-cbtn sk-cbtn--secondary" disabled={!affordable} onClick={() => hire()}>
+      <FloatingTooltip.Trigger content={hireTip}>
+        <Button type="button" className="buy sk-cbtn sk-cbtn--secondary" disabled={!affordable} onClick={() => hire()}>
           {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · " + nextText}
-        </button>
+        </Button>
         {!affordable && <span className="sk-cbtn-reason">{locked ? "Ship 3 screens yourself" : internOnStaff ? "One intern is already hired" : "Need " + nextText}</span>}
-      </span>
+      </FloatingTooltip.Trigger>
       <FireConfirm staff={pendingFire} onCancel={() => setPendingFire(null)} onFire={() => { fire(pendingFire.id); setPendingFire(null) }} />
     </section>
   )
@@ -292,8 +294,8 @@ function FireConfirm({ staff, onCancel, onFire }) {
             <p className="sk-danger-note">This can't be undone.</p>
           </div>
           <div className="sk-bezel-actions">
-            <button type="button" className="sk-cbtn sk-cbtn--secondary" data-initial-focus onClick={onCancel}>Cancel</button>
-            <button type="button" className="sk-cbtn sk-cbtn--danger" onClick={onFire}>Fire {staff.name}</button>
+            <Button type="button" className="sk-cbtn sk-cbtn--secondary" data-initial-focus onClick={onCancel}>Cancel</Button>
+            <Button type="button" className="sk-cbtn sk-cbtn--danger" onClick={onFire}>Fire {staff.name}</Button>
           </div>
         </>
       )}

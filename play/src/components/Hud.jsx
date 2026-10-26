@@ -19,7 +19,10 @@ import {
 import { SkModal } from "./SkModal.jsx"
 import { useClock } from "../useGame.js"
 import { TargetChip, formatClock, guidingFirst, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
-import { CurrencySwitch, formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
+import { Button } from "@/components/unlumen-ui/primitives/button"
+import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
+import { Switch } from "@/components/unlumen-ui/switch"
+import { formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
 
 function Weeks() {
   useClock()
@@ -82,8 +85,8 @@ export function WeekPause() {
             {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
           </div>
           <div className="sk-bezel-actions">
-            <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => continueMonth()}>{state.break.won ? "Keep going" : "Next month"}</button>
-            {state.break.won && <button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => sellAgency()}>Sell the agency</button>}
+            <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => continueMonth()}>{state.break.won ? "Keep going" : "Next month"}</Button>
+            {state.break.won && <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => sellAgency()}>Sell the agency</Button>}
           </div>
         </>
       )}
@@ -106,7 +109,7 @@ export function ClockCard() {
         <p className="sk-clock-note">Clock is running</p>
       </div>
       <div className="sk-bezel-actions">
-        <button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => setClosed(true)}>Got it</button>
+        <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => setClosed(true)}>Got it</Button>
       </div>
     </SkModal>
   )
@@ -263,7 +266,7 @@ function ClientWidgets() {
 }
 
 export function Hud() {
-  const { currency } = useCurrency()
+  const { currency, setCurrency } = useCurrency()
   const money = (value, options) => formatMoney(value, { currency, ...options })
   const due = payrollDue()
   const open = state.queue.find((item) => item.id === state.openId) || null
@@ -280,7 +283,13 @@ export function Hud() {
       <header className="hud">
         <div className="score">
           <div className="money sk-num" data-tip={feeTip(money)} aria-label={Math.abs(state.money) >= 100000 ? moneyLabel(state.money, currency) : undefined}>{money(state.money, { compact: true })}</div>
-          <CurrencySwitch />
+          <span className="sk-currency-switch">
+            <Switch
+              checked={currency === "USD"}
+              onCheckedChange={(dollars) => setCurrency(dollars ? "USD" : "INR")}
+              label={currency === "USD" ? "Dollars" : "Rupees"}
+            />
+          </span>
           <div className="meters">
             <Weeks />
             <MonthClock />
@@ -307,7 +316,8 @@ export function Hud() {
         </div>
       </header>
       <div className="sk-bezel sk-ship-plate">
-        <button
+        <FloatingTooltip.Trigger content={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."}>
+        <Button
           type="button"
           tabIndex={1}
           className={"ship sk-cbtn sk-cbtn--primary" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
@@ -315,12 +325,12 @@ export function Hud() {
           aria-disabled={!live}
           data-ship-held={held ? "true" : "false"}
           data-ship-reason={check && check.reason ? check.reason : ""}
-          data-tip={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."}
           onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
         >
           {shipLabel}
           {(guideStart || guideShip) && <span className="sr-only"> Next click.</span>}
-        </button>
+        </Button>
+        </FloatingTooltip.Trigger>
         {!live && check && check.reason && <p className="sk-cbtn-reason">{check.reason}</p>}
       </div>
       <ClientWidgets />

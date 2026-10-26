@@ -1,4 +1,6 @@
+import { MotionConfig } from "motion/react"
 import { useEffect } from "react"
+import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
 import { Decisions } from "./components/Decisions.jsx"
 import { Dock } from "./components/Dock.jsx"
 import { Gate } from "./components/Gate.jsx"
@@ -40,6 +42,8 @@ export function App() {
     )
   }
   return (
+    <MotionConfig reducedMotion="user">
+    <FloatingTooltip.Provider variant="outline">
     <div className="app">
       <Dock />
       <main className="stage sk-backdrop">
@@ -64,5 +68,7 @@ export function App() {
         </div>
       )}
     </div>
+    </FloatingTooltip.Provider>
+    </MotionConfig>
   )
 }
