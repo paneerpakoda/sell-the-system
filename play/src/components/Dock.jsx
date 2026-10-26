@@ -495,6 +495,7 @@ function Tree() {
           <button type="button" className="node" disabled={state.money < row.cost} onClick={row.buy}>
             {row.name} · {money(row.cost)}
           </button>
+          {state.money < row.cost && <span className="sk-cbtn-reason">Need {money(row.cost)}</span>}
         </span>
       ))}
     </section>
