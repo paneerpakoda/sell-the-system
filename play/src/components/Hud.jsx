@@ -8,6 +8,7 @@ import {
   payrollDue,
   projectWatch,
   resetView,
+  shipCheck,
   startClient,
   stage,
   state,
@@ -421,8 +422,14 @@ export function Hud() {
   const { currency } = useCurrency()
   const money = (value, options) => formatMoney(value, { currency, ...options })
   const due = payrollDue()
+  const open = state.queue.find((project) => project.id === state.openId) || null
+  const ship = open && open.started ? shipCheck(open.id) : null
   return (
-    <header className="topbar">
+    <header
+      className="topbar"
+      data-ship-held={ship && ship.held ? "true" : "false"}
+      data-ship-reason={ship && ship.reason ? ship.reason : ""}
+    >
       <div className="topbar-side topbar-left" aria-label="Studio clocks">
         {state.studioName && <div className="studio-name">{state.studioName}</div>}
         <div className="meter-group time-group">
@@ -476,9 +483,9 @@ function ShipMoment() {
   }, [state.accepted])
   if (!moment) return null
   return (
-    <>
+    <div className="ship-feedback" aria-live="polite">
       <p className="sk-stamp">Shipped!</p>
       <p className="sk-toast" role="status">Shipped {moment.client} {formatMoney(moment.amount, { currency, sign: true })}</p>
-    </>
+    </div>
   )
 }

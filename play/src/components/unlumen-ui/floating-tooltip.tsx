@@ -89,10 +89,21 @@ export function FloatingTooltipProvider({
       y.set(e.clientY / zoom);
     };
 
+    const close = () => setIsActive(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+
     window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("blur", close);
+    window.addEventListener("keydown", onKey);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("blur", close);
+      window.removeEventListener("keydown", onKey);
     };
   }, [x, y]);
 
@@ -229,7 +240,12 @@ export function FloatingTooltipTrigger({
   };
 
   return (
-    <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onBlur={handleMouseLeave}
+      onFocus={handleMouseEnter}
+    >
       {children}
     </div>
   );

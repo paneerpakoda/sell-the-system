@@ -1,3 +1,4 @@
+import { useRef } from "react"
 import { Button } from "@/components/unlumen-ui/primitives/button"
 import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
 import {
@@ -15,6 +16,9 @@ import { ContractClock } from "./Hud.jsx"
 import { useWorkspace } from "../workspace.jsx"
 import { OfficePeople } from "./Office.jsx"
 import { expandMoneyText, useCurrency } from "../ui/money.js"
+
+let lastShipClickAt = 0
+let lastShipPoint = null
 
 export function Desk() {
   const { openPc } = useWorkspace()
@@ -51,6 +55,8 @@ export function Desk() {
                           type="button"
                           className={"u-btn" + (guideStart ? " guide-pulse" : "")}
                           disabled={!live}
+                          tabIndex={1}
+                          data-start-job
                           onClick={() => {
                             if (!live) return
                             resetView()
@@ -102,6 +108,7 @@ export function Desk() {
 export function StageShip() {
   const { atPc, openPc } = useWorkspace()
   const { currency } = useCurrency()
+  const shippedRef = useRef(false)
   const project = state.queue.find((item) => item.id === state.openId) || null
   const waiting = !!(project && !project.started)
   const check = waiting || !project ? null : shipCheck(project.id)
@@ -109,7 +116,7 @@ export function StageShip() {
   const shipLabel = !project
     ? "Pick a client"
     : waiting
-      ? "Start"
+      ? "Start job"
       : expandMoneyText(check.label, currency)
   const held = !!(check && check.held)
   const guide = guidingFirst()
@@ -128,12 +135,35 @@ export function StageShip() {
           className={"ship u-btn stage-ship-btn" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
           disabled={!project || !live}
           aria-disabled={!project || !live}
-          onClick={() => {
+          tabIndex={0}
+          data-ship-held={held ? "true" : "false"}
+          data-ship-reason={check && check.reason ? check.reason : ""}
+          onClick={(event) => {
             if (!project || !live) return
+            const now = Date.now()
+            const point = { x: event.clientX, y: event.clientY }
+            if (
+              lastShipPoint &&
+              Math.abs(point.x - lastShipPoint.x) < 4 &&
+              Math.abs(point.y - lastShipPoint.y) < 4 &&
+              now - lastShipClickAt < 500
+            ) {
+              return
+            }
+            lastShipClickAt = now
+            lastShipPoint = point
             if (waiting) {
+              if (shippedRef.current) {
+                shippedRef.current = false
+                return
+              }
               startClient(project)
               openPc()
-            } else handShip()
+            } else {
+              handShip()
+              shippedRef.current = true
+              window.setTimeout(() => { shippedRef.current = false }, 500)
+            }
           }}
         >
           {shipLabel}

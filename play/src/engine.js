@@ -690,10 +690,16 @@ function radiusNeedsBackground(project) {
 }
 function radiusHint(project, elementId) {
   const target = targetRadius(LANG[project.industry], elementId)
+  const current = project.elements[elementId].radius
   const reached = radiusGrade(project, elementId)
-  const base = "Target " + target + ". Stops include 8. A loose client also passes 8–24. Selected " + project.elements[elementId].radius + "."
-  if (reached === "best" || reached === "acceptable") return base
-  return base + " " + radiusFault(project, elementId)
+  // Same gate as Ship: wrong holds; otherwise say the target plainly.
+  if (reached === "wrong") {
+    return "Set this radius to " + target + " (now " + current + "). " + radiusFault(project, elementId)
+  }
+  if (reached === "best" || reached === "acceptable") {
+    return "Selected " + current + ". In range for Ship (target " + target + ")."
+  }
+  return "Set this radius to " + target + " (now " + current + "). A loose client also passes 8–24 when it is not wrong."
 }
 function radiusGrade(project, elementId) {
   if (elementId === "title") return "best"
@@ -871,15 +877,58 @@ function reasonProp(req) {
   if (req.prop === "colour" || req.prop === "radius" || req.prop === "contrast") return req.prop
   return "part"
 }
+function problemFix(project, problem) {
+  const part = NAMES[problem.req.element] || problem.req.title || "Part"
+  const screen = problem.screen.name
+  const now = project.elements[problem.req.element]
+  if (problem.req.prop === "radius") {
+    const target = targetRadius(LANG[project.industry], problem.req.element)
+    const current = now ? now.radius : "?"
+    return "set " + part + " radius to " + target + " (now " + current + ")"
+  }
+  if (problem.req.prop === "contrast") {
+    const id = problem.req.element === "background" ? "title" : problem.req.element
+    const ratio = paintedContrast(project, id)
+    const shown = (Math.round(ratio * 10) / 10).toFixed(1)
+    return "raise " + part + " contrast (now " + shown + ", needs 3)"
+  }
+  if (problem.req.prop === "colour") return "set " + part + " colour"
+  if (problem.req.prop === "copy") return "fix " + part + " copy"
+  if (problem.req.prop === "hierarchy") return "fix " + part + " hierarchy"
+  if (problem.req.prop === "flow") return "fix " + screen + " flow"
+  return "fix " + part + " " + reasonProp(problem.req)
+}
 function problemReason(project, problem) {
   const part = NAMES[problem.req.element] || problem.req.title || "Part"
   const screen = problem.screen.name
   if (problem.req.prop === "contrast") return screen + " · " + (problem.req.base || contrastHoldText(project, problem.req.element))
   if (problem.req.prop === "radius") {
     const target = targetRadius(LANG[project.industry], problem.req.element)
-    return screen + " · " + part + " radius, target " + target
+    const current = project.elements[problem.req.element] ? project.elements[problem.req.element].radius : "?"
+    return "Ship held: set " + part + " radius to " + target + " (now " + current + ")"
   }
   return screen + " · " + part + " " + reasonProp(problem.req)
+}
+function shipHeldLabel(project, problems) {
+  if (!problems.length) return ""
+  if (problems.length === 1) {
+    const one = problems[0]
+    if (one.req.prop === "radius") return problemReason(project, one)
+    return "Ship held: " + problemFix(project, one)
+  }
+  const names = problems.slice(0, 3).map((problem) => {
+    if (problem.req.prop === "contrast") {
+      const id = problem.req.element === "background" ? "title" : problem.req.element
+      const ratio = paintedContrast(project, id)
+      const shown = (Math.round(ratio * 10) / 10).toFixed(1)
+      return (NAMES[problem.req.element] || "Part") + " contrast (" + shown + ", needs 3)"
+    }
+    if (problem.req.prop === "colour") return (NAMES[problem.req.element] || "Part") + " colour"
+    if (problem.req.prop === "radius") return (NAMES[problem.req.element] || "Part") + " radius"
+    return NAMES[problem.req.element] || problem.req.title || "Part"
+  })
+  const extra = problems.length > 3 ? problems.length : names.length
+  return extra + " things to fix: " + names.join(", ")
 }
 function clientById(clientId) {
   if (clientId == null) return null
@@ -905,7 +954,9 @@ export function shipCheck(clientId) {
     reason = (screen ? screen.name : "Screen") + " · still needs work"
   }
   if (held && !reason) reason = "Still needs work"
-  const label = held ? "Ship held · " + reason : "Ship · " + moneyToken(fee)
+  const label = held
+    ? (problems.length ? shipHeldLabel(project, problems) : "Ship held · " + reason)
+    : "Ship · " + moneyToken(fee)
   return { held, reason, fee, label, problems }
 }
 function shipButtonLabel(project) {

@@ -109,9 +109,9 @@ function RunControls() {
       </header>
       <div className="run-actions">
         {state.studioName && (
-          <button type="button" className="run-btn" onClick={() => setRestartOpen(true)}>Reset</button>
+          <button type="button" className="run-btn" tabIndex={0} data-tab-last="reset" onClick={() => setRestartOpen(true)}>Reset</button>
         )}
-        <button type="button" className="run-btn danger" onClick={() => setHardOpen(true)}>Hard reset</button>
+        <button type="button" className="run-btn danger" tabIndex={0} data-tab-last="hard-reset" onClick={() => setHardOpen(true)}>Hard reset</button>
       </div>
       <SkModal id="restart-run" open={restartOpen} scrim="soft" scrimCloses labelledBy="restart-title" onEscape={() => setRestartOpen(false)}>
         <h2 id="restart-title" className="sk-title">Start over?</h2>

@@ -36,8 +36,8 @@ function FireConfirm({ staff, onCancel, onFire }) {
             <p className="sk-danger-note">This can't be undone.</p>
           </div>
           <div className="sk-bezel-actions">
-            <Button type="button" className="u-btn secondary" data-initial-focus onClick={onCancel}>Cancel</Button>
-            <Button type="button" className="u-btn danger" onClick={onFire}>Fire {staff.name}</Button>
+            <Button type="button" className="u-btn" data-initial-focus onClick={onCancel}>Cancel</Button>
+            <Button type="button" className="u-btn secondary fire-quiet" onClick={onFire}>Fire {staff.name}</Button>
           </div>
         </>
       )}
@@ -118,7 +118,7 @@ export function OfficePeople() {
               </div>
               <div className="seat-actions">
                 <FloatingTooltip.Trigger content="They leave now. Unfinished frames come back to you.">
-                  <Button type="button" className="u-btn secondary seat-btn" onClick={() => setPendingFire(person)}>Fire</Button>
+                  <Button type="button" className="u-btn secondary seat-btn fire-quiet" onClick={() => setPendingFire(person)}>Fire</Button>
                 </FloatingTooltip.Trigger>
                 {person.role === "intern" && (
                   <button
@@ -126,9 +126,11 @@ export function OfficePeople() {
                     className="seat-btn promote"
                     disabled={person.clean < 3}
                     onClick={() => promote(person.id)}
-                    data-tip={person.clean < 3 ? "Three clean screens, then promote." : "Promote to permanent · " + money(30) + "/mo"}
+                    title={person.clean < 3 ? ("Needs 3 clean ships, " + person.clean + " done") : ("Promote to permanent · " + money(30) + "/mo")}
+                    data-tip={person.clean < 3 ? ("Needs 3 clean ships, " + person.clean + " done") : "Promote to permanent · " + money(30) + "/mo"}
                   >
                     Permanent {person.clean}/3
+                    {person.clean < 3 && <span className="promote-reason">Needs 3 clean ships, {person.clean} done</span>}
                   </button>
                 )}
               </div>
