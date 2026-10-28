@@ -4,9 +4,10 @@
 @import "tailwindcss/utilities.css" layer(utilities);
 
 :root {
-  --foreground: #f1ead9;
-  --background: #17171a;
-  --primary: #17171a;
-  --border: rgba(241, 234, 217, 0.4);
-  --ring: #f1ead9;
+  --foreground: #efe8dc;
+  --background: #1e1e1e;
+  --primary: #efe8dc;
+  --accent: #383838;
+  --border: rgba(239, 232, 220, 0.12);
+  --ring: #0d99ff;
 }

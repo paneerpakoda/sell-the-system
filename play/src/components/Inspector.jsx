@@ -17,11 +17,13 @@ import {
   state,
 } from "../engine.js"
 import { guidingFirst } from "./guidance.jsx"
+import { StickyTodos } from "./StickyTodos.jsx"
+import { useWorkspace } from "../workspace.jsx"
 
 const SWATCHES = ["paper", "white", "ink", "sand", "stone", "hot", "lime"]
 const ORDER = ["colour", "radius", "contrast"]
 const RADIUS_STOPS = [0, 4, 8, 12, 16, 20]
-const RADIUS_PARTS = ["title", "cardA", "cardB", "save"]
+const RADIUS_PARTS = ["cardA", "cardB", "save"]
 
 function RadiusSlider({ project }) {
   const track = useRef(null)
@@ -86,11 +88,13 @@ function scrubRadius(event, start, fromBackground) {
 }
 
 function Brief({ project }) {
+  if (!project.started) return null
   const brief = clientBrief(project)
   return (
     <div className="brief">
-      <p className="fig-title">{brief.system}</p>
-      <p className="brief-note">{brief.voice}</p>
+      <p className="fig-title">{brief.who}</p>
+      <p className="brief-note">{brief.job}</p>
+      <p className="brief-note">{brief.system} · {brief.voice}</p>
       <div className="lib-list">
         {brief.colours.map((name) => (
           <div key={name} className="lib-row">
@@ -153,6 +157,7 @@ function FillRow({ colour, open, onToggle, onPick, label, pulse }) {
 }
 
 export function Inspector() {
+  const { atPc } = useWorkspace()
   const project = focused()
   const [open, setOpen] = useState(null)
   const [drawer, setDrawer] = useState(false)
@@ -185,17 +190,27 @@ export function Inspector() {
     return () => window.removeEventListener("pointerdown", close)
   }, [open])
 
-  const drawerButton = <button type="button" className="sk-drawer-open" onClick={() => setDrawer(true)}>Edit part</button>
-  if (!project) return <>{drawerButton}<aside ref={root} className={drawerClass} aria-label="Editor" /></>
-  const screen = activeScreen(project)
-  if (!screenEditable(project, screen) || !state.selectedEl || state.openId !== project.id) {
+  const drawerButton = <button type="button" className="sk-drawer-open u-btn" onClick={() => setDrawer(true)}>Edit part</button>
+  if (!project) {
     return (
-      <>
+      <aside ref={root} className={drawerClass} aria-label="Editor">
         {drawerButton}
-        <aside ref={root} className={drawerClass} aria-label="Editor">
-          <Brief project={project} />
-        </aside>
-      </>
+        <div className="inspector-rail">
+          <StickyTodos />
+        </div>
+      </aside>
+    )
+  }
+  const screen = activeScreen(project)
+  if (!atPc || !screenEditable(project, screen) || !state.selectedEl || state.openId !== project.id) {
+    return (
+      <aside ref={root} className={drawerClass} aria-label="Editor">
+        {drawerButton}
+        <div className="inspector-rail">
+          <StickyTodos />
+          {atPc && <Brief project={project} />}
+        </div>
+      </aside>
     )
   }
 
@@ -213,23 +228,26 @@ export function Inspector() {
   const contrastTitle = id === "background" ? "Title contrast" : "Contrast"
   const guide = guideProp(project, id)
 
+  const isHeadline = id === "title"
+  const colourLabel = isHeadline ? "Text" : "Fill"
   const sections = {
     colour: (
-      <section key="colour" className="fig-section" data-tip="Calm colours pass. Hot and Lime are wrong.">
+      <section key="colour" className="fig-section" data-tip={isHeadline ? "Headline ink. Calm colours pass. Hot and Lime are wrong." : "Calm colours pass. Hot and Lime are wrong."}>
         <header className="fig-head">
-          <h3>Fill</h3>
+          <h3>{colourLabel}</h3>
           <b className={tone(colourWord)}>{colourWord}</b>
         </header>
         <FillRow
           colour={el.colour}
           open={open === "fill"}
           pulse={guide === "colour" || (guide === "contrast" && !showText)}
+          label={isHeadline ? "Text colour" : undefined}
           onToggle={() => setOpen(open === "fill" ? null : "fill")}
-          onPick={(name) => { edited((_, item) => { item.colour = name }); setOpen(null) }}
+          onPick={(name) => { edited((_, item) => { item.colour = name; if (isHeadline) item.ink = null }); setOpen(null) }}
         />
       </section>
     ),
-    radius: (
+    radius: isHeadline ? null : (
       <section key="radius" className="fig-section" data-tip={state.tools.radius ? "Variable radius. One number for every corner on this frame. The frame is 4 larger." : "This corner only. You can also drag the handles on the frame."}>
         <header className="fig-head">
           <h3>Radius</h3>
@@ -264,7 +282,7 @@ export function Inspector() {
           <span className="fig-sub">Ratio</span>
           <span className="num">{contrastValue.toFixed(1)}:1</span>
         </div>
-        {showText && (
+        {showText && !isHeadline && (
           <>
             <p className="fig-sub">Text</p>
             <FillRow
@@ -281,19 +299,22 @@ export function Inspector() {
   }
 
   return (
-    <>
-    {drawerButton}
     <aside className={drawerClass} aria-label="Editor" ref={root}>
-      <Brief project={project} />
-      <div className="layer-name">
-        <h2 data-tip={component ? "Both cards take this edit." : undefined}>{component ? "Card" : NAMES[id]}</h2>
-        <button type="button" className="icon-x" aria-label="Close" onClick={() => openProject(project, null)}>×</button>
+      {drawerButton}
+      <div className="inspector-tools">
+        <div className="layer-name">
+          <h2 data-tip={component ? "Both choices take this edit." : undefined}>{component ? "Choice" : NAMES[id]}</h2>
+          <button type="button" className="icon-x" aria-label="Close" onClick={() => openProject(project, null)}>×</button>
+        </div>
+        {project.hasUX && id === "background" && project.flow && project.flow.demand && <FlowSection project={project} />}
+        {project.hasUX && id !== "background" && <TypeSection project={project} id={id} el={el} />}
+        {ORDER.map((key) => sections[key]).filter(Boolean)}
       </div>
-      {project.hasUX && id === "background" && project.flow && project.flow.demand && <FlowSection project={project} />}
-      {project.hasUX && id !== "background" && <TypeSection project={project} id={id} el={el} />}
-      {ORDER.map((key) => sections[key])}
+      <div className="inspector-rail">
+        <StickyTodos />
+        <Brief project={project} />
+      </div>
     </aside>
-    </>
   )
 }
 

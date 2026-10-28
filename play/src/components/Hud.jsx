@@ -3,13 +3,11 @@ import {
   continueMonth,
   deadlineLength,
   sellAgency,
-  handShip,
   listStamp,
   openProject,
   payrollDue,
   projectWatch,
   resetView,
-  shipCheck,
   startClient,
   stage,
   state,
@@ -18,45 +16,113 @@ import {
 } from "../engine.js"
 import { SkModal } from "./SkModal.jsx"
 import { useClock } from "../useGame.js"
-import { TargetChip, formatClock, guidingFirst, shipClickEnabled, targetFor, weekClock } from "./guidance.jsx"
+import { TargetChip, formatClock, targetFor, weekClock } from "./guidance.jsx"
 import { Button } from "@/components/unlumen-ui/primitives/button"
-import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
-import { Switch } from "@/components/unlumen-ui/switch"
-import { formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
+import { CurrencySwitch, formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
 
 function Weeks() {
   useClock()
   const { week, into } = weekState()
   const clock = weekClock(into)
   const held = state.clocksLive === false
-  const weekText = held ? clock.text + " held" : clock.text + " left"
+  const weekText = held ? "Paused" : clock.text
   return (
-      <div className="weeks sk-panel" role="group" aria-label={"Week " + week + " of 4, " + weekText + ". Each week is one minute. The week clock waits until the first Start."} data-tip="Each week is one minute. It waits until the first Start. This is not the client's round clock.">
-      <div className="meter-k sk-panel-head">Week</div>
-      <div className="week-marks sk-weekbar" aria-hidden="true">
+    <div className="meter weeks" role="group" aria-label={"Week " + week + " of 4. " + weekText} data-tip="Studio week. Four one-minute bars. Not the client clock.">
+      <span className="meter-k">Week {week}/4</span>
+      <span className="week-bars" aria-hidden="true">
         {[0, 1, 2, 3].map((index) => {
           const amount = index < week - 1 ? 1 : index === week - 1 ? into : 0
           return (
-            <i key={index}>
+            <i key={index} className={amount > 0 ? "on" : ""}>
               <b style={{ width: amount * 100 + "%" }} />
             </i>
           )
         })}
-      </div>
-      <div className="meter-v">{week}</div>
-      <div className="week-clock">{weekText}</div>
+      </span>
+      <span className="meter-sub">{weekText}</span>
     </div>
   )
 }
 
 function MonthClock() {
   const held = state.clocksLive === false
-  const text = formatClock(state.monthLeft) + (held ? " held" : "")
+  const text = formatClock(state.monthLeft)
   return (
-    <div className="meter month-meter" data-tip="The month timer is on screen from month 1. Four weeks, about four minutes, then payroll. It waits with the week clock until the first Start. This is not the client's 5:00.">
-      <div className="meter-k">Month</div>
-      <div className="meter-v">{state.monthIndex}</div>
-      <div className="week-clock">{text}</div>
+    <div className="meter month-meter" data-tip="Countdown to payroll. Four weeks long. Pauses until the first Start.">
+      <span className="meter-k">Month {state.monthIndex}</span>
+      <span className="meter-v mono">{held ? "Paused" : text}</span>
+    </div>
+  )
+}
+
+export function ContractClock({ project }) {
+  useClock()
+  if (!project) return null
+  const waiting = !project.started
+  const left = Math.max(0, project.onTimeLeft)
+  const total = project.onTimeTotal || deadlineLength
+  const p = waiting ? 1 : Math.min(1, left / total)
+  const late = !waiting && left <= 0
+  const urgent = !waiting && !late && left <= 30
+  const label = waiting ? "5:00" : late ? "Late" : timeLabel(left)
+  const r = 16
+  const c = 2 * Math.PI * r
+  return (
+    <div
+      className={"contract-clock" + (late ? " late" : urgent ? " urgent" : "")}
+      data-tip={waiting ? "Client clock. Starts when you press Start job." : late ? "Late. You can still Ship." : "Round clock for this contract."}
+      aria-label={"Client clock " + label}
+    >
+      <span className="client-ring" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 40 40">
+          <circle className="timer-track" cx="20" cy="20" r={r} />
+          <circle
+            className="timer-value"
+            cx="20"
+            cy="20"
+            r={r}
+            strokeDasharray={c}
+            strokeDashoffset={c * (1 - p)}
+          />
+        </svg>
+        <b>{label}</b>
+      </span>
+      <div className="contract-clock-copy">
+        <span className="contract-clock-k">Client clock</span>
+        <span className="contract-clock-v">{waiting ? "Starts at Start job" : late ? "Over time · still shippable" : "On the contract"}</span>
+      </div>
+    </div>
+  )
+}
+
+function StageMeter() {
+  return (
+    <div className="meter stage-meter" data-tip="How far the agency has grown. Stage 3 unlocks UX work.">
+      <span className="meter-k">Stage</span>
+      <span className="meter-v mono">{stage()}</span>
+    </div>
+  )
+}
+
+function HandMeter() {
+  const hired = state.everHired
+  const value = hired ? state.accepted : Math.min(state.handShips, 3)
+  const tip = hired
+    ? "Accepted ships this run."
+    : "Ship 3 screens yourself before Hire unlocks."
+  return (
+    <div className="meter hand-meter" data-tip={tip}>
+      <span className="meter-k">{hired ? "Shipped" : "Hire"}</span>
+      {hired ? (
+        <span className="meter-v mono">{value}</span>
+      ) : (
+        <span className="hand-dots" aria-label={value + " of 3"}>
+          {[0, 1, 2].map((index) => (
+            <i key={index} className={index < value ? "on" : ""} />
+          ))}
+        </span>
+      )}
+      {!hired && <span className="meter-sub">{value}/3</span>}
     </div>
   )
 }
@@ -85,8 +151,8 @@ export function WeekPause() {
             {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
           </div>
           <div className="sk-bezel-actions">
-            <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => continueMonth()}>{state.break.won ? "Keep going" : "Next month"}</Button>
-            {state.break.won && <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => sellAgency()}>Sell the agency</Button>}
+            <Button type="button" className="u-btn" data-initial-focus onClick={() => continueMonth()}>{state.break.won ? "Keep going" : "Next month"}</Button>
+            {state.break.won && <Button type="button" className="u-btn secondary" onClick={() => sellAgency()}>Sell the agency</Button>}
           </div>
         </>
       )}
@@ -94,22 +160,105 @@ export function WeekPause() {
   )
 }
 
+const CLOCK_STEPS = [
+  {
+    id: "client",
+    title: "Client clock",
+    line: "Lives on the desk contract. 5:00 starts at Start job.",
+    note: "Hits 0 → Late. You can still Ship.",
+    visual: "client"
+  },
+  {
+    id: "week",
+    title: "Week",
+    line: "Four bars. Each bar is one minute.",
+    note: "Waits until your first Start.",
+    visual: "week"
+  },
+  {
+    id: "month",
+    title: "Month",
+    line: "Four weeks, then payroll.",
+    note: "Same wait as the week clock.",
+    visual: "month"
+  }
+]
+
+function ClockStepVisual({ kind }) {
+  if (kind === "client") {
+    return (
+      <div className="clock-viz client" aria-hidden="true">
+        <svg viewBox="0 0 72 72" width="72" height="72">
+          <circle cx="36" cy="36" r="28" className="clock-viz-track" />
+          <circle cx="36" cy="36" r="28" className="clock-viz-arc" pathLength="100" />
+        </svg>
+        <span>5:00</span>
+      </div>
+    )
+  }
+  if (kind === "week") {
+    return (
+      <div className="clock-viz week" aria-hidden="true">
+        {[0, 1, 2, 3].map((index) => (
+          <i key={index} className={index === 0 ? "on" : ""}>
+            <b style={{ width: index === 0 ? "55%" : "0%" }} />
+          </i>
+        ))}
+      </div>
+    )
+  }
+  return (
+    <div className="clock-viz month" aria-hidden="true">
+      <span className="clock-viz-num">1</span>
+      <span className="clock-viz-time">4:00</span>
+    </div>
+  )
+}
+
 export function ClockCard() {
   const [closed, setClosed] = useState(false)
+  const [step, setStep] = useState(0)
   const show = !closed && !!state.studioName && !state.tabNote && state.queue.length > 0 && state.clocksLive === false
+  const current = CLOCK_STEPS[step]
+  const last = step >= CLOCK_STEPS.length - 1
+  useEffect(() => {
+    if (!show) {
+      document.body.removeAttribute("data-clock-coach")
+      return undefined
+    }
+    document.body.setAttribute("data-clock-coach", current.visual)
+    return () => document.body.removeAttribute("data-clock-coach")
+  }, [show, current.visual])
   return (
-    <SkModal id="coach-clocks" open={show} scrim="soft" scrimCloses labelledBy="clock-card-title" onEscape={() => setClosed(true)}>
-      <h2 id="clock-card-title" className="sk-title">Three clocks</h2>
-      <div className="sk-bezel-body">
-        <ul>
-          <li><b>Client, 5:00.</b> The round clock on a client. It starts when you press Start. Late means that clock reached 0. The project stays, and Ship still pays. The on-time reward is closed.</li>
-          <li><b>Week.</b> Each bar is one minute. The week clock waits until the first Start.</li>
-          <li><b>Month.</b> Four weeks, about four minutes, then payroll. The month timer is on screen from month 1. It waits with the week clock until the first Start.</li>
-        </ul>
-        <p className="sk-clock-note">Clock is running</p>
+    <SkModal
+      id="coach-clocks"
+      open={show}
+      scrim="soft"
+      scrimCloses
+      labelledBy="clock-card-title"
+      onEscape={() => setClosed(true)}
+    >
+      <p className="clock-step-kicker">Clocks · {step + 1} of {CLOCK_STEPS.length}</p>
+      <h2 id="clock-card-title" className="sk-title">{current.title}</h2>
+      <div className="sk-bezel-body clock-coach">
+        <ClockStepVisual kind={current.visual} />
+        <p className="clock-step-line">{current.line}</p>
+        <p className="clock-step-note">{current.note}</p>
+        <div className="clock-step-dots" aria-hidden="true">
+          {CLOCK_STEPS.map((item, index) => (
+            <i key={item.id} className={index === step ? "on" : index < step ? "done" : ""} />
+          ))}
+        </div>
       </div>
       <div className="sk-bezel-actions">
-        <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => setClosed(true)}>Got it</Button>
+        {step > 0 && (
+          <Button type="button" className="u-btn secondary" onClick={() => setStep((n) => n - 1)}>Back</Button>
+        )}
+        {last ? (
+          <Button type="button" className="u-btn" data-initial-focus onClick={() => setClosed(true)}>Got it</Button>
+        ) : (
+          <Button type="button" className="u-btn" data-initial-focus onClick={() => setStep((n) => n + 1)}>Next</Button>
+        )}
       </div>
     </SkModal>
   )
@@ -266,76 +415,39 @@ function ClientWidgets() {
 }
 
 export function Hud() {
-  const { currency, setCurrency } = useCurrency()
+  const { currency } = useCurrency()
   const money = (value, options) => formatMoney(value, { currency, ...options })
   const due = payrollDue()
-  const open = state.queue.find((item) => item.id === state.openId) || null
-  const waiting = !!(open && !open.started)
-  const check = waiting ? null : shipCheck(open ? open.id : null)
-  const live = shipClickEnabled(waiting, open)
-  const shipLabel = waiting ? "Start" : check.label
-  const held = !!(check && check.held)
-  const guide = guidingFirst()
-  const guideStart = !!(guide && !guide.started && waiting && open && open.id === guide.project.id)
-  const guideShip = !!(guide && guide.shipLive && !waiting && open && open.id === guide.project.id)
   return (
-    <>
-      <header className="hud">
-        <div className="score">
-          <div className="money sk-num" data-tip={feeTip(money)} aria-label={Math.abs(state.money) >= 100000 ? moneyLabel(state.money, currency) : undefined}>{money(state.money, { compact: true })}</div>
-          <span className="sk-currency-switch">
-            <Switch
-              checked={currency === "USD"}
-              onCheckedChange={(dollars) => setCurrency(dollars ? "USD" : "INR")}
-              label={currency === "USD" ? "Dollars" : "Rupees"}
-            />
-          </span>
-          <div className="meters">
-            <Weeks />
-            <MonthClock />
-            <div className="meter" data-tip="1 is by hand. 2 is a team. 3 adds UX. Stage 3 needs a permanent and a codified language.">
-              <div className="meter-k">Stage</div>
-              <div className="meter-v">{stage()}</div>
+    <header className="topbar">
+      <div className="topbar-side topbar-left" aria-label="Studio clocks">
+        {state.studioName && <div className="studio-name">{state.studioName}</div>}
+        <div className="meter-group time-group">
+          <Weeks />
+          <MonthClock />
+          {due > 0 && (
+            <div className={"meter payroll-meter" + (state.money + 0.001 < due ? " urgent" : "")}>
+              <span className="meter-k">{state.payroll.late ? "Late" : "Due"}</span>
+              <span className="meter-v mono">{money(due)}</span>
             </div>
-            <div className="meter" data-tip={state.everHired ? "Clients shipped." : "Screens you ship yourself. Hire unlocks at 3, and the count stops there."}>
-              <div className="meter-k">{state.everHired ? "Ships" : "Hand"}</div>
-              <div className="meter-v">{state.everHired ? state.accepted : Math.min(state.handShips, 3) + "/3"}</div>
-            </div>
-            {due > 0 && (
-              <div className="meter" data-tip={payrollTip(money)}>
-                <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
-                <div className={"meter-v sk-num" + (state.money + 0.001 < due ? " urgent" : "")}>{money(due)}</div>
-              </div>
-            )}
-          </div>
-          <p className="goal-strip">
-            <span className="goal-win">Win a Stage 3 month with a big client, no hand touch, and payroll paid.</span>
-          </p>
-          {state.payroll.lateNote && <p className="status-line">{state.payroll.lateNote}</p>}
-          {state.status && <p className="status-line">{state.status}</p>}
+          )}
         </div>
-      </header>
-      <div className="sk-bezel sk-ship-plate">
-        <FloatingTooltip.Trigger content={waiting ? "Begin this client. The round clock starts at 5:00. That is the client's time, not the month." : check && check.reason ? shipLabel : "Full fee " + money(10) + ", or " + money(16) + " in Stage 3. A short ship is " + money(10) + ". A big client is " + money(36) + ", or " + money(48) + ". A short big-client ship is " + money(3) + " before Stage 3."}>
-        <Button
-          type="button"
-          tabIndex={1}
-          className={"ship sk-cbtn sk-cbtn--primary" + (held ? " held" : "") + (guideStart || guideShip ? " guide-pulse" : "")}
-          disabled={!live}
-          aria-disabled={!live}
-          data-ship-held={held ? "true" : "false"}
-          data-ship-reason={check && check.reason ? check.reason : ""}
-          onClick={() => { if (!live) return; if (waiting) startClient(open); else handShip() }}
-        >
-          {shipLabel}
-          {(guideStart || guideShip) && <span className="sr-only"> Next click.</span>}
-        </Button>
-        </FloatingTooltip.Trigger>
-        {!live && check && check.reason && <p className="sk-cbtn-reason">{check.reason}</p>}
       </div>
-      <ClientWidgets />
+      <div className="topbar-center">
+        <div className="money-hero">
+          <div className="money" aria-label={Math.abs(state.money) >= 100000 ? moneyLabel(state.money, currency) : undefined}>{money(state.money, { compact: true })}</div>
+          <CurrencySwitch />
+        </div>
+      </div>
+      <div className="topbar-side topbar-right" aria-label="Growth">
+        <div className="meter-group growth-group">
+          <StageMeter />
+          <HandMeter />
+        </div>
+      </div>
+      {(state.payroll.lateNote || state.status) && <p className="status-line">{state.payroll.lateNote || state.status}</p>}
       <ShipMoment />
-    </>
+    </header>
   )
 }
 

@@ -214,34 +214,35 @@ export function Screen() {
                     <p className="frame-lock">{ownerFirst(screen)} has this frame. Take over to open it in the editor. They stop, and the frame comes back to you.</p>
                   )}
                   {project.hasUX && <span className={"flowchip" + flowClass(project)}>{flowText(project)}</span>}
+                  <p className="onboard-kicker" aria-hidden="true">Onboarding</p>
                   <button
                     type="button"
                     ref={(el) => { if (live) nodes.current.title = el }}
                     className={"part title" + (lowContrast(art, "title") ? " low-contrast" : "") + (live && picked.has("title") ? " on" : "")}
                     style={{
-                      background: COLOURS[art.title.colour].hex,
                       color: fade(COLOURS[art.background.colour].hex, inkHex({ elements: art }, "title"), contrastMix(art.title)),
-                      borderRadius: art.title.radius,
                       fontSize: typeSize(art.title.hierarchy)
                     }}
                     onClick={(event) => { event.stopPropagation(); openEditor(project, screen, "title") }}
                   >
-                    {art.title.copy}
+                    {art.title.copy || "Headline"}
                   </button>
-                  {["cardA", "cardB"].map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      ref={(el) => { if (live) nodes.current[id] = el }}
-                      className={"part card" + (lowContrast(art, id) ? " low-contrast" : "") + (live && picked.has(id) ? " on" : "")}
-                      style={{ background: COLOURS[art[id].colour].hex, borderRadius: art[id].radius }}
-                      onClick={(event) => { event.stopPropagation(); openEditor(project, screen, id) }}
-                    >
-                      <span style={{ color: fade(COLOURS[art[id].colour].hex, inkHex({ elements: art }, id), contrastMix(art[id])), fontSize: typeSize(art[id].hierarchy) }}>
-                        {art[id].copy}
-                      </span>
-                    </button>
-                  ))}
+                  <div className="choice-stack">
+                    {["cardA", "cardB"].map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        ref={(el) => { if (live) nodes.current[id] = el }}
+                        className={"part card" + (lowContrast(art, id) ? " low-contrast" : "") + (live && picked.has(id) ? " on" : "")}
+                        style={{ background: COLOURS[art[id].colour].hex, borderRadius: art[id].radius }}
+                        onClick={(event) => { event.stopPropagation(); openEditor(project, screen, id) }}
+                      >
+                        <span className="card-label" style={{ color: fade(COLOURS[art[id].colour].hex, inkHex({ elements: art }, id), contrastMix(art[id])), fontSize: typeSize(art[id].hierarchy) }}>
+                          {art[id].copy}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
                   <button
                     type="button"
                     ref={(el) => { if (live) nodes.current.save = el }}
@@ -254,9 +255,9 @@ export function Screen() {
                     }}
                     onClick={(event) => { event.stopPropagation(); openEditor(project, screen, "save") }}
                   >
-                    {art.save.copy}
+                    {art.save.copy || "Continue"}
                   </button>
-                  {live && mine && selected && (
+                  {live && mine && selected && selected !== "title" && (
                     <div className="handles">
                       {CORNERS.map((corner) => (
                         <button key={corner} type="button" className={"handle " + corner} data-corner={corner} aria-label="Corner radius" />

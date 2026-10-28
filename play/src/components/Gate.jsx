@@ -28,18 +28,23 @@ export function Gate() {
         }}
       >
         <h1 id="studio-title">Name the studio</h1>
-        <p>Click what pulses. The round clock is the client's 5:00. The bars are the month: four one-minute weeks, then payroll.</p>
+        <p>You run a design agency. Clients arrive with phone screens to fix. Ship the work yourself, hire help, and build a system until a quiet month can win without your hand.</p>
         {state.saveNote && <p role="status">{state.saveNote}</p>}
-        <label htmlFor="studio-name">Studio name</label>
-        <input
-          ref={input}
-          id="studio-name"
-          value={draft}
-          maxLength={28}
-          autoComplete="off"
-          onChange={(event) => setDraft(event.target.value)}
-        />
-        <button type="submit" disabled={!clean}>Open</button>
+        <div className="gate-field">
+          <label htmlFor="studio-name">Studio name</label>
+          <input
+            ref={input}
+            id="studio-name"
+            value={draft}
+            maxLength={28}
+            autoComplete="off"
+            placeholder="e.g. Northwind Studio"
+            onChange={(event) => setDraft(event.target.value)}
+          />
+        </div>
+        <div className="gate-actions">
+          <button type="submit" className="u-btn" disabled={!clean}>Open</button>
+        </div>
       </form>
     </div>
   )

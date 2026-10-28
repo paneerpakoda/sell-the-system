@@ -1,8 +1,9 @@
 const ELEMENT_IDS = ["background", "title", "cardA", "cardB", "save"]
-const NAMES = { background: "Background", title: "Title", cardA: "Card A", cardB: "Card B", save: "Save" }
+const RADIUS_ELEMENTS = ["background", "cardA", "cardB", "save"]
+const NAMES = { background: "Screen", title: "Headline", cardA: "Choice A", cardB: "Choice B", save: "Button" }
 const EL_NODES = { background: "el-background", title: "el-title", cardA: "el-card-a", cardB: "el-card-b", save: "el-save" }
 const INDUSTRIES = ["fintech", "wellness", "editorial"]
-const CLIENTS = ["Northwind", "Lumen", "Harbor", "Kindred", "Folio", "Aster", "Brass", "Sable", "Marlow", "Pebble", "Vesper", "Quill", "Hearth", "Ledger", "Nimbus"]
+const CLIENTS = ["Arjun", "Meera", "Kabir", "Ananya", "Rohan", "Isha", "Dev", "Priya", "Ayaan", "Sara", "Neil", "Tara", "Vihaan", "Zara", "Om"]
 const STAFF_NAMES = ["Ada", "Ben", "Cam", "Dia", "Eve", "Fox", "Gia", "Hal", "Ivy", "Jed", "Kim", "Lux"]
 const VAGUE_COLOUR = { background: "paper", title: "ink", cardA: "white", cardB: "white", save: "ink" }
 const COLOURS = {
@@ -55,27 +56,29 @@ const LANG = {
     contrast: 12
   }
 }
+// Every brief is a college senior shipping a startup onboarding flow.
+// Industry only changes the visual system (Swiss / Warm Soft / Mono).
 const PRODUCTS = {
   fintech: [
-    { name: "Balance", title: "Balance", cardA: "Spending", cardB: "Savings", action: "Transfer" },
-    { name: "Transfer", title: "Transfer", cardA: "From", cardB: "To", action: "Send" },
-    { name: "Account", title: "Account", cardA: "Card", cardB: "Limits", action: "Confirm" }
+    { name: "Welcome", title: "Money, made simple", cardA: "Track what you spend", cardB: "Split with friends", action: "Continue" },
+    { name: "Setup", title: "How do you get paid?", cardA: "Student stipend", cardB: "First salary", action: "Next" },
+    { name: "Ready", title: "You're set", cardA: "Invite a roommate", cardB: "Keep it solo", action: "Open app" }
   ],
   wellness: [
-    { name: "Today", title: "Today", cardA: "Sleep", cardB: "Move", action: "Check in" },
-    { name: "Session", title: "Session", cardA: "Breath", cardB: "Stretch", action: "Start" },
-    { name: "Profile", title: "Profile", cardA: "Goal", cardB: "Streak", action: "Log" }
+    { name: "Welcome", title: "A calmer first week", cardA: "Sleep on a schedule", cardB: "Move a little daily", action: "Continue" },
+    { name: "Setup", title: "What should we nudge?", cardA: "Bedtime reminders", cardB: "Short walks", action: "Next" },
+    { name: "Ready", title: "You're in", cardA: "Add a friend", cardB: "Start alone", action: "Open app" }
   ],
   editorial: [
-    { name: "Issue", title: "Issue", cardA: "Essay", cardB: "Review", action: "Read" },
-    { name: "Story", title: "Story", cardA: "Lede", cardB: "Body", action: "Continue" },
-    { name: "Archive", title: "Archive", cardA: "Saved", cardB: "Authors", action: "Open" }
+    { name: "Welcome", title: "Write in public", cardA: "Share early drafts", cardB: "Find first readers", action: "Continue" },
+    { name: "Setup", title: "What are you shipping?", cardA: "A newsletter", cardB: "A short essay", action: "Next" },
+    { name: "Ready", title: "Ready to publish", cardA: "Invite an editor", cardB: "Go solo", action: "Open app" }
   ]
 }
 const TOKEN_NAME = { colour: "Base colour", radius: "Base radius", contrast: "Base contrast" }
 const TOKEN_DETAIL = {
-  colour: "Fills only. New screens use a Paper background, white cards, an ink title, and an ink button. It does not set the contrast text.",
-  radius: "New screens use 16px corners.",
+  colour: "Fills and headline ink. New screens use a Paper background, white choices, an ink headline, and an ink button.",
+  radius: "New screens use 16px corners on choices and the button.",
   contrast: "New screens use contrast 21.0 (100%)."
 }
 const PROCESS_INFO = {
@@ -452,20 +455,23 @@ function clientBrief(project) {
   const lang = LANG[project.industry]
   const used = new Set(Object.values(lang.colour))
   const colours = ["paper", "white", "ink", "sand", "stone"].filter((name) => used.has(name))
-  return { system: lang.system, voice: lang.voice, colours }
+  return {
+    system: lang.system,
+    voice: lang.voice,
+    colours,
+    who: project.client + " · college senior",
+    job: "Startup onboarding · 3 screens"
+  }
 }
 function blankElement(partial) {
   return Object.assign({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "body", copy: "" }, partial)
 }
 function blankElements() {
-  // Fills stay Hot and Lime so the brief's colour lines still fail.
-  // Title and the cards use Ink, which clears contrast 3 on Hot, Lime, and the
-  // light industry fills. Save uses White: it clears Hot, and it still clears
-  // Ink, which is the colour the brief asks Save to become. Matching the ink
-  // to the fill still fails, and the hold names that part and the ratio.
+  // Opening screens look broken on purpose: loud fills, wrong headline colour.
+  // Headline is text-only (colour = text swatch). Cards and button keep fills.
   return {
     background: blankElement({ colour: "hot", radius: 24, contrast: 21, hierarchy: "body" }),
-    title: blankElement({ colour: "lime", radius: 0, contrast: 21, hierarchy: "primary", copy: "", ink: "ink" }),
+    title: blankElement({ colour: "lime", radius: 0, contrast: 21, hierarchy: "primary", copy: "" }),
     cardA: blankElement({ colour: "lime", radius: 0, contrast: 21, hierarchy: "body", ink: "ink" }),
     cardB: blankElement({ colour: "hot", radius: 32, contrast: 21, hierarchy: "body", ink: "ink" }),
     save: blankElement({ colour: "hot", radius: 0, contrast: 21, hierarchy: "primary", copy: "", ink: "white" })
@@ -501,7 +507,7 @@ function buildReqs(project) {
   const visual = []
   ELEMENT_IDS.forEach((id) => {
     visual.push({ element: id, prop: "colour", mode, group: "colour" })
-    visual.push({ element: id, prop: "radius", mode, group: "radius" })
+    if (id !== "title") visual.push({ element: id, prop: "radius", mode, group: "radius" })
     if (id !== "background") visual.push({ element: id, prop: "contrast", mode, group: "contrast" })
   })
   const namedVisual = project.size === "big" ? visual : shuffle(visual).slice(0, PARAMS.namedLines)
@@ -624,8 +630,9 @@ function surfaceHex(project, elementId) {
 }
 function inkHex(project, elementId) {
   const el = project.elements[elementId]
-  if (el.ink && COLOURS[el.ink]) return COLOURS[el.ink].hex
+  // Headline is text: its colour swatch is the ink, not a fill.
   if (elementId === "title") return COLOURS[el.colour].hex
+  if (el.ink && COLOURS[el.ink]) return COLOURS[el.ink].hex
   return bestInk(COLOURS[el.colour].hex)
 }
 function paintedContrast(project, elementId) {
@@ -650,12 +657,12 @@ function radiusFault(project, elementId) {
   if (radius === 0) return "Square. Drag this corner inward."
   if (elementId !== "background" && radius > background) return "Rounder than the Background. Raise that corner first."
   if (radius < 8) return "Too sharp. Drag this corner inward."
-  if (reached === "bare") return "In range. Title, both cards, and Save still need the same radius."
-  return "Title, both cards, and Save need the same radius. Background is 4 larger."
+  if (reached === "bare") return "In range. Both choices and the button still need the same radius."
+  return "Both choices and the button need the same radius. Screen is 4 larger."
 }
 function radiusNeedsBackground(project) {
   const background = project.elements.background.radius
-  return ["title", "cardA", "cardB", "save"].some((id) => {
+  return ["cardA", "cardB", "save"].some((id) => {
     const radius = project.elements[id].radius
     if (radius <= background || radius < 12 || radius > 24) return false
     return project.reqs.some((req) => (req.focus || req.element) === id && req.prop === "radius" && holdsShip(project, req))
@@ -669,10 +676,11 @@ function radiusHint(project, elementId) {
   return base + " " + radiusFault(project, elementId)
 }
 function radiusGrade(project, elementId) {
+  if (elementId === "title") return "best"
   const lang = LANG[project.industry]
   const industryC = lang.radius
   const industryB = targetRadius(lang, "background")
-  const components = ["title", "cardA", "cardB", "save"]
+  const components = ["cardA", "cardB", "save"]
   const componentRadii = components.map((id) => project.elements[id].radius)
   const shared = componentRadii.every((radius) => radius === componentRadii[0])
   const C = componentRadii[0]
@@ -700,7 +708,11 @@ function grade(project, elementId, prop) {
 function screenGrade(project) {
   let lowest = "best"
   ELEMENT_IDS.forEach((id) => {
-    const props = id === "background" ? ["colour", "radius"] : ["colour", "radius", "contrast"]
+    const props = id === "background"
+      ? ["colour", "radius"]
+      : id === "title"
+        ? ["colour", "contrast"]
+        : ["colour", "radius", "contrast"]
     props.forEach((prop) => {
       const reached = grade(project, id, prop)
       if (GRADE_RANK[reached] > GRADE_RANK[lowest]) lowest = reached
@@ -805,6 +817,10 @@ function screenWrong(project, screen) {
 function screenBlocks(project, screen) {
   if (!screen) return false
   if (screen.qc === "miss" || screen.qc === "returned") return true
+  // Followers that still match the lead clear when the lead clears — don't
+  // multiply the same wrongs across every cloned screen in To Ship.
+  const lead = leadOf(project)
+  if (lead && screen !== lead && matchesLead(screen, lead)) return false
   // A matching look does not excuse copy, hierarchy, or a null fee.
   if (screenFee(project, screen) == null) return true
   const reference = referenceScreen(project)
@@ -1048,6 +1064,14 @@ function makeProject() {
   if (project.id <= 3) applyOpening(project)
   else {
     project.reqs = buildReqs(project)
+    // Loose jobs: calm canvas, only the briefed lines start wrong.
+    // Big / exacting keep the loud broken start.
+    if (project.size !== "big" && project.standard !== "exacting") {
+      applyVagueLook(project)
+      project.reqs.forEach((req) => {
+        if (req.named && isVisualReq(req)) writeWrong(project, req)
+      })
+    }
     attachScreens(project)
   }
   return project
@@ -1066,6 +1090,21 @@ function applyOpening(project) {
     group: "colour",
     named: true
   }))
+  // Keep the frame looking like a real onboarding phone UI. Only graded parts start wrong.
+  project.elements.cardA.colour = "white"
+  project.elements.cardA.ink = "ink"
+  project.elements.cardA.radius = 16
+  project.elements.cardB.colour = "white"
+  project.elements.cardB.ink = "ink"
+  project.elements.cardB.radius = 16
+  project.elements.save.colour = "ink"
+  project.elements.save.ink = "white"
+  project.elements.save.radius = 16
+  project.elements.background.radius = 20
+  if (project.id === 1) {
+    // First job: calm screen, loud headline ink — the only thing to fix.
+    project.elements.background.colour = "paper"
+  }
   attachScreens(project, project.id === 1 ? 1 : null)
 }
 function cloneElements(elements) {
@@ -1999,8 +2038,9 @@ export function setRadius(value, fromBackground) {
   edited((project) => {
     const screen = activeScreen(project)
     if (!screen) return
-    ;["title", "cardA", "cardB", "save"].forEach((id) => { screen.elements[id].radius = component })
+    ;["cardA", "cardB", "save"].forEach((id) => { screen.elements[id].radius = component })
     screen.elements.background.radius = clampRadius(component + PARAMS.radiusStep)
+    screen.elements.title.radius = 0
   })
 }
 function elementHeld(project, elementId) {
@@ -2512,6 +2552,76 @@ function saveNow() {
   }
   writeSave()
 }
+function discardSave() {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = null
+  }
+  lastSaveAt = Date.now()
+  if (typeof localStorage === "undefined") return
+  try { localStorage.removeItem(SAVE_KEY) } catch (error) { void error }
+}
+export function restartGame() {
+  const name = state.studioName
+  const tabNote = state.tabNote
+  payrollLedger = []
+  state.money = 24
+  state.accepted = 0
+  state.handShips = 0
+  state.everHired = false
+  state.handsFreeEver = false
+  state.wins = 0
+  state.showBanner = false
+  state.monthIndex = 1
+  state.monthLeft = monthLength
+  state.clocksLive = false
+  state.break = null
+  state.arrivalLeft = 20
+  state.month = { qualified: false, bigShipped: false, smallShipped: 0, handTouch: false, handTouches: 0 }
+  state.tokens = { colour: false, radius: false, contrast: false }
+  state.codified = { fintech: false, wellness: false, editorial: false }
+  state.process = { research: false, wire: false, test: false }
+  state.bigDone = { fintech: false, wellness: false, editorial: false }
+  state.staff = []
+  state.nextStaffId = 1
+  state.queue = []
+  state.projectSeq = 0
+  state.openId = null
+  state.selectedEl = null
+  state.status = "Started over."
+  state.saveNote = ""
+  state.tabNote = tabNote
+  state.nextHireFloor = null
+  state.headOffer = null
+  state.headUnlocked = false
+  state.wikiOpen = false
+  state.studioName = name
+  state.tools = { swatches: false, radius: false, contrast: false, components: false, styles: false }
+  state.notices = []
+  state.seen = {}
+  state.fork = null
+  state.midgame = null
+  state.midgameClosed = false
+  state.event = null
+  state.eventSeen = false
+  state.lastIndustry = null
+  state.sold = 0
+  state.specialty = null
+  state.debt = 0
+  state.hireMiss = null
+  spawn("start")
+  state.arrivalLeft = interval()
+  state.clocksLive = false
+  resetView()
+  commit()
+}
+export function hardReset() {
+  restartGame()
+  state.studioName = ""
+  state.status = ""
+  discardSave()
+  notify()
+}
 export function acceptSave(data) {
   if (!data || typeof data !== "object") return { ok: false, reason: "corrupt" }
   if (data.saveVersion !== saveVersion) return { ok: false, reason: "version" }
@@ -2647,7 +2757,10 @@ function hiddenWrongs(project, held) {
 function explainBlocked(project, screen) {
   const held = blockingReqs(project)
   if (project.id <= 3 && held.length) return held
-  const rows = held.concat(hiddenWrongs(project, held))
+  // Loose small jobs only grade named lines. Listing every calm-looking miss
+  // makes To Ship unreadably long without changing what Ship accepts.
+  const strictList = project.size === "big" || project.standard === "exacting"
+  const rows = strictList ? held.concat(hiddenWrongs(project, held)) : held
   if (rows.length) return rows
   const qc = screen && screen.qc
   return [{

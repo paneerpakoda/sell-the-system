@@ -1,63 +1,28 @@
-import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
 import { Button } from "@/components/unlumen-ui/primitives/button"
 import { memo, useState } from "react"
 import { SkModal } from "./SkModal.jsx"
 import {
-  NAMES,
-  describe,
-  fire,
   buyLanguage,
   buyProcess,
   buyToken,
   buyTool,
-  canHire,
-  hire,
   listStamp,
-  openParts,
   openProject,
-  selectPart,
-  shipCheck,
-  promote,
   projectWatch,
   queueState,
-  radiusHint,
-  shownGrade,
-  staffTask,
   stepSeconds,
-  effectiveMiss,
   systemOwned,
+  hardReset,
   resetView,
+  restartGame,
   stage,
   startClient,
-  state,
-  studioOpen
+  state
 } from "../engine.js"
 import { useClock } from "../useGame.js"
-import { TargetChip, guidingFirst, payrollFacts } from "./guidance.jsx"
+import { TargetChip } from "./guidance.jsx"
 import { formatMoney, useCurrency } from "../ui/money.js"
-
-const GROUPS = [
-  ["colour", "Colour"],
-  ["radius", "Radius"],
-  ["contrast", "Contrast"]
-]
-
-function propertyName(req) {
-  if (req.prop === "copy") return "Copy"
-  if (req.prop === "hierarchy") return "Hierarchy"
-  if (req.prop === "flow") return "Flow"
-  const name = req.prop || ""
-  return name ? name.charAt(0).toUpperCase() + name.slice(1) : "Part"
-}
-
-function wordOf(project, req) {
-  if (req.group === "flow" || req.group === "type") return req.base || "Wrong"
-  if (req.word) return req.word
-  if (req.group === "colour" || req.group === "radius" || req.group === "contrast") {
-    return shownGrade(project, req.element, req.prop)
-  }
-  return "Open"
-}
+import { useWorkspace } from "../workspace.jsx"
 
 const ClientTime = memo(function ClientTime({ project }) {
   useClock()
@@ -67,13 +32,22 @@ const ClientTime = memo(function ClientTime({ project }) {
 
 const ClientRow = memo(function ClientRow({ project, stamp, line, needsYou, open }) {
   void stamp
+  const { openPc } = useWorkspace()
   return (
     <li>
       <button
         type="button"
         className={"client" + (open ? " on" : "") + (needsYou ? " call" : "")}
         data-tip={needsYou ? line : project.started ? "Open this client. Opening does not take a frame back." : "Start this client. The clock begins when you do."}
-        onClick={() => { resetView(); if (!project.started) startClient(project); else openProject(project, null) }}
+        onClick={() => {
+          resetView()
+          if (!project.started) {
+            startClient(project)
+            return
+          }
+          openProject(project, null)
+          openPc()
+        }}
       >
         <span className="who">{project.client}</span>
         <span className={"meta" + (needsYou ? " call" : "")}>{line}</span>
@@ -84,57 +58,18 @@ const ClientRow = memo(function ClientRow({ project, stamp, line, needsYou, open
   )
 })
 
-const ShipPartRow = memo(function ShipPartRow({ project, group, stamp }) {
-  void stamp
-  const req = group.open[0]
-  const name = req.group[0].toUpperCase() + req.group.slice(1)
-  return (
-    <li>
-      <button type="button" className="more" onClick={() => { if (group.screenId) openScreen(project, group.screenId); openProject(project, group.id) }}>
-        <span>{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
-        <span className="count">{name}{group.open.length > 1 ? " +" + (group.open.length - 1) : ""}</span>
-      </button>
-    </li>
-  )
-})
-
-const GradeRow = memo(function GradeRow({ project, req, group, stamp }) {
-  void stamp
-  const word = wordOf(project, req)
-  const target = group === "radius" ? " · " + radiusHint(project, req.element) : ""
-  return (
-    <li>
-      <button type="button" onClick={() => selectPart(project, null, req.focus || req.element)}>
-        <span>{NAMES[req.element]}</span>
-        <span className={tone(word)}>{word}{target}</span>
-      </button>
-    </li>
-  )
-})
-
-function tone(word) {
-  if (word === "Not judged") return "tone-bare"
-  if (word === "Wrong" || word === "Clear intent" || (word && (word.startsWith("Fix ") || word.startsWith("Hierarchy ")))) return "tone-wrong"
-  if (word === "Bare minimum") return "tone-bare"
-  if (word === "Acceptable") return "tone-ok"
-  return "tone-best"
-}
-
 export function Dock() {
-  const [gradesOpen, setGradesOpen] = useState(false)
-  const project = state.queue.find((item) => item.id === state.openId) || null
-  const check = project ? shipCheck(project.id) : null
-  const parts = openParts(project)
-  const heldShip = !!(check && check.held)
-  const guide = guidingFirst()
-  const guideNow = !!(guide && guide.started && !guide.shipLive && !guide.onLead && parts[0] && project && project.id === guide.project.id && parts[0].id === (guide.lead && guide.lead.id))
+  const [wikiOpen, setWikiOpen] = useState(false)
 
   return (
     <aside className="dock" aria-label="Studio">
       <section className="block clients-block sk-panel">
         <header className="block-head sk-panel-head">
           <h2>Clients</h2>
-          <span>{state.queue.length}</span>
+          <span className="dock-head-tools">
+            <span>{state.queue.length}</span>
+            <button type="button" className="wiki-btn" onClick={() => setWikiOpen(true)}>Wiki</button>
+          </span>
         </header>
         <ul className="clients">
             {state.queue.map((item) => {
@@ -154,353 +89,356 @@ export function Dock() {
       </section>
 
       <div className="dock-scroll">
-        <HowToWin />
+        <StudioKit />
         <StageProgress />
-        <section className="block sk-panel">
-          <header className="block-head sk-panel-head">
-          <h2>To Ship</h2>
-          <span>{parts.length ? parts.length + (parts.length === 1 ? " part" : " parts") : heldShip ? "Held" : "Clear"}</span>
-        </header>
-        {project && !parts.length && <p className="ready">{check && check.reason ? check.label : "Clear"}</p>}
-        {parts.length > 0 && (
-          <ul className="more-list">
-            {parts.map((group, index) => {
-              const req = group.open[0]
-              const name = propertyName(req)
-              const word = wordOf(project, req)
-              const pulse = index === 0 && guideNow
-              return (
-                <li key={(group.screenId || "") + ":" + group.id + ":" + req.prop}>
-                  <button type="button" className={(index === 0 ? "now" : "more") + (pulse ? " guide-pulse" : "")} data-tip="This is holding the ship." onClick={() => selectPart(project, group.screenId, group.id)}>
-                    {pulse && <span className="sr-only">Next click. </span>}
-                    <span className="part">{group.screenName ? group.screenName + " · " : ""}{NAMES[group.id]}</span>
-                    <span className={"prop " + tone(word)}>{name} · {word}{req.prop === "radius" ? " · " + (req.hint || radiusHint(project, group.id)) : ""}</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-          <button type="button" className="grades-toggle" aria-expanded={gradesOpen} data-tip="Colour, radius, and contrast on this screen." onClick={() => setGradesOpen((open) => !open)}>
-            <span className="grades-label">{gradesOpen ? "Hide grades" : "All grades"}</span>
-          </button>
-          {gradesOpen && project && (
-            <div className="grades">
-              {!project.reqs.some((req) => req.group === "radius") && (
-                <p className="hint">{radiusHint(project, "title")} Background is already round, so a corner from 8 to 24 is not Wrong.</p>
-              )}
-              {GROUPS.map(([group, label]) => {
-                const reqs = project.reqs.filter((req) => req.group === group)
-                if (!reqs.length) return null
-                return (
-                  <div key={group}>
-                    <h3>{label}</h3>
-                    <ul>
-                      {reqs.map((req) => (
-                        <GradeRow
-                          key={req.element + group}
-                          project={project}
-                          req={req}
-                          group={group}
-                          stamp={listStamp(project)}
-                        />
-                      ))}                    </ul>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        {studioOpen() && <People />}
-        <System />
-        <Tree />
+        <RunControls />
       </div>
+      <Wiki open={wikiOpen} onClose={() => setWikiOpen(false)} />
     </aside>
   )
 }
 
-function People() {
-  const [pendingFire, setPendingFire] = useState(null)
-  const { currency } = useCurrency()
-  const money = (value) => formatMoney(value, { currency })
-  const { due, next, unpayable, reason, lines } = payrollFacts()
-  const locked = state.handShips < 3
-  const internOnStaff = state.staff.some((staff) => staff.role === "intern")
-  const affordable = canHire()
-  const short = due > 0 && state.money + 0.001 < due
-  const dueText = money(due)
-  const nextText = money(next)
-  const hireNote = state.payroll && state.payroll.hireNote
-    ? state.payroll.hireNote
-    : "Hire is " + nextText + " for the rest of this month. The price falls as the month runs, then jumps back to " + money(10) + " when the next month starts."
-  const warn = reason || ("This hire makes payroll " + money(due + next) + ". You have " + money(state.money) + ".")
-  const hireTip = locked
-    ? "Ship 3 screens yourself. Hire stays locked until then."
-    : internOnStaff
-      ? "One intern can be busy. They build screens someone already started. A second intern would not start clients."
-      : !affordable
-        ? warn
-        : hireNote
+function RunControls() {
+  const [restartOpen, setRestartOpen] = useState(false)
+  const [hardOpen, setHardOpen] = useState(false)
+  if (!state.studioName && !state.queue.length) return null
   return (
-    <section className="block studio sk-panel">
-      <header className="block-head sk-panel-head">
-        <h2>People</h2>
-        {state.staff.length > 0 && <span className="sk-num">{state.payroll.late ? "Late" : short ? "Short" : dueText}</span>}
+    <section className="block run-controls">
+      <header className="block-head">
+        <h2>Run</h2>
       </header>
-      {state.staff.map((staff) => (
-        <div key={staff.id} className="staff">
-          <p>{staff.name} · {staff.role === "permanent" ? "Permanent" : "Intern"} · <span className="sk-num">{money(staff.pay)}</span></p>
-          <p className="hint">{staffTask(staff)}</p>
-          {staff.role === "intern" && <p className="pace">{paceText(state.queue.find((item) => item.id === staff.projectId))} · {missText(staff, state.queue.find((item) => item.id === staff.projectId))}</p>}
-          <div className="staff-actions">
-            <FloatingTooltip.Trigger content="They leave now. Unfinished frames come back to you. You confirm before they go.">
-              <Button type="button" className="sk-cbtn sk-cbtn--secondary" onClick={() => setPendingFire(staff)}>Fire</Button>
-            </FloatingTooltip.Trigger>
-            {staff.role === "intern" && (
-              <span className="tip-wrap" data-tip={staff.clean < 3 ? "Three clean screens, then they start clients for you." : "Starts clients you have not started, then checks the intern. " + money(30) + " a month."}>
-                <button type="button" disabled={staff.clean < 3} onClick={() => promote(staff.id)}>Permanent {staff.clean}/3</button>
-              </span>
-            )}
-          </div>
+      <div className="run-actions">
+        {state.studioName && (
+          <button type="button" className="run-btn" onClick={() => setRestartOpen(true)}>Reset</button>
+        )}
+        <button type="button" className="run-btn danger" onClick={() => setHardOpen(true)}>Hard reset</button>
+      </div>
+      <SkModal id="restart-run" open={restartOpen} scrim="soft" scrimCloses labelledBy="restart-title" onEscape={() => setRestartOpen(false)}>
+        <h2 id="restart-title" className="sk-title">Start over?</h2>
+        <RestartCopy />
+        <div className="sk-bezel-actions">
+          <Button type="button" className="u-btn secondary" onClick={() => setRestartOpen(false)}>Cancel</Button>
+          <Button type="button" className="u-btn" data-initial-focus onClick={() => { setRestartOpen(false); restartGame() }}>Reset</Button>
         </div>
-      ))}
-      <p className="hint">{hireNote}</p>
-      <p className="hint">{"Payroll due " + dueText + "."}</p>
-      {lines.map((line) => (
-        <p key={line.name} className="hint">{line.name + " · " + money(line.amount)}</p>
-      ))}
-      {state.payroll.lateNote && <p className="hint payroll-warn">{state.payroll.lateNote}</p>}
-      {unpayable && !state.payroll.lateNote && <p className="hint payroll-warn">{warn}</p>}
-      <FloatingTooltip.Trigger content={hireTip}>
-        <Button type="button" className="buy sk-cbtn sk-cbtn--secondary" disabled={!affordable} onClick={() => hire()}>
-          {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire · " + nextText}
-        </Button>
-        {!affordable && <span className="sk-cbtn-reason">{locked ? "Ship 3 screens yourself" : internOnStaff ? "One intern is already hired" : "Need " + nextText}</span>}
-      </FloatingTooltip.Trigger>
-      <FireConfirm staff={pendingFire} onCancel={() => setPendingFire(null)} onFire={() => { fire(pendingFire.id); setPendingFire(null) }} />
+      </SkModal>
+      <SkModal id="hard-reset" open={hardOpen} blocking role="alertdialog" scrim="hard" scrimCloses labelledBy="hard-reset-title" onEscape={() => setHardOpen(false)}>
+        <h2 id="hard-reset-title" className="sk-title">Back to the title?</h2>
+        <div className="sk-bezel-body">
+          <p>The studio name and this run are discarded. The game starts again at the title screen.</p>
+          <p className="sk-danger-note">This can't be undone.</p>
+        </div>
+        <div className="sk-bezel-actions">
+          <Button type="button" className="u-btn secondary" data-initial-focus onClick={() => setHardOpen(false)}>Cancel</Button>
+          <Button type="button" className="u-btn danger" onClick={() => { setHardOpen(false); hardReset() }}>Hard reset</Button>
+        </div>
+      </SkModal>
     </section>
   )
 }
 
-function FireConfirm({ staff, onCancel, onFire }) {
+function RestartCopy() {
+  const { currency } = useCurrency()
   return (
-    <SkModal id="fire-confirm" open={!!staff} blocking role="alertdialog" scrim="hard" scrimCloses labelledBy="fire-title" onEscape={onCancel}>
-      {staff && (
-        <>
-          <h2 id="fire-title" className="sk-title">Fire {staff.name}?</h2>
-          <div className="sk-bezel-body">
-            <p>{staff.name} leaves now. Frames they have not finished come back to you. Pay for time already worked still comes due. Tokens, languages, and process steps stay.</p>
-            <p className="sk-danger-note">This can't be undone.</p>
-          </div>
-          <div className="sk-bezel-actions">
-            <Button type="button" className="sk-cbtn sk-cbtn--secondary" data-initial-focus onClick={onCancel}>Cancel</Button>
-            <Button type="button" className="sk-cbtn sk-cbtn--danger" onClick={onFire}>Fire {staff.name}</Button>
-          </div>
-        </>
-      )}
-    </SkModal>
+    <div className="sk-bezel-body">
+      <p>This run is discarded. {state.studioName} keeps its name and starts again at {formatMoney(24, { currency })}. The clocks stay held until you press Start.</p>
+    </div>
   )
 }
 
 const LANG_NAME = { fintech: "Swiss Grid", wellness: "Warm Soft", editorial: "Mono Stark" }
 
-function StageProgress() {
+function stageSteps() {
   const intern = state.staff.find((staff) => staff.role === "intern")
   const permanentOn = state.staff.some((staff) => staff.role === "permanent")
   const clean = permanentOn ? 3 : Math.min(3, intern ? intern.clean : 0)
   const languageId = ["fintech", "wellness", "editorial"].find((id) => state.codified[id])
-  const steps = [
+  return [
     {
       id: "permanent",
-      label: "Permanent " + clean + "/3",
+      short: "Permanent " + clean + "/3",
       done: permanentOn,
       fill: clean / 3,
       text: "Three clean screens unlock Promote. A permanent, together with a language, opens Stage 3."
     },
     {
       id: "language",
-      label: languageId ? LANG_NAME[languageId] : "Language 0/1",
+      short: languageId ? LANG_NAME[languageId] : "Language 0/1",
       done: !!languageId,
       fill: languageId ? 1 : 0,
       text: "A big client in an industry unlocks that language. Buying it covers colour, radius, and contrast. With a permanent, Stage 3 opens."
     },
     {
       id: "research",
-      label: "User research",
+      short: "Research",
       done: !!state.process.research,
       fill: state.process.research ? 1 : 0,
       text: "Unlocks once Stage 3 is on. Later clients arrive with Copy / Clarity solved."
     },
     {
       id: "wire",
-      label: "Wireframing",
+      short: "Wire",
       done: !!state.process.wire,
       fill: state.process.wire ? 1 : 0,
       text: "Unlocks once Stage 3 is on. Later clients arrive with Hierarchy set."
     },
     {
       id: "test",
-      label: "Usability testing",
+      short: "Test",
       done: !!state.process.test,
       fill: state.process.test ? 1 : 0,
       text: "Unlocks once Stage 3 is on. Later clients arrive with Flow / States fixed."
     }
   ]
+}
+
+function cleanProgressDetail(step) {
+  const match = /Permanent (\d+)\/3/.exec(step.short || "")
+  if (!match) return step.short
+  return match[1] + " / 3 clean ships"
+}
+
+function StageProgress() {
+  const steps = stageSteps()
   const pct = Math.round(steps.reduce((sum, step) => sum + step.fill, 0) / steps.length * 100)
   const next = steps.find((step) => !step.done)
   const nextTitle = !next
     ? "Stage 3 is open"
     : next.id === "permanent"
-      ? "Promote a Permanent: " + clean + "/3"
+      ? "Next: promote after 3 clean ships"
       : next.id === "language"
-        ? "Buy a language: 0/1"
-        : "Next: " + next.label
-  const nextClick = !next
-    ? "New clients include UX."
-    : next.id === "permanent"
-      ? "Click Promote on the intern. It stays locked until 3 clean screens."
-      : next.id === "language"
-        ? "Ship a big client, then click that language in the tree."
-        : "Click " + next.label + " in the tree."
+        ? "Next: buy a language"
+        : "Next: unlock " + next.short
+  const marks = [
+    {
+      id: "permanent",
+      label: "Promote intern",
+      detail: steps[0].done ? "Permanent hired" : cleanProgressDetail(steps[0]),
+      fill: steps[0].fill,
+      done: steps[0].done,
+      tip: steps[0].text
+    },
+    {
+      id: "language",
+      label: "Buy a language",
+      detail: steps[1].done ? steps[1].short : "After a big client",
+      fill: steps[1].fill,
+      done: steps[1].done,
+      tip: steps[1].text
+    },
+    { id: "research", label: "Research", detail: steps[2].done ? "Unlocked" : "Opens with Stage 3", fill: steps[2].fill, done: steps[2].done, tip: steps[2].text },
+    { id: "wire", label: "Wire", detail: steps[3].done ? "Unlocked" : "Opens with Stage 3", fill: steps[3].fill, done: steps[3].done, tip: steps[3].text },
+    { id: "test", label: "Test", detail: steps[4].done ? "Unlocked" : "Opens with Stage 3", fill: steps[4].fill, done: steps[4].done, tip: steps[4].text }
+  ]
   return (
     <section className="block stage-progress sk-panel">
       <header className="block-head sk-panel-head">
         <h2>Stage 3</h2>
+        <span className="stage-pct">{pct}%</span>
       </header>
-      <p className="next-action"><b>{nextTitle}</b> {nextClick}</p>
-      <div className="progress-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={nextTitle}>
-        <span style={{ width: pct + "%" }} />
-      </div>
-      <ol className="progress-steps">
-        {steps.map((step) => (
-          <li key={step.id} className={step.done ? "done" : ""} data-tip={step.text}>
-            <b>{step.label}</b>
-            <span>{step.text}</span>
-          </li>
-        ))}
+      <p className="stage-next">{nextTitle}</p>
+      <ol className="stage-ladder" aria-label={nextTitle}>
+        {marks.map((mark) => {
+          const isNext = next && next.id === mark.id
+          const amount = Math.round(mark.fill * 100)
+          return (
+            <li
+              key={mark.id}
+              className={"stage-rung" + (mark.done ? " done" : "") + (isNext ? " next" : "")}
+              data-tip={mark.tip}
+            >
+              <span className="stage-rung-mark" aria-hidden="true">{mark.done ? "✓" : isNext ? "→" : "·"}</span>
+              <div className="stage-rung-copy">
+                <strong>{mark.label}</strong>
+                <span>{mark.detail}</span>
+                <span className="stage-rung-bar" aria-hidden="true"><i style={{ width: amount + "%" }} /></span>
+              </div>
+            </li>
+          )
+        })}
       </ol>
     </section>
   )
 }
 
-function HowToWin() {
+function Wiki({ open, onClose }) {
   const { currency } = useCurrency()
   const money = (value) => formatMoney(value, { currency })
+  const steps = stageSteps()
   return (
-    <section className="block how-win sk-panel">
-      <header className="block-head sk-panel-head">
-        <h2>How to win</h2>
-      </header>
-      <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
-      <ul>
-        <li data-tip={"After you hire, pick one. Chase: big clients arrive twice as often, and each month costs " + money(8) + ". Steady: big clients stop, a small ship pays " + money(4) + " more, and four small ships win the month."}>
-          <b>The choice.</b> After you hire, pick big clients or a steady book. Until you pick, a month cannot be won.
-        </li>
-        <li data-tip="After 3 ships, some arrivals name every element and pay the higher fee. The winning month needs one of them shipped, unless you kept a steady book.">
-          <b>Big client.</b> After 3 ships, some arrivals name every element and pay the higher fee. Ship at least one in the winning month.
-        </li>
-        <li data-tip="In the winning month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.">
-          <b>No hand touch.</b> In that month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.
-        </li>
-        <li data-tip="Late means the client's round clock hit 0. The project stays. Ship still pays. It is not the week or the month.">
-          <b>Late.</b> The client's round clock hit 0. The project stays, and Ship still pays. The on-time reward is closed. Late is not the week or the month.
-        </li>
-      </ul>
-    </section>
+    <SkModal id="wiki" open={open} scrim="soft" scrimCloses labelledBy="wiki-title" onEscape={onClose}>
+      <h2 id="wiki-title" className="sk-title">Wiki</h2>
+      <div className="sk-bezel-body wiki-body">
+        <section>
+          <h3>How to win</h3>
+          <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
+          <ul>
+            <li>
+              <b>The choice.</b> After you hire, pick big clients or a steady book. Until you pick, a month cannot be won. Chase: big clients arrive twice as often, and each month costs {money(8)}. Steady: big clients stop, a small ship pays {money(4)} more, and four small ships win the month.
+            </li>
+            <li>
+              <b>Big client.</b> After 3 ships, some arrivals name every element and pay the higher fee. Ship at least one in the winning month, unless you kept a steady book.
+            </li>
+            <li>
+              <b>No hand touch.</b> In that month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.
+            </li>
+            <li>
+              <b>Late.</b> The client's round clock hit 0. The project stays, and Ship still pays. The on-time reward is closed. Late is not the week or the month.
+            </li>
+          </ul>
+        </section>
+        <section>
+          <h3>Stage 3</h3>
+          <ul>
+            {steps.map((step) => (
+              <li key={step.id}>
+                <b>{step.short}{step.done ? " · done" : ""}.</b> {step.text}
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
+      <div className="sk-bezel-actions">
+        <Button type="button" className="u-btn" data-initial-focus onClick={onClose}>Close</Button>
+      </div>
+    </SkModal>
   )
 }
 
-function paceText(project) {
-  return stepSeconds(project).toFixed(1) + "s / step"
-}
-function missText(intern, project) {
-  const miss = effectiveMiss(intern, project)
-  if (miss <= 0) return "Clean"
-  return Math.round(miss * 100) + "% miss"
-}
-function System() {
-  const rows = systemOwned()
-  if (!rows.length) return null
-  return (
-    <section className="block studio sk-panel">
-      <header className="block-head sk-panel-head">
-        <h2>System</h2>
-        <span>{paceText(null)}</span>
-      </header>
-      {rows.map((row) => (
-          <div key={row.id} className="node done sk-slot" data-tip={row.effect}>
-          <span>{row.name}</span>
-          <span className="detail">{row.effect}</span>
-        </div>
-      ))}
-    </section>
-  )
-}
 const TOKEN_ROWS = [
-  ["colour", "Base colour"],
-  ["radius", "Base radius"],
-  ["contrast", "Base contrast"]
+  ["colour", "Base colour", "Aa"],
+  ["radius", "Base radius", "◯"],
+  ["contrast", "Base contrast", "▣"]
 ]
 const PROCESS_ROWS = [
-  ["research", "User research"],
-  ["wire", "Wireframing"],
-  ["test", "Usability testing"]
+  ["research", "User research", "R"],
+  ["wire", "Wireframing", "W"],
+  ["test", "Usability testing", "T"]
 ]
 
-function Tree() {
-  const { currency } = useCurrency()
-  const money = (value) => formatMoney(value, { currency })
+function upgradeRows() {
   const tokensReady = state.everHired && state.accepted >= 3
   const rows = []
-  if (!state.everHired && state.handShips < 1) {
-    rows.push({ id: "intern", name: "Hire", detail: state.handShips + "/3 screens", done: false, locked: true, tip: "Ship 3 screens yourself. Hire stays locked until then." })
-  }
   if (state.handShips >= 1 && !state.tools.components) {
-    rows.push(node({ id: "components", name: "Components", cost: 12, done: false, locked: null, buy: () => buyTool("components") }))
+    rows.push(node({ id: "components", name: "Components", cost: 12, glyph: "⧉", buy: () => buyTool("components") }))
   } else if (state.handShips >= 1 && !state.tools.radius) {
-    rows.push(node({ id: "radius-tool", name: "Radius variable", cost: 12, done: false, locked: null, buy: () => buyTool("radius") }))
+    rows.push(node({ id: "radius-tool", name: "Radius variable", cost: 12, glyph: "◠", buy: () => buyTool("radius") }))
   } else if (state.tools.radius && !state.tools.styles) {
-    rows.push(node({ id: "styles", name: "Colour styles", cost: 12, done: false, locked: null, buy: () => buyTool("styles") }))
+    rows.push(node({ id: "styles", name: "Colour styles", cost: 12, glyph: "●", buy: () => buyTool("styles") }))
   }
   if (tokensReady) {
-    TOKEN_ROWS.forEach(([key, name]) => {
+    TOKEN_ROWS.forEach(([key, name, glyph]) => {
       if (state.tokens[key]) return
-      rows.push(node({ id: key, name, cost: 12, done: false, locked: null, buy: () => buyToken(key) }))
+      rows.push(node({ id: key, name, cost: 12, glyph, buy: () => buyToken(key) }))
     })
   }
   ;["fintech", "wellness", "editorial"].forEach((id) => {
     if (!state.bigDone[id] || state.codified[id]) return
     const system = id === "fintech" ? "Swiss Grid" : id === "wellness" ? "Warm Soft" : "Mono Stark"
-    rows.push(node({ id, name: system, cost: 15, done: false, locked: null, buy: () => buyLanguage(id) }))
+    const glyph = id === "fintech" ? "▦" : id === "wellness" ? "◎" : "▤"
+    rows.push(node({ id, name: system, cost: 15, glyph, buy: () => buyLanguage(id) }))
   })
   if (stage() >= 3) {
-    PROCESS_ROWS.forEach(([key, name]) => {
+    PROCESS_ROWS.forEach(([key, name, glyph]) => {
       if (state.process[key]) return
-      rows.push(node({ id: key, name, cost: 24, done: false, locked: null, buy: () => buyProcess(key) }))
+      rows.push(node({ id: key, name, cost: 24, glyph, buy: () => buyProcess(key) }))
     })
   }
-  if (!rows.length && state.accepted < 1 && !state.everHired) return null
+  return rows
+}
+
+function StudioKit() {
+  const { currency } = useCurrency()
+  const money = (value) => formatMoney(value, { currency })
+  const [open, setOpen] = useState(false)
+  const shop = upgradeRows()
+  const owned = systemOwned()
+  const next = shop[0] || null
+  const badge = shop.length
+  if (!shop.length && !owned.length) return null
   return (
-    <section className="block studio sk-panel">
+    <section className="block studio-kit sk-panel">
       <header className="block-head sk-panel-head">
-        <h2>Tree</h2>
+        <h2>Studio kit</h2>
+        <span className="kit-pace">{stepSeconds(null).toFixed(1)}s</span>
       </header>
-      {!rows.length && <p className="hint">Nothing to buy until that line moves.</p>}
-      {rows.map((row) => row.locked ? (
-        <div key={row.id} className="node locked sk-slot sk-slot--locked" data-tip={row.tip}>
-          <span>{row.name}</span>
-          {row.detail && <span className="detail">{row.detail}</span>}
-          <span className="sk-lock-chip">{row.tip || "Locked"}</span>
+      <div className="kit-rail" role="toolbar" aria-label="Studio kit">
+        <button
+          type="button"
+          className={"kit-tile" + (open ? " on" : "") + (badge ? " has-buy" : "")}
+          aria-pressed={open}
+          aria-expanded={open}
+          data-tip={badge ? (badge + " ready to buy") : "Owned systems"}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span className="kit-glyph" aria-hidden="true">{badge ? (next && next.glyph) || "+" : "✓"}</span>
+          <span className="kit-label">{badge ? "Buy" : "Kit"}</span>
+          {badge > 0 && <span className="kit-badge">{badge}</span>}
+        </button>
+        {owned.slice(0, 4).map((row) => (
+          <span key={row.id} className="kit-chip" data-tip={row.effect} title={row.name}>
+            <span className="kit-chip-mark" aria-hidden="true">·</span>
+            <span>{row.name}</span>
+          </span>
+        ))}
+        {owned.length > 4 && <span className="kit-chip more">+{owned.length - 4}</span>}
+      </div>
+      {open && (
+        <div className="kit-drawer">
+          {next && (
+            <div className="kit-next">
+              <p className="kit-next-k">Next buy</p>
+              <button
+                type="button"
+                className="kit-buy"
+                disabled={state.money < next.cost}
+                data-tip={next.tip}
+                onClick={() => next.buy()}
+              >
+                <span className="kit-buy-glyph" aria-hidden="true">{next.glyph}</span>
+                <span className="kit-buy-copy">
+                  <strong>{next.name}</strong>
+                  <span>{TREE_TIPS[next.id] || "Speeds the studio"}</span>
+                </span>
+                <span className="kit-buy-cost">{money(next.cost)}</span>
+              </button>
+              {state.money < next.cost && <p className="kit-need">Need {money(next.cost)}</p>}
+            </div>
+          )}
+          {shop.length > 1 && (
+            <ul className="kit-list">
+              {shop.slice(1).map((row) => (
+                <li key={row.id}>
+                  <button
+                    type="button"
+                    className="kit-list-row"
+                    disabled={state.money < row.cost}
+                    data-tip={row.tip}
+                    onClick={() => row.buy()}
+                  >
+                    <span className="kit-buy-glyph" aria-hidden="true">{row.glyph}</span>
+                    <span>{row.name}</span>
+                    <span className="mono">{money(row.cost)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {owned.length > 0 && (
+            <div className="kit-owned">
+              <p className="kit-next-k">Owned</p>
+              <ul>
+                {owned.map((row) => (
+                  <li key={row.id}>
+                    <strong>{row.name}</strong>
+                    <span>{row.effect}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {!shop.length && !owned.length && <p className="hint">Nothing to buy yet.</p>}
         </div>
-      ) : (
-        <span key={row.id} className="tip-wrap" data-tip={row.tip}>
-          <button type="button" className="node sk-slot" disabled={state.money < row.cost} onClick={row.buy}>
-            {row.name} · {money(row.cost)}
-          </button>
-          {state.money < row.cost && <span className="sk-cbtn-reason">Need {money(row.cost)}</span>}
-        </span>
-      ))}
+      )}
     </section>
   )
 }
@@ -529,6 +467,7 @@ function node(spec) {
     cost: spec.cost,
     done: spec.done,
     locked: spec.locked,
+    glyph: spec.glyph || "+",
     buy: spec.buy,
     tip: TREE_TIPS[spec.id] || ""
   }

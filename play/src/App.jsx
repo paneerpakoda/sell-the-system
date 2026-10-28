@@ -1,7 +1,9 @@
 import { MotionConfig } from "motion/react"
 import { useEffect } from "react"
 import { FloatingTooltip } from "@/components/unlumen-ui/floating-tooltip"
+import { Button } from "@/components/unlumen-ui/primitives/button"
 import { Decisions } from "./components/Decisions.jsx"
+import { Desk, StageShip } from "./components/Desk.jsx"
 import { Dock } from "./components/Dock.jsx"
 import { Gate } from "./components/Gate.jsx"
 import { ClockCard, Hud, WeekPause } from "./components/Hud.jsx"
@@ -10,8 +12,10 @@ import { Notice, Tips } from "./components/Notice.jsx"
 import { Screen } from "./components/Screen.jsx"
 import { dismissNotice, ensureClient, state } from "./engine.js"
 import { useGame } from "./useGame.js"
+import { WorkspaceProvider, useWorkspace } from "./workspace.jsx"
 
-export function App() {
+function Shell() {
+  const { atPc, closePc } = useWorkspace()
   useGame()
   useEffect(() => {
     const block = (event) => {
@@ -21,6 +25,10 @@ export function App() {
     const onKey = (event) => {
       if (event.key !== "Escape" || event.defaultPrevented) return
       if (event.target.closest && event.target.closest("input, textarea")) return
+      if (atPc) {
+        closePc()
+        return
+      }
       dismissNotice()
       window.dispatchEvent(new Event("close-popovers"))
       window.dispatchEvent(new Event("close-cards"))
@@ -31,7 +39,8 @@ export function App() {
       document.removeEventListener("selectstart", block)
       window.removeEventListener("keydown", onKey)
     }
-  }, [])
+  }, [atPc, closePc])
+
   if (state.tabNote) {
     return (
       <div className="gate">
@@ -41,21 +50,27 @@ export function App() {
       </div>
     )
   }
+
   return (
-    <MotionConfig reducedMotion="user">
-    <FloatingTooltip.Provider variant="outline">
-    <div className="app">
+    <div className={"app" + (atPc ? " at-pc" : " at-desk")}>
+      <Hud />
       <Dock />
-      <main className="stage sk-backdrop">
+      <main className="stage">
         <h1 className="sr-only">Sell the system</h1>
-        {state.studioName && <div className="studio-name">{state.studioName}</div>}
-        <Hud />
-        <Screen />
-        <ClockCard />
+        {atPc ? (
+          <>
+            <button type="button" className="leave-pc" onClick={() => closePc()}>Close laptop</button>
+            <Screen />
+            <StageShip />
+          </>
+        ) : (
+          <Desk />
+        )}
         <Decisions />
-        <WeekPause />
       </main>
       <Inspector />
+      <ClockCard />
+      <WeekPause />
       <Notice />
       <Tips />
       <Gate />
@@ -63,12 +78,22 @@ export function App() {
         <div className="gate">
           <div className="gate-card" role="status">
             <h1>Start your first client</h1>
-            <button type="button" onClick={() => ensureClient()}>Start your first client</button>
+            <Button type="button" className="u-btn" onClick={() => ensureClient()}>Start your first client</Button>
           </div>
         </div>
       )}
     </div>
-    </FloatingTooltip.Provider>
+  )
+}
+
+export function App() {
+  return (
+    <MotionConfig reducedMotion="user">
+      <FloatingTooltip.Provider variant="outline">
+        <WorkspaceProvider>
+          <Shell />
+        </WorkspaceProvider>
+      </FloatingTooltip.Provider>
     </MotionConfig>
   )
 }

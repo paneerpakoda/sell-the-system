@@ -5,6 +5,8 @@ export const CURRENCIES = {
   USD: { locale: "en-US", code: "USD", symbol: "$" }
 }
 export const DEFAULT_CURRENCY = "INR"
+/** Engine money is stored in dollars. INR display multiplies by this rate. */
+export const INR_PER_USD = 80
 export const COMPACT_FROM = { INR: 100000, USD: 100000 }
 export const CURRENCY_KEY = "sts.currency"
 
@@ -43,10 +45,17 @@ function formatter(currency, fraction, compact, sign) {
   return cached
 }
 
+/** Convert engine dollars into the amount shown for a currency. */
+export function toDisplay(value, currency = DEFAULT_CURRENCY) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount)) return 0
+  return currency === "INR" ? amount * INR_PER_USD : amount
+}
+
 // moneyText already shows cents (2.50). Zero fraction digits would turn that into 3.
 export function formatMoney(value, { currency = DEFAULT_CURRENCY, compact = false, sign = false } = {}) {
-  const amount = Number(value)
-  if (!Number.isFinite(amount)) return ""
+  const amount = toDisplay(value, currency)
+  if (!Number.isFinite(Number(value))) return ""
   const rounded = Math.round(amount * 100) / 100
   const useCompact = !!(compact && Math.abs(rounded) >= (COMPACT_FROM[currency] || COMPACT_FROM.INR))
   const cents = Math.round(Math.abs(rounded) * 100) % 100
@@ -56,8 +65,8 @@ export function formatMoney(value, { currency = DEFAULT_CURRENCY, compact = fals
 
 export function moneyLabel(value, currency = DEFAULT_CURRENCY) {
   const spec = specFor(currency)
-  const amount = Number(value)
-  if (!Number.isFinite(amount)) return ""
+  const amount = toDisplay(value, currency)
+  if (!Number.isFinite(Number(value))) return ""
   const rounded = Math.round(amount * 100) / 100
   const digits = Number.isInteger(rounded) ? 0 : 2
   const num = new Intl.NumberFormat(spec.locale, {
@@ -97,7 +106,7 @@ export function useCurrency() {
 export function Money({ value, compact = false, sign = false, className = "" }) {
   const { currency } = useCurrency()
   const text = formatMoney(value, { currency, compact, sign })
-  const announced = compact && Math.abs(Number(value)) >= (COMPACT_FROM[currency] || COMPACT_FROM.INR)
+  const announced = compact && Math.abs(toDisplay(value, currency)) >= (COMPACT_FROM[currency] || COMPACT_FROM.INR)
   return createElement(
     "span",
     {
@@ -112,17 +121,16 @@ export function CurrencySwitch() {
   const { currency, setCurrency } = useCurrency()
   return createElement(
     "div",
-    { className: "sk-currency", role: "group", "aria-label": "Currency" },
-    createElement("span", { className: "sk-currency-label" }, "Currency"),
+    { className: "currency-switch", role: "group", "aria-label": "Currency" },
     createElement(
       "button",
       { type: "button", "aria-pressed": currency === "INR", onClick: () => setCurrency("INR") },
-      CURRENCIES.INR.symbol + " INR"
+      "₹"
     ),
     createElement(
       "button",
       { type: "button", "aria-pressed": currency === "USD", onClick: () => setCurrency("USD") },
-      CURRENCIES.USD.symbol + " USD"
+      "$"
     )
   )
 }

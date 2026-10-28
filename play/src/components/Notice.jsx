@@ -13,7 +13,7 @@ export function Notice() {
           <h2 id="notice-title" className="sk-title">{note.title}</h2>
           <div className="sk-bezel-body"><p>{note.body}</p></div>
           <div className="sk-bezel-actions">
-            <Button type="button" className="sk-cbtn sk-cbtn--primary" data-initial-focus onClick={() => dismissNotice()}>Got it</Button>
+            <Button type="button" className="u-btn" data-initial-focus onClick={() => dismissNotice()}>Got it</Button>
           </div>
         </>
       )}
