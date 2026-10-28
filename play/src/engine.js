@@ -1983,20 +1983,20 @@ function buyLanguage(industry, force) {
   teachProcess()
   commit()
 }
-export function confirmStage3Warn() {
+function confirmStage3Warn() {
   const warn = state.stage3Warn
   if (!warn) return
   if (warn.kind === "promote") promote(warn.id, true)
   else if (warn.kind === "language") buyLanguage(warn.industry, true)
 }
-export function deferStage3Warn() {
+function deferStage3Warn() {
   state.stage3Warn = null
   commit()
 }
-export function stage3NeedsProcessHint() {
+function stage3NeedsProcessHint() {
   return stage3Active() && !hasProcessSteps()
 }
-export function processStepFacts() {
+function processStepFacts() {
   return {
     count: processStepKeys().length,
     owned: processOwnedCount(),

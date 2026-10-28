@@ -472,6 +472,7 @@ function node(spec) {
     locked: spec.locked,
     glyph: spec.glyph || "+",
     buy: spec.buy,
+    processBuy: !!spec.processBuy,
     tip: TREE_TIPS[spec.id] || ""
   }
 }

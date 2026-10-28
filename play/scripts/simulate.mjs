@@ -24,7 +24,7 @@ function readPrices(text) {
   const info = text.match(/const PROCESS_INFO = \{([\s\S]*?)\n\}/)
   const buy = text.match(/function buyProcess\(key\) \{([\s\S]*?)\n\}/)
   const token = text.match(/function buyToken\(key\) \{([\s\S]*?)\n\}/)
-  const language = text.match(/function buyLanguage\(industry\) \{([\s\S]*?)\n\}/)
+  const language = text.match(/function buyLanguage\(industry(?:, force)?\) \{([\s\S]*?)\n\}/)
   const vague = text.match(/const VAGUE_COLOUR = \{([^}]+)\}/)
   const vagueRadius = text.match(/function applyVagueLook\(project\) \{[\s\S]*?radius = (\d+)/)
   const radiusStep = text.match(/radiusStep:\s*(\d+)/)
