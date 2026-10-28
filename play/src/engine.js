@@ -2566,13 +2566,13 @@ function claimTab() {
   writeLock()
   return true
 }
-export function takeThisTab() {
+function takeThisTab() {
   writeLock()
   state.tabNote = ""
   finishBoot()
   commit()
 }
-export function dismissTabLock() {
+function dismissTabLock() {
   // Close keeps this tab idle; the other tab keeps the lock.
   commit()
 }
