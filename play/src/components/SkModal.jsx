@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
+import { setModal } from "../modalGate.js"
 
 const entries = []
 const listeners = new Set()
@@ -14,6 +15,7 @@ function place(id, open, blocking) {
   if (!open) {
     if (rest.length === entries.length) return
     entries.splice(0, entries.length, ...rest)
+    setModal(id, false)
     emit()
     return
   }
@@ -22,6 +24,7 @@ function place(id, open, blocking) {
   const same = next.length === entries.length && next.every((row, index) => row.id === entries[index].id)
   if (same) return
   entries.splice(0, entries.length, ...next)
+  setModal(id, true)
   emit()
 }
 

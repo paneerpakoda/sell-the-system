@@ -1,4 +1,5 @@
 import { moneyToken } from "./ui/money.js"
+import { modalOpen } from "./modalGate.js"
 const ELEMENT_IDS = ["background", "title", "cardA", "cardB", "save"]
 const RADIUS_ELEMENTS = ["background", "cardA", "cardB", "save"]
 const NAMES = { background: "Screen", title: "Headline", cardA: "Choice A", cardB: "Choice B", save: "Button" }
@@ -290,6 +291,7 @@ function deadlineForNext() {
 }
 function worldPaused() {
   if (!state.studioName || state.break) return true
+  if (modalOpen()) return true
   return typeof document !== "undefined" && document.hidden
 }
 const weekLength = monthLength / 4

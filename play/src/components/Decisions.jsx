@@ -118,7 +118,7 @@ export function Decisions() {
             <h2 id="big-client-title" className="sk-title">{offer.client} is a big client</h2>
             <div className="sk-bezel-body">
               <p>Take the brief. A full ship pays {money(offer.payout)}. A short ship pays {money(offer.short)}. Turn it down for {money(offer.decline)}.</p>
-              <p className="sk-clock-note">Clock is running</p>
+              <p className="sk-clock-note">Clocks are paused while this card is open</p>
             </div>
             <div className="sk-bezel-actions">
               <Button type="button" className="u-btn" data-initial-focus onClick={() => takeBig()}>Take it · {money(offer.payout)}</Button>
@@ -132,7 +132,7 @@ export function Decisions() {
             <div className="sk-bezel-body">
               <p><b>Chase big clients.</b> {chase}</p>
               <p><b>Keep a steady book.</b> {steady}</p>
-              <p className="sk-clock-note">Clock is running</p>
+              <p className="sk-clock-note">Clocks are paused while this card is open</p>
             </div>
             <div className="sk-bezel-actions">
               <Button type="button" className="u-btn" data-initial-focus onClick={() => chooseMidgame("chase")}>Chase big clients</Button>
