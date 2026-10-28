@@ -10,7 +10,7 @@
   --line-strong: rgba(255, 255, 255, 0.14);
   --text: #efe8dc;
   --muted: #b0a89c;
-  --faint: #7d766c;
+  --faint: #968f84;
   --select: #0d99ff;
   --select-soft: rgba(13, 153, 255, 0.16);
   --paper: #efe8dc;
@@ -19,7 +19,7 @@
   --paper-muted: #6a6258;
   --ok: #9fcd5a;
   --warn: #e0a45a;
-  --danger: #ff6b6b;
+  --danger: #ff8585;
   --font-ui: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
   --grain:
@@ -1821,6 +1821,18 @@ button:focus-visible,
   line-height: 1.4;
 }
 
+@media (max-width: 900px) {
+  .office-hire-btn {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal;
+  }
+  .inspector {
+    overflow: auto;
+  }
+}
+
 @media (max-width: 800px) {
   .app { grid-template-columns: 240px minmax(0, 1fr); grid-template-areas: "bar bar" "dock stage"; }
   .inspector {
@@ -1840,4 +1852,33 @@ button:focus-visible,
     bottom: 12px;
     display: inline-flex;
   }
+}
+
+@media (max-width: 480px) {
+  html, body, #root { overflow-x: hidden; }
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "bar" "stage" "dock";
+    overflow-x: hidden;
+  }
+  .dock {
+    max-height: 36vh;
+    overflow: auto;
+  }
+  .topbar {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .topbar-side, .topbar-center { justify-self: stretch; }
+  .topbar-left, .topbar-right { align-items: stretch; }
+  .money { font-size: 28px; }
+  .money-hero { justify-content: space-between; width: 100%; }
+  .meter-group { flex-wrap: wrap; }
+  .desk-brief {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  .desk-brief h2, .desk-line { white-space: normal; }
+  .office-hire-btn { width: 100%; }
 }

@@ -2977,7 +2977,7 @@ export function chooseMidgame(choice) {
   if (!gameFlags.midgameChoice || state.midgame) return
   if (choice === "steady") {
     state.midgame = "steady"
-    state.status = "Steady book. Big clients stop arriving. A small ship pays " + moneyToken(4) + " more. Four small ships can win the month."
+    state.status = "Steady book. No new big clients arrive. Small ships pay " + moneyToken(4) + " more. Stage 3 and the win need a big client, so Steady gives up the win for this run, unless one is already in your queue. You can sell the agency or restart to choose again."
   } else {
     state.midgame = "chase"
     chargePitch()

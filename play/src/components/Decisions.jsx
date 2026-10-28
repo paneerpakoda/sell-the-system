@@ -46,8 +46,8 @@ function focusProcessBuy() {
 export function Decisions() {
   const { currency } = useCurrency()
   const money = (value, options) => formatMoney(value, { currency, ...options })
-  const chase = "Big clients arrive twice as often. Each new month costs " + money(8) + ". The winning month is still one big client, with payroll paid and no hand touch."
-  const steady = "Big clients stop arriving. A small ship pays " + money(4) + " more. The winning month is four small ships, with payroll paid and no hand touch."
+  const chase = "Big clients arrive twice as often. This month costs " + money(8) + ", and each new month costs " + money(8) + ". The winning month still needs one big client, with payroll paid and no hand touch."
+  const steady = "No new big clients arrive. Small ships pay " + money(4) + " more. Stage 3 and the win need a big client, so Steady gives up the win for this run, unless one is already in your queue. You can sell the agency or restart to choose again."
   const ready = !!state.studioName && !state.tabNote
   const offer = bigClientOffer()
   const warnOpen = ready && !!state.stage3Warn

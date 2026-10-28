@@ -233,7 +233,7 @@ function StageProgress() {
   return (
     <section className="block stage-progress sk-panel">
       <header className="block-head sk-panel-head">
-        <h2>Stage 3</h2>
+        <h2>Stage {stage()}</h2>
         <span className="stage-pct">{pct}%</span>
       </header>
       <p className="stage-next">{nextTitle}</p>
@@ -275,7 +275,7 @@ function Wiki({ open, onClose }) {
           <p>Win a month that begins after Stage 3 is already on. Payroll for that month has to be paid.</p>
           <ul>
             <li>
-              <b>The choice.</b> After you hire, pick big clients or a steady book. Until you pick, a month cannot be won. Chase: big clients arrive twice as often, and each month costs {money(8)}. Steady: big clients stop, a small ship pays {money(4)} more, and four small ships win the month.
+              <b>The choice.</b> After you hire, pick big clients or a steady book. Until you pick, a month cannot be won. Chase: big clients arrive twice as often, and each month costs {money(8)}. Steady: no new big clients arrive, small ships pay {money(4)} more, and Steady gives up the win for this run unless a big client is already in your queue.
             </li>
             <li>
               <b>Big client.</b> After 3 ships, some arrivals name every element and pay the higher fee. Ship at least one in the winning month, unless you kept a steady book.
