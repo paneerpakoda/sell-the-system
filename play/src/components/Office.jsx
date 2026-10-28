@@ -58,7 +58,7 @@ export function OfficePeople() {
   const nextText = money(next)
   const hireNote = state.payroll && state.payroll.hireNote
     ? expandMoneyText(state.payroll.hireNote, currency)
-    : "Hire is " + nextText + " for the rest of this month."
+    : "Hire adds " + nextText + " to payroll due at week 4 end (pro-rated). Cash is not taken now."
   const warn = expandMoneyText(reason, currency) || ("This hire makes payroll " + money(due + next) + ". You have " + money(state.money) + ".")
   const hireTip = locked
     ? "Ship 3 screens yourself. Hire stays locked until then."
@@ -68,6 +68,11 @@ export function OfficePeople() {
         ? warn
         : hireNote
   const lateNote = state.payroll.lateNote ? expandMoneyText(state.payroll.lateNote, currency) : ""
+  const hireLabel = locked
+    ? "Hire locked · " + state.handShips + "/3"
+    : internOnStaff
+      ? "Intern is hired"
+      : "Hire intern · payroll due at week 4 end (pro-rated) " + nextText
 
   const you = { id: "you", name: "You", role: "founder", task: "At the laptop" }
   const seats = [you, ...state.staff]
@@ -77,8 +82,11 @@ export function OfficePeople() {
       <header className="office-people-head">
         <h3>Desk mates</h3>
         {state.staff.length > 0 && (
-          <span className={"office-pay" + (state.payroll.late || short ? " warn" : "")}>
-            {state.payroll.late ? "Late" : short ? "Short" : "Payroll " + dueText}
+          <span
+            className={"office-pay" + (state.payroll.late || short ? " warn" : "")}
+            title="Payroll due at week 4 end"
+          >
+            {state.payroll.late ? "Late" : short ? "Short" : "Payroll due at week 4 end " + dueText}
           </span>
         )}
       </header>
@@ -102,7 +110,7 @@ export function OfficePeople() {
               <span className="seat-avatar" aria-hidden="true">{person.name.slice(0, 1)}</span>
               <div className="seat-copy">
                 <strong>{person.name}</strong>
-                <span>{person.role === "permanent" ? "Permanent" : "Intern"} · {money(person.pay)}</span>
+                <span>{person.role === "permanent" ? "Permanent" : "Intern"} · Pay per month {money(person.pay)}</span>
                 <span className="seat-task">{staffTask(person)}</span>
                 {person.role === "intern" && (
                   <span className="seat-pace">{paceText(project)} · {missText(person, project)}</span>
@@ -145,17 +153,20 @@ export function OfficePeople() {
           </p>
         )}
         {!locked && lines.map((line) => (
-          <p key={line.name} className="office-hire-line">{line.name} · {money(line.amount)}</p>
+          <p key={line.name} className="office-hire-line">{line.name} · Payroll due at week 4 end {money(line.amount)}</p>
         ))}
+        {!locked && !internOnStaff && (
+          <p className="office-hire-line">Cash is not taken on Hire. This amount is added to payroll at week 4 end.</p>
+        )}
         {lateNote && <p className="office-hire-warn">{lateNote}</p>}
         {unpayable && !lateNote && <p className="office-hire-warn">{warn}</p>}
         <FloatingTooltip.Trigger content={hireTip}>
           <Button type="button" className="u-btn office-hire-btn" disabled={!affordable} onClick={() => hire()}>
-            {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire intern · " + nextText}
+            {hireLabel}
           </Button>
           {!affordable && (
             <span className="sk-cbtn-reason">
-              {locked ? "Ship 3 screens yourself" : internOnStaff ? "One intern is already hired" : "Need " + nextText}
+              {locked ? "Ship 3 screens yourself" : internOnStaff ? "One intern is already hired" : "Need " + nextText + " for payroll at week 4 end"}
             </span>
           )}
         </FloatingTooltip.Trigger>

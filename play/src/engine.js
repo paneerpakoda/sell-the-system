@@ -394,7 +394,7 @@ function refreshPayrollOffer() {
       : "",
     late,
     lateNote,
-    hireNote: "Hire is " + moneyToken(next) + " for the rest of this month, at " + moneyToken(internWage) + " a month. The price falls as the month runs, then jumps back to " + moneyToken(internWage) + " when the next month starts."
+    hireNote: "Hire adds " + moneyToken(next) + " to payroll due at week 4 end (pro-rated), at " + moneyToken(internWage) + " pay per month. Cash is not taken now. The amount falls as the month runs, then jumps back to " + moneyToken(internWage) + " when the next month starts."
   }
   state.nextHireCost = next
   state.nextHireUnpayable = unpayable

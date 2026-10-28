@@ -334,8 +334,8 @@ function PayrollMeter() {
   const due = payrollDue()
   if (!(due > 0)) return null
   return (
-    <div className="meter" data-tip={payrollTip(money, currency)}>
-      <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
+    <div className="meter" data-tip={payrollTip(money, currency)} title="Payroll due at week 4 end">
+      <div className="meter-k">{state.payroll.late ? "Late" : "Payroll due at week 4 end"}</div>
       <div className={"meter-v sk-num" + (state.money + 0.001 < due ? " urgent" : "")}>{money(due)}</div>
     </div>
   )
@@ -429,8 +429,11 @@ export function Hud() {
           <Weeks />
           <MonthClock />
           {due > 0 && (
-            <div className={"meter payroll-meter" + (state.money + 0.001 < due ? " urgent" : "")}>
-              <span className="meter-k">{state.payroll.late ? "Late" : "Due"}</span>
+            <div
+              className={"meter payroll-meter" + (state.money + 0.001 < due ? " urgent" : "")}
+              title="Payroll due at week 4 end"
+            >
+              <span className="meter-k">{state.payroll.late ? "Late" : "Payroll due at week 4 end"}</span>
               <span className="meter-v mono">{money(due)}</span>
             </div>
           )}
