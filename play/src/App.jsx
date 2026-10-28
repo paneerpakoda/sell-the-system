@@ -11,6 +11,7 @@ import { Inspector } from "./components/Inspector.jsx"
 import { Notice, Tips } from "./components/Notice.jsx"
 import { Screen } from "./components/Screen.jsx"
 import { dismissNotice, ensureClient, state } from "./engine.js"
+import { modalOpen } from "./modalGate.js"
 import { useGame } from "./useGame.js"
 import { WorkspaceProvider, useWorkspace } from "./workspace.jsx"
 
@@ -25,6 +26,7 @@ function Shell() {
     const onKey = (event) => {
       if (event.key !== "Escape" || event.defaultPrevented) return
       if (event.target.closest && event.target.closest("input, textarea")) return
+      if (modalOpen()) return
       if (atPc) {
         closePc()
         return

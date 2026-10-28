@@ -36,7 +36,7 @@ function industryName() {
 
 function focusProcessBuy() {
   const target =
-    document.querySelector('[data-process-buy]') ||
+    document.querySelector("[data-process-buy]") ||
     document.querySelector(".kit-buy") ||
     document.querySelector(".studio-kit .kit-tile")
   if (target && typeof target.focus === "function") target.focus()
@@ -52,15 +52,27 @@ export function Decisions() {
   const offer = bigClientOffer()
   const warnOpen = ready && !!state.stage3Warn
   const facts = processStepFacts()
-  const eventOpen = ready && !warnOpen && !!offer && !state.eventClosed
-  const midgameOpen = ready && !warnOpen && gameFlags.midgameChoice && !eventOpen && !state.midgame && !state.midgameClosed && state.everHired && state.accepted >= 3
-  const forkOpen = ready && !warnOpen && !midgameOpen && !eventOpen && !state.fork && !state.forkClosed && state.everHired && state.accepted >= 3
-  const undoOpen = ready && !warnOpen && !midgameOpen && !eventOpen && !!state.fork && !state.forkClosed
+
+  const eventPending = !!offer
+  const eventChip = eventPending && state.eventClosed
+  const midgamePending = gameFlags.midgameChoice && !state.midgame && state.everHired && state.accepted >= 3
+  const midgameChip = midgamePending && state.midgameClosed
+  const forkPending = !state.fork && state.everHired && state.accepted >= 3
+  const forkChip = forkPending && state.forkClosed
+  const undoPending = !!state.fork
+  const undoChip = undoPending && state.forkClosed
+
+  // One card at a time: a Later chip blocks the next decision until it is reopened or resolved.
+  const eventOpen = ready && !warnOpen && eventPending && !state.eventClosed
+  const midgameOpen = ready && !warnOpen && midgamePending && !eventPending && !state.midgameClosed
+  const forkOpen = ready && !warnOpen && forkPending && !eventPending && !midgameOpen && !midgameChip && !state.forkClosed
+  const undoOpen = ready && !warnOpen && undoPending && !eventPending && !midgameOpen && !midgameChip && !forkChip && !state.forkClosed
   const open = eventOpen || midgameOpen || forkOpen || undoOpen
+
   const later = () => {
     if (eventOpen) state.eventClosed = true
     else if (midgameOpen) state.midgameClosed = true
-    else state.forkClosed = true
+    else if (forkOpen || undoOpen) state.forkClosed = true
     publish()
   }
   const titleId = eventOpen ? "big-client-title" : midgameOpen ? "midgame-title" : "fork-title"
@@ -74,7 +86,10 @@ export function Decisions() {
         blocking
         scrim="soft"
         labelledBy="stage3-warn-title"
-        onEscape={() => { deferStage3Warn(); publish() }}
+        onEscape={() => {
+          deferStage3Warn()
+          publish()
+        }}
       >
         {warnOpen && (
           <>
@@ -123,6 +138,7 @@ export function Decisions() {
             <div className="sk-bezel-actions">
               <Button type="button" className="u-btn" data-initial-focus onClick={() => takeBig()}>Take it · {money(offer.payout)}</Button>
               <Button type="button" className="u-btn secondary" onClick={() => turnDownBig()}>Turn it down · {money(offer.decline)}</Button>
+              <Button type="button" className="u-btn secondary" onClick={later}>Later</Button>
             </div>
           </>
         )}
@@ -137,6 +153,7 @@ export function Decisions() {
             <div className="sk-bezel-actions">
               <Button type="button" className="u-btn" data-initial-focus onClick={() => chooseMidgame("chase")}>Chase big clients</Button>
               <Button type="button" className="u-btn secondary" onClick={() => chooseMidgame("steady")}>Keep a steady book</Button>
+              <Button type="button" className="u-btn secondary" onClick={later}>Later</Button>
             </div>
           </>
         )}
@@ -146,10 +163,12 @@ export function Decisions() {
             <div className="sk-bezel-body">
               <p><b>Specialist.</b> {SPECIALIST} This run would stay in {industryName()}.</p>
               <p><b>Generalist.</b> {GENERALIST}</p>
+              <p className="sk-clock-note">Clocks are paused while this card is open</p>
             </div>
             <div className="sk-bezel-actions">
               <Button type="button" className="u-btn" data-initial-focus onClick={() => chooseFork("specialist")}>Specialist</Button>
               <Button type="button" className="u-btn secondary" onClick={() => chooseFork("generalist")}>Generalist</Button>
+              <Button type="button" className="u-btn secondary" onClick={later}>Later</Button>
             </div>
           </>
         )}
@@ -158,35 +177,36 @@ export function Decisions() {
             <h2 id="fork-title" className="sk-title">{picked ? "Specialist" : "Generalist"}</h2>
             <div className="sk-bezel-body">
               <p>{picked ? "You chose specialist. " + SPECIALIST + " New clients are " + industryName() + "." : "You chose generalist. " + GENERALIST}</p>
+              <p className="sk-clock-note">Clocks are paused while this card is open</p>
             </div>
             <div className="sk-bezel-actions">
               <Button type="button" className="u-btn secondary" data-initial-focus onClick={() => undoForkChoice()}>Undo</Button>
-              <Button type="button" className="u-btn" onClick={() => { state.forkClosed = true; publish() }}>Close</Button>
+              <Button type="button" className="u-btn" onClick={later}>Close</Button>
             </div>
           </>
         )}
       </SkModal>
       <div className="reopen-row">
-      {state.event && state.eventClosed && (
-        <button type="button" className="decision-reopen" onClick={() => { state.eventClosed = false; publish() }}>
-          {state.event.client} is waiting
-        </button>
-      )}
-      {!state.midgame && state.midgameClosed && gameFlags.midgameChoice && state.everHired && state.accepted >= 3 && (
-        <button type="button" className="decision-reopen" onClick={() => { state.midgameClosed = false; publish() }}>
-          Big clients or a steady book
-        </button>
-      )}
-      {!state.fork && state.forkClosed && state.everHired && state.accepted >= 3 && (
-        <button type="button" className="decision-reopen" onClick={() => { state.forkClosed = false; publish() }}>
-          Specialist or generalist
-        </button>
-      )}
-      {state.fork && state.forkClosed && (
-        <button type="button" className="decision-reopen" onClick={() => undoForkChoice()}>
-          Undo {state.fork}
-        </button>
-      )}
+        {eventChip && (
+          <button type="button" className="decision-reopen" onClick={() => { state.eventClosed = false; publish() }}>
+            {state.event.client} is waiting
+          </button>
+        )}
+        {midgameChip && !eventPending && (
+          <button type="button" className="decision-reopen" onClick={() => { state.midgameClosed = false; publish() }}>
+            Big clients or a steady book
+          </button>
+        )}
+        {forkChip && !eventPending && !midgameChip && (
+          <button type="button" className="decision-reopen" onClick={() => { state.forkClosed = false; publish() }}>
+            Specialist or generalist
+          </button>
+        )}
+        {undoChip && !eventPending && !midgameChip && !forkChip && (
+          <button type="button" className="decision-reopen" onClick={() => { state.forkClosed = false; publish() }}>
+            Undo {state.fork}
+          </button>
+        )}
       </div>
     </>
   )
