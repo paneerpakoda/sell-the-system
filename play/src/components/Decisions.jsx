@@ -1,5 +1,18 @@
 import { Button } from "@/components/unlumen-ui/primitives/button"
-import { bigClientOffer, chooseFork, chooseMidgame, dismissNotice, gameFlags, LANG, state, takeBig, turnDownBig } from "../engine.js"
+import {
+  bigClientOffer,
+  chooseFork,
+  chooseMidgame,
+  confirmStage3Warn,
+  deferStage3Warn,
+  dismissNotice,
+  gameFlags,
+  LANG,
+  processStepFacts,
+  state,
+  takeBig,
+  turnDownBig
+} from "../engine.js"
 import { SkModal } from "./SkModal.jsx"
 import { undoForkChoice } from "./guidance.jsx"
 import { formatMoney, useCurrency } from "../ui/money.js"
@@ -21,6 +34,15 @@ function industryName() {
   return LANG[id].name
 }
 
+function focusProcessBuy() {
+  const target =
+    document.querySelector('[data-process-buy]') ||
+    document.querySelector(".kit-buy") ||
+    document.querySelector(".studio-kit .kit-tile")
+  if (target && typeof target.focus === "function") target.focus()
+  target?.scrollIntoView?.({ block: "nearest", behavior: "smooth" })
+}
+
 export function Decisions() {
   const { currency } = useCurrency()
   const money = (value, options) => formatMoney(value, { currency, ...options })
@@ -28,10 +50,12 @@ export function Decisions() {
   const steady = "Big clients stop arriving. A small ship pays " + money(4) + " more. The winning month is four small ships, with payroll paid and no hand touch."
   const ready = !!state.studioName && !state.tabNote
   const offer = bigClientOffer()
-  const eventOpen = ready && !!offer && !state.eventClosed
-  const midgameOpen = ready && gameFlags.midgameChoice && !eventOpen && !state.midgame && !state.midgameClosed && state.everHired && state.accepted >= 3
-  const forkOpen = ready && !midgameOpen && !eventOpen && !state.fork && !state.forkClosed && state.everHired && state.accepted >= 3
-  const undoOpen = ready && !midgameOpen && !eventOpen && !!state.fork && !state.forkClosed
+  const warnOpen = ready && !!state.stage3Warn
+  const facts = processStepFacts()
+  const eventOpen = ready && !warnOpen && !!offer && !state.eventClosed
+  const midgameOpen = ready && !warnOpen && gameFlags.midgameChoice && !eventOpen && !state.midgame && !state.midgameClosed && state.everHired && state.accepted >= 3
+  const forkOpen = ready && !warnOpen && !midgameOpen && !eventOpen && !state.fork && !state.forkClosed && state.everHired && state.accepted >= 3
+  const undoOpen = ready && !warnOpen && !midgameOpen && !eventOpen && !!state.fork && !state.forkClosed
   const open = eventOpen || midgameOpen || forkOpen || undoOpen
   const later = () => {
     if (eventOpen) state.eventClosed = true
@@ -44,6 +68,50 @@ export function Decisions() {
   const picked = state.fork === "specialist"
   return (
     <>
+      <SkModal
+        id="stage3-warn"
+        open={warnOpen}
+        blocking
+        scrim="soft"
+        labelledBy="stage3-warn-title"
+        onEscape={() => { deferStage3Warn(); publish() }}
+      >
+        {warnOpen && (
+          <>
+            <h2 id="stage3-warn-title" className="sk-title">Stage 3 needs process steps</h2>
+            <div className="sk-bezel-body">
+              <p>
+                Stage 3 briefs need UX. Your team can only cover it once you buy the process steps ({facts.count} steps, cost {money(facts.cost)} each). Without them you will do it by hand and payroll can go late.
+              </p>
+              <p className="sk-clock-note">Clocks are paused while this card is open</p>
+            </div>
+            <div className="sk-bezel-actions">
+              <Button
+                type="button"
+                className="u-btn"
+                data-initial-focus
+                onClick={() => {
+                  deferStage3Warn()
+                  publish()
+                  window.setTimeout(focusProcessBuy, 0)
+                }}
+              >
+                Buy process steps first
+              </Button>
+              <Button
+                type="button"
+                className="u-btn secondary"
+                onClick={() => {
+                  confirmStage3Warn()
+                  publish()
+                }}
+              >
+                Enter Stage 3 anyway
+              </Button>
+            </div>
+          </>
+        )}
+      </SkModal>
       <SkModal id="decision" open={open} scrim="soft" labelledBy={titleId} onEscape={later}>
         {eventOpen && (
           <>

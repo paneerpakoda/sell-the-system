@@ -208,6 +208,7 @@ function StageProgress() {
       : next.id === "language"
         ? "Next: buy a language"
         : "Next: unlock " + next.short
+  const needsProcess = stage() >= 3 && !state.process.research && !state.process.wire && !state.process.test
   const marks = [
     {
       id: "permanent",
@@ -236,6 +237,7 @@ function StageProgress() {
         <span className="stage-pct">{pct}%</span>
       </header>
       <p className="stage-next">{nextTitle}</p>
+      {needsProcess && <p className="stage-next">Hands-off needs process steps.</p>}
       <ol className="stage-ladder" aria-label={nextTitle}>
         {marks.map((mark) => {
           const isNext = next && next.id === mark.id
@@ -340,7 +342,7 @@ function upgradeRows() {
   if (stage() >= 3) {
     PROCESS_ROWS.forEach(([key, name, glyph]) => {
       if (state.process[key]) return
-      rows.push(node({ id: key, name, cost: 24, glyph, buy: () => buyProcess(key) }))
+      rows.push(node({ id: key, name, cost: 24, glyph, buy: () => buyProcess(key), processBuy: true }))
     })
   }
   return rows
@@ -392,6 +394,7 @@ function StudioKit() {
                 className="kit-buy"
                 disabled={state.money < next.cost}
                 data-tip={next.tip}
+                data-process-buy={next.processBuy ? "true" : undefined}
                 onClick={() => next.buy()}
               >
                 <span className="kit-buy-glyph" aria-hidden="true">{next.glyph}</span>

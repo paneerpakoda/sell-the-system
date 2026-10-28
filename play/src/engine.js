@@ -147,6 +147,7 @@ const state = {
   nextHireCost: 10,
   nextHireUnpayable: false,
   specialty: null,
+  stage3Warn: null,
   debt: 0,
   hireMiss: null
 }
@@ -247,6 +248,26 @@ function clampContrast(value) {
 }
 function stage3Active() {
   return state.staff.some((staff) => staff.role === "permanent") && INDUSTRIES.some((id) => state.codified[id])
+}
+function processStepKeys() {
+  return Object.keys(PROCESS_INFO)
+}
+function processOwnedCount() {
+  return processStepKeys().filter((key) => state.process[key]).length
+}
+function hasProcessSteps() {
+  return processOwnedCount() > 0
+}
+function processStepCost() {
+  return 24
+}
+function headlessRun() {
+  return typeof document === "undefined"
+}
+function shouldWarnStage3(willBeActive) {
+  if (!willBeActive || stage3Active() || hasProcessSteps()) return false
+  if (headlessRun()) return false
+  return true
 }
 function stage() {
   if (stage3Active()) return 3
@@ -1892,9 +1913,15 @@ function fire(id) {
   state.status = staff.name + " is fired. Future pay stops."
   commit()
 }
-function promote(id) {
+function promote(id, force) {
   const staff = state.staff.find((item) => item.id === id)
   if (!staff || staff.role !== "intern" || staff.clean < 3) return
+  const languageReady = INDUSTRIES.some((industry) => state.codified[industry])
+  if (!force && shouldWarnStage3(languageReady)) {
+    state.stage3Warn = { kind: "promote", id }
+    commit()
+    return
+  }
   const project = state.queue.find((item) => item.id === staff.projectId)
   if (project) {
     project.screens.forEach((screen) => {
@@ -1911,6 +1938,7 @@ function promote(id) {
   staff.startedAt = monthElapsed()
   staff.projectId = null
   staff.screenId = null
+  state.stage3Warn = null
   state.status = staff.name + " is permanent. " + moneyToken(permanentWage) + " a month. They start clients you have not started."
   teach("permanent", "Permanent", "They start the clients. You do not have to walk in first.")
   teachProcess()
@@ -1940,13 +1968,41 @@ function buyToken(key) {
   state.status = TOKEN_NAME[key] + " is on. The intern sets it in one step."
   commit()
 }
-function buyLanguage(industry) {
+function buyLanguage(industry, force) {
   if (!state.bigDone[industry] || state.codified[industry] || state.money < 15) return
+  const permanentReady = state.staff.some((staff) => staff.role === "permanent")
+  if (!force && shouldWarnStage3(permanentReady)) {
+    state.stage3Warn = { kind: "language", industry }
+    commit()
+    return
+  }
   state.money -= 15
   state.codified[industry] = true
+  state.stage3Warn = null
   state.status = LANG[industry].system + " is on. The intern implements it faster."
   teachProcess()
   commit()
+}
+export function confirmStage3Warn() {
+  const warn = state.stage3Warn
+  if (!warn) return
+  if (warn.kind === "promote") promote(warn.id, true)
+  else if (warn.kind === "language") buyLanguage(warn.industry, true)
+}
+export function deferStage3Warn() {
+  state.stage3Warn = null
+  commit()
+}
+export function stage3NeedsProcessHint() {
+  return stage3Active() && !hasProcessSteps()
+}
+export function processStepFacts() {
+  return {
+    count: processStepKeys().length,
+    owned: processOwnedCount(),
+    cost: processStepCost(),
+    keys: processStepKeys()
+  }
 }
 function applyProcessToProject(project) {
   if (!project || !project.hasUX) return
@@ -2604,6 +2660,7 @@ export function restartGame() {
   state.lastIndustry = null
   state.sold = 0
   state.specialty = null
+  state.stage3Warn = null
   state.debt = 0
   state.hireMiss = null
   spawn("start")
@@ -2800,7 +2857,10 @@ export function shownGrade(project, elementId, prop) {
   return blocking ? "Wrong" : "Not judged"
 }
 export function stageProgress() {
-  if (stage() >= 3) return "Stage 3 is open. New clients include UX."
+  if (stage() >= 3) {
+    const base = "Stage 3 is open. New clients include UX."
+    return stage3NeedsProcessHint() ? base + " Hands-off needs process steps." : base
+  }
   const permanent = state.staff.some((staff) => staff.role === "permanent")
   const language = INDUSTRIES.filter((id) => state.codified[id]).map((id) => LANG[id].system)
   const intern = state.staff.find((staff) => staff.role === "intern")
@@ -2945,6 +3005,7 @@ export function sellAgency() {
   state.eventSeen = false
   state.lastIndustry = keptLang
   state.specialty = null
+  state.stage3Warn = null
   state.sold = sold
   state.wins = wins
   spawn("fill")
@@ -3016,6 +3077,10 @@ export {
   buyToken,
   buyLanguage,
   buyProcess,
+  confirmStage3Warn,
+  deferStage3Warn,
+  stage3NeedsProcessHint,
+  processStepFacts,
   fade,
   inkHex,
   contrastMix,
