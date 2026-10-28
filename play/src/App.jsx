@@ -10,7 +10,7 @@ import { ClockCard, Hud, WeekPause } from "./components/Hud.jsx"
 import { Inspector } from "./components/Inspector.jsx"
 import { Notice, Tips } from "./components/Notice.jsx"
 import { Screen } from "./components/Screen.jsx"
-import { dismissNotice, ensureClient, state } from "./engine.js"
+import { dismissNotice, ensureClient, state, takeThisTab } from "./engine.js"
 import { modalOpen } from "./modalGate.js"
 import { useGame } from "./useGame.js"
 import { WorkspaceProvider, useWorkspace } from "./workspace.jsx"
@@ -46,8 +46,13 @@ function Shell() {
   if (state.tabNote) {
     return (
       <div className="gate">
-        <div className="gate-card" role="status">
-          <h1>This game is open in another tab</h1>
+        <div className="gate-card" role="dialog" aria-labelledby="tab-lock-title">
+          <h1 id="tab-lock-title">This game is open in another tab</h1>
+          <p>Use this tab to continue here. The other tab will show this card.</p>
+          <div className="sk-bezel-actions">
+            <Button type="button" className="u-btn" data-initial-focus onClick={() => takeThisTab()}>Use this tab</Button>
+            <Button type="button" className="u-btn secondary" onClick={() => { try { window.close() } catch { /* ignore */ } }}>Close</Button>
+          </div>
         </div>
       </div>
     )

@@ -2505,9 +2505,10 @@ let started = false
 const SAVE_KEY = "sell-the-system-v4"
 const LOCK_KEY = "sell-the-system-lock"
 const TAB_KEY = "sell-the-system-tab"
-const LOCK_MS = 2500
+const LOCK_MS = 5000
 let tabId = ""
 let lockTimer = null
+let tabWatch = null
 
 function ourTabId() {
   if (tabId) return tabId
@@ -2564,6 +2565,44 @@ function claimTab() {
   state.tabNote = ""
   writeLock()
   return true
+}
+export function takeThisTab() {
+  writeLock()
+  state.tabNote = ""
+  finishBoot()
+  commit()
+}
+export function dismissTabLock() {
+  // Close keeps this tab idle; the other tab keeps the lock.
+  commit()
+}
+function wantsFreshStart() {
+  if (typeof location === "undefined") return false
+  try {
+    const params = new URLSearchParams(location.search)
+    return params.has("fresh")
+  } catch (error) {
+    void error
+    return false
+  }
+}
+function watchOtherTabs() {
+  if (typeof window === "undefined" || tabWatch) return
+  tabWatch = (event) => {
+    if (event.key && event.key !== LOCK_KEY) return
+    const lock = readLock()
+    if (lock && lock.tabId !== ourTabId() && lockIsFresh(lock)) {
+      if (!state.tabNote) {
+        state.tabNote = "This game is open in another tab"
+        notify()
+      }
+      return
+    }
+    if (state.tabNote && (!lock || lock.tabId === ourTabId() || !lockIsFresh(lock))) {
+      // Stale lock elsewhere: keep the card until this tab takes it.
+    }
+  }
+  window.addEventListener("storage", tabWatch)
 }
 export function ensureClient() {
   if (state.tabNote || state.break || state.queue.length) return
@@ -2720,22 +2759,14 @@ function restore() {
     return false
   }
 }
-export function start() {
-  if (started) {
-    notify()
-    return
-  }
-  started = true
-  if (!claimTab()) {
-    refreshPayrollOffer()
-    refreshShipOffer()
-    lastStamp = structuralStamp()
-    notify()
-    return
-  }
+let bootReady = false
+let frameRunning = false
+function finishBoot() {
+  if (bootReady) return
+  bootReady = true
   const restored = restore()
   if (!restored) {
-    spawn("start")
+    if (!state.queue.length) spawn("start")
     state.arrivalLeft = interval()
     state.status = state.saveNote || ""
     state.clocksLive = false // week and month wait for the first Start
@@ -2743,7 +2774,6 @@ export function start() {
   refreshPayrollOffer()
   refreshShipOffer()
   lastStamp = structuralStamp()
-  notify()
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) saveNow()
@@ -2758,14 +2788,35 @@ export function start() {
   if (lockTimer) clearInterval(lockTimer)
   lockTimer = setInterval(writeLock, 1000)
   if (lockTimer && typeof lockTimer.unref === "function") lockTimer.unref()
-  let last = performance.now()
-  const frame = (now) => {
-    const dt = Math.min(0.25, (now - last) / 1000)
-    last = now
-    if (dt > 0) tick(dt)
+  if (!frameRunning && typeof requestAnimationFrame === "function") {
+    frameRunning = true
+    let last = performance.now()
+    const frame = (now) => {
+      const dt = Math.min(0.25, (now - last) / 1000)
+      last = now
+      if (dt > 0) tick(dt)
+      requestAnimationFrame(frame)
+    }
     requestAnimationFrame(frame)
   }
-  requestAnimationFrame(frame)
+}
+export function start() {
+  if (started) {
+    notify()
+    return
+  }
+  started = true
+  if (wantsFreshStart()) discardSave()
+  watchOtherTabs()
+  if (!claimTab()) {
+    refreshPayrollOffer()
+    refreshShipOffer()
+    lastStamp = structuralStamp()
+    notify()
+    return
+  }
+  finishBoot()
+  notify()
 }
 function commit() {
   const money = Number(state.money)
@@ -3083,6 +3134,8 @@ export {
   deferStage3Warn,
   stage3NeedsProcessHint,
   processStepFacts,
+  takeThisTab,
+  dismissTabLock,
   fade,
   inkHex,
   contrastMix,
