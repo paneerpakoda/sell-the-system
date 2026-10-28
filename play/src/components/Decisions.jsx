@@ -12,7 +12,12 @@ function publish() {
 }
 
 function industryName() {
-  const id = state.specialty && LANG[state.specialty] ? state.specialty : "fintech"
+  // Same pick as chooseFork: specialty if set, else lastIndustry, else fintech.
+  const id = state.specialty && LANG[state.specialty]
+    ? state.specialty
+    : state.lastIndustry && LANG[state.lastIndustry]
+      ? state.lastIndustry
+      : "fintech"
   return LANG[id].name
 }
 

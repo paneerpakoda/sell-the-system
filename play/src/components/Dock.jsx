@@ -279,7 +279,7 @@ function Wiki({ open, onClose }) {
               <b>Big client.</b> After 3 ships, some arrivals name every element and pay the higher fee. Ship at least one in the winning month, unless you kept a steady book.
             </li>
             <li>
-              <b>No hand touch.</b> In that month, do not press Start, open a frame, click a requirement, edit a value, or press Ship. The team ships it.
+              <b>No hand touch.</b> In that month, do not edit a value on a screen. Start, open, and Ship do not count. The team ships it.
             </li>
             <li>
               <b>Late.</b> The client's round clock hit 0. The project stays, and Ship still pays. The on-time reward is closed. Late is not the week or the month.
