@@ -1,3 +1,4 @@
+import { moneyToken } from "./ui/money.js"
 const ELEMENT_IDS = ["background", "title", "cardA", "cardB", "save"]
 const RADIUS_ELEMENTS = ["background", "cardA", "cardB", "save"]
 const NAMES = { background: "Screen", title: "Headline", cardA: "Choice A", cardB: "Choice B", save: "Button" }
@@ -327,10 +328,6 @@ function debit(amount) {
   state.money = roundMoney(pot - cost)
   return true
 }
-function moneyText(value) {
-  const rounded = roundMoney(value)
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2)
-}
 function monthElapsed() {
   if (state.clocksLive === false) return 0
   return Math.max(0, Math.min(monthLength, monthLength - state.monthLeft))
@@ -382,9 +379,9 @@ function refreshPayrollOffer() {
   const cap = lateCapAmount()
   const late = debt > 0 || gap > 0.001
   let lateNote = ""
-  if (debt > 0) lateNote = "Late means $" + moneyText(debt) + " of payroll is still owed. Ship the next screen. That fee pays it down. Your people stay."
-  else if (gap > 0.001 && gap <= cap) lateNote = "Late means payroll is short by $" + moneyText(gap) + ". A gap up to $" + moneyText(cap) + ", one week of intern pay, keeps everyone. Ship the next screen. That fee pays it down."
-  else if (gap > cap) lateNote = "Payroll is short by $" + moneyText(gap) + ". An intern leaves only when their pay covers that gap. The permanent stays. Ship the next screen. That fee pays it down."
+  if (debt > 0) lateNote = "Late means " + moneyToken(debt) + " of payroll is still owed. Ship the next screen. That fee pays it down. Your people stay."
+  else if (gap > 0.001 && gap <= cap) lateNote = "Late means payroll is short by " + moneyToken(gap) + ". A gap up to " + moneyToken(cap) + ", one week of intern pay, keeps everyone. Ship the next screen. That fee pays it down."
+  else if (gap > cap) lateNote = "Payroll is short by " + moneyToken(gap) + ". An intern leaves only when their pay covers that gap. The permanent stays. Ship the next screen. That fee pays it down."
   state.payroll = {
     due: preview.due,
     lines: preview.lines,
@@ -393,11 +390,11 @@ function refreshPayrollOffer() {
     nextHire: next,
     nextHireUnpayable: unpayable,
     reason: unpayable
-      ? "Hiring adds $" + moneyText(next) + " for the rest of this month. Payroll would be $" + moneyText(bill) + " and you have $" + moneyText(money) + "."
+      ? "Hiring adds " + moneyToken(next) + " for the rest of this month. Payroll would be " + moneyToken(bill) + " and you have " + moneyToken(money) + "."
       : "",
     late,
     lateNote,
-    hireNote: "Hire is $" + moneyText(next) + " for the rest of this month, at $" + moneyText(internWage) + " a month. The price falls as the month runs, then jumps back to $" + moneyText(internWage) + " when the next month starts."
+    hireNote: "Hire is " + moneyToken(next) + " for the rest of this month, at " + moneyToken(internWage) + " a month. The price falls as the month runs, then jumps back to " + moneyToken(internWage) + " when the next month starts."
   }
   state.nextHireCost = next
   state.nextHireUnpayable = unpayable
@@ -413,7 +410,7 @@ function rememberPay(staff, until) {
   if (amount > 0) payrollLedger.push({ name: staff.name, amount })
 }
 function formatPeople(lines) {
-  return (lines || []).filter((line) => line && line.amount > 0).map((line) => line.name + " ($" + moneyText(line.amount) + ")").join(", ")
+  return (lines || []).filter((line) => line && line.amount > 0).map((line) => line.name + " (" + moneyToken(line.amount) + ")").join(", ")
 }
 function payrollNote(result) {
   const owedPeople = formatPeople(result.paidLines)
@@ -422,14 +419,14 @@ function payrollNote(result) {
   const parts = []
   if (gone) parts.push(gone + " left unpaid.")
   if (owedSum > 0 && result.late <= 0.001 && result.paid + 0.001 >= owedSum) {
-    parts.push("Payroll paid $" + moneyText(result.paid) + ": " + owedPeople + ".")
+    parts.push("Payroll paid " + moneyToken(result.paid) + ": " + owedPeople + ".")
   } else if (owedSum > 0) {
-    parts.push("Owed $" + moneyText(owedSum) + ": " + owedPeople + ". Paid $" + moneyText(result.paid) + ".")
+    parts.push("Owed " + moneyToken(owedSum) + ": " + owedPeople + ". Paid " + moneyToken(result.paid) + ".")
   } else if (!gone) parts.push("No payroll due.")
   let note = parts.join(" ")
   if (result.late > 0) {
     const kept = formatPeople(result.kept)
-    note += " Late means $" + moneyText(result.late) + " is still owed. Ship the next screen. That fee pays it down."
+    note += " Late means " + moneyToken(result.late) + " is still owed. Ship the next screen. That fee pays it down."
     if (kept) note += " " + kept + (result.kept.length === 1 ? " stays." : " stay.")
     else note += " Your people stay."
   }
@@ -885,7 +882,7 @@ export function shipCheck(clientId) {
     reason = (screen ? screen.name : "Screen") + " · still needs work"
   }
   if (held && !reason) reason = "Still needs work"
-  const label = held ? "Ship held · " + reason : "Ship · $" + fee
+  const label = held ? "Ship held · " + reason : "Ship · " + moneyToken(fee)
   return { held, reason, fee, label, problems }
 }
 function shipButtonLabel(project) {
@@ -1681,7 +1678,7 @@ function completeShip(project, method, staff) {
     person.screenId = null
   })
   const who = method === "auto" && staff ? staff.name + " shipped " : "Shipped "
-  state.status = who + project.client + " · $" + pay + "."
+  state.status = who + project.client + " · " + moneyToken(pay) + "."
   if (firstFree) state.status += " Big-client cap is off."
   state.queue = state.queue.filter((item) => item.id !== project.id)
   if (state.openId === project.id) {
@@ -1860,7 +1857,7 @@ function hire() {
   }
   if (!canHire()) {
     const next = nextHireAmount(monthElapsed())
-    state.status = "Hire is $" + moneyText(next) + ". That is more than you can cover before payroll."
+    state.status = "Hire is " + moneyToken(next) + ". That is more than you can cover before payroll."
     commit()
     return
   }
@@ -1881,7 +1878,7 @@ function hire() {
   const tokensWereOpen = tokensUnlocked()
   state.everHired = true
   if (!tokensWereOpen && tokensUnlocked()) teach("tokens", "Base values", "You remember the base. The intern sets fills, corners, or contrast in one step. Base colour does not set the contrast text.")
-  state.status = name + " hired. $" + internWage + " a month. They design the other screens from yours."
+  state.status = name + " hired. " + moneyToken(internWage) + " a month. They design the other screens from yours."
   if (!state.break) state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
   commit()
 }
@@ -1914,7 +1911,7 @@ function promote(id) {
   staff.startedAt = monthElapsed()
   staff.projectId = null
   staff.screenId = null
-  state.status = staff.name + " is permanent. $" + permanentWage + " a month. They start clients you have not started."
+  state.status = staff.name + " is permanent. " + moneyToken(permanentWage) + " a month. They start clients you have not started."
   teach("permanent", "Permanent", "They start the clients. You do not have to walk in first.")
   teachProcess()
   commit()
@@ -2816,11 +2813,11 @@ export function chooseMidgame(choice) {
   if (!gameFlags.midgameChoice || state.midgame) return
   if (choice === "steady") {
     state.midgame = "steady"
-    state.status = "Steady book. Big clients stop arriving. A small ship pays $4 more. Four small ships can win the month."
+    state.status = "Steady book. Big clients stop arriving. A small ship pays " + moneyToken(4) + " more. Four small ships can win the month."
   } else {
     state.midgame = "chase"
     chargePitch()
-    state.status = "Chasing big clients. They arrive twice as often. This month costs $8, and each new month costs $8."
+    state.status = "Chasing big clients. They arrive twice as often. This month costs " + moneyToken(8) + ", and each new month costs " + moneyToken(8) + "."
   }
   state.midgameClosed = true
   commit()
@@ -2856,7 +2853,7 @@ export function takeBig() {
   const offer = bigClientOffer()
   const name = offer.client
   state.event = null
-  state.status = name + " stays. A full ship pays $" + moneyText(offer.payout) + ". A short ship pays $" + moneyText(offer.short) + "."
+  state.status = name + " stays. A full ship pays " + moneyToken(offer.payout) + ". A short ship pays " + moneyToken(offer.short) + "."
   commit()
 }
 export function turnDownBig() {
@@ -2892,7 +2889,7 @@ export function turnDownBig() {
   if (!state.queue.length) spawn("fill")
   if (!state.break) state.staff.filter((staff) => staff.role === "intern").forEach((staff) => runIntern(staff, 0))
   const intern = state.staff.find((staff) => staff.role === "intern")
-  state.status = "Turned " + name + " down. $" + moneyText(offer.decline) + " for the time."
+  state.status = "Turned " + name + " down. " + moneyToken(offer.decline) + " for the time."
   if (intern) state.status += " " + intern.name + " is free."
   else if (canHire()) state.status += " Hire is open."
   commit()

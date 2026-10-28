@@ -63,6 +63,33 @@ export function formatMoney(value, { currency = DEFAULT_CURRENCY, compact = fals
   return formatter(currency, fraction, useCompact, sign).format(rounded)
 }
 
+/** Private-use delimiters: engine stores amounts without a currency symbol. */
+export const MONEY_OPEN = "\uFFF0"
+export const MONEY_CLOSE = "\uFFF1"
+const MONEY_TOKEN_RE = /\uFFF0(-?\d+(?:\.\d+)?)\uFFF1/g
+
+/** Embed an engine (dollar-unit) amount in status / notes for later formatting. */
+export function moneyToken(value) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount)) return ""
+  const rounded = Math.round(amount * 100) / 100
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2)
+  return MONEY_OPEN + text + MONEY_CLOSE
+}
+
+/** Replace money tokens with formatMoney for the active currency. */
+export function expandMoneyText(text, currency = DEFAULT_CURRENCY) {
+  if (text == null || text === "") return text
+  return String(text).replace(MONEY_TOKEN_RE, (_, raw) => formatMoney(Number(raw), { currency }))
+}
+
+/** Parse the first money token in a status string (engine dollar units). */
+export function readMoneyToken(text) {
+  const match = MONEY_TOKEN_RE.exec(String(text || ""))
+  MONEY_TOKEN_RE.lastIndex = 0
+  return match ? Number(match[1]) : null
+}
+
 export function moneyLabel(value, currency = DEFAULT_CURRENCY) {
   const spec = specFor(currency)
   const amount = toDisplay(value, currency)

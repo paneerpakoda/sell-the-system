@@ -1,4 +1,4 @@
-import { formatMoney, moneyLabel, toDisplay, INR_PER_USD } from "../src/ui/money.js"
+import { formatMoney, moneyLabel, toDisplay, INR_PER_USD, moneyToken, expandMoneyText } from "../src/ui/money.js"
 
 const cases = [0, 10, 24, 99999, 100000, 1234567, 34000000, -40]
 
@@ -52,6 +52,8 @@ check("cents follow the code", formatMoney(2.5, { currency: "USD" }), "$2.50")
 check("cents INR", formatMoney(2.5, { currency: "INR" }), "₹200")
 check("label INR", moneyLabel(24, "INR"), "1,920 rupees")
 check("label USD", moneyLabel(24, "USD"), "24 dollars")
+check("token expand USD", expandMoneyText("paid " + moneyToken(10), "USD"), "paid $10")
+check("token expand INR", expandMoneyText("paid " + moneyToken(10), "INR"), "paid ₹800")
 
 if (failed) {
   console.error(failed + " failed")

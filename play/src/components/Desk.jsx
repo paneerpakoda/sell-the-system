@@ -14,6 +14,7 @@ import { TargetChip, guidingFirst, shipClickEnabled } from "./guidance.jsx"
 import { ContractClock } from "./Hud.jsx"
 import { useWorkspace } from "../workspace.jsx"
 import { OfficePeople } from "./Office.jsx"
+import { expandMoneyText, useCurrency } from "../ui/money.js"
 
 export function Desk() {
   const { openPc } = useWorkspace()
@@ -100,11 +101,16 @@ export function Desk() {
 
 export function StageShip() {
   const { atPc, openPc } = useWorkspace()
+  const { currency } = useCurrency()
   const project = state.queue.find((item) => item.id === state.openId) || null
   const waiting = !!(project && !project.started)
   const check = waiting || !project ? null : shipCheck(project.id)
   const live = shipClickEnabled(waiting, project)
-  const shipLabel = !project ? "Pick a client" : waiting ? "Start" : check.label
+  const shipLabel = !project
+    ? "Pick a client"
+    : waiting
+      ? "Start"
+      : expandMoneyText(check.label, currency)
   const held = !!(check && check.held)
   const guide = guidingFirst()
   const guideStart = !!(guide && !guide.started && waiting && project && project.id === guide.project.id)

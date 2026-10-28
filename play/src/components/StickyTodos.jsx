@@ -10,6 +10,7 @@ import {
 } from "../engine.js"
 import { guidingFirst } from "./guidance.jsx"
 import { useWorkspace } from "../workspace.jsx"
+import { expandMoneyText, useCurrency } from "../ui/money.js"
 
 const GROUPS = [
   ["colour", "Colour"],
@@ -170,6 +171,7 @@ function compactParts(project, parts) {
 
 function ClientSticky() {
   const { atPc, openPc } = useWorkspace()
+  const { currency } = useCurrency()
   const [gradesOpen, setGradesOpen] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const project = state.queue.find((item) => item.id === state.openId) || null
@@ -181,6 +183,7 @@ function ClientSticky() {
   const visible = expanded ? parts : parts.slice(0, 5)
   const hidden = Math.max(0, parts.length - visible.length)
   const countLabel = !project ? "" : parts.length ? String(parts.length) : heldShip ? "Held" : "Clear"
+  const readyLabel = check && check.reason ? expandMoneyText(check.label, currency) : "Clear — ready to ship"
 
   if (!atPc) return null
 
@@ -194,7 +197,7 @@ function ClientSticky() {
 
       {!project && <p className="sticky-empty">No frame open.</p>}
       {project && !parts.length && (
-        <p className="sticky-ready">{check && check.reason ? check.label : "Clear — ready to ship"}</p>
+        <p className="sticky-ready">{readyLabel}</p>
       )}
 
       {parts.length > 0 && (

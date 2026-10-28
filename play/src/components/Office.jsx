@@ -13,7 +13,7 @@ import {
   effectiveMiss
 } from "../engine.js"
 import { payrollFacts } from "./guidance.jsx"
-import { formatMoney, useCurrency } from "../ui/money.js"
+import { expandMoneyText, formatMoney, useCurrency } from "../ui/money.js"
 
 function paceText(project) {
   return stepSeconds(project).toFixed(1) + "s / step"
@@ -57,9 +57,9 @@ export function OfficePeople() {
   const dueText = money(due)
   const nextText = money(next)
   const hireNote = state.payroll && state.payroll.hireNote
-    ? state.payroll.hireNote
+    ? expandMoneyText(state.payroll.hireNote, currency)
     : "Hire is " + nextText + " for the rest of this month."
-  const warn = reason || ("This hire makes payroll " + money(due + next) + ". You have " + money(state.money) + ".")
+  const warn = expandMoneyText(reason, currency) || ("This hire makes payroll " + money(due + next) + ". You have " + money(state.money) + ".")
   const hireTip = locked
     ? "Ship 3 screens yourself. Hire stays locked until then."
     : internOnStaff
@@ -67,6 +67,7 @@ export function OfficePeople() {
       : !affordable
         ? warn
         : hireNote
+  const lateNote = state.payroll.lateNote ? expandMoneyText(state.payroll.lateNote, currency) : ""
 
   const you = { id: "you", name: "You", role: "founder", task: "At the laptop" }
   const seats = [you, ...state.staff]
@@ -146,8 +147,8 @@ export function OfficePeople() {
         {!locked && lines.map((line) => (
           <p key={line.name} className="office-hire-line">{line.name} · {money(line.amount)}</p>
         ))}
-        {state.payroll.lateNote && <p className="office-hire-warn">{state.payroll.lateNote}</p>}
-        {unpayable && !state.payroll.lateNote && <p className="office-hire-warn">{warn}</p>}
+        {lateNote && <p className="office-hire-warn">{lateNote}</p>}
+        {unpayable && !lateNote && <p className="office-hire-warn">{warn}</p>}
         <FloatingTooltip.Trigger content={hireTip}>
           <Button type="button" className="u-btn office-hire-btn" disabled={!affordable} onClick={() => hire()}>
             {locked ? "Hire locked · " + state.handShips + "/3" : internOnStaff ? "Intern is hired" : "Hire intern · " + nextText}

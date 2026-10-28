@@ -9,6 +9,7 @@ import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import { expandMoneyText, MONEY_OPEN, MONEY_CLOSE } from "../src/ui/money.js"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const enginePath = path.join(root, "play/src/engine.js")
@@ -510,10 +511,14 @@ function summarise(label, results) {
 
 function payrollPaid(result) {
   if (!result.payroll) return null
-  const match = result.payroll.note.match(/Payroll paid \$(\d+(?:\.\d+)?)/)
+  const raw = result.payroll.note || ""
+  const token = raw.match(new RegExp("Payroll paid " + MONEY_OPEN + "(-?\\d+(?:\\.\\d+)?)" + MONEY_CLOSE))
+  if (token) return Number(token[1])
+  const note = expandMoneyText(raw, "USD")
+  const match = note.match(/Payroll paid \$(\d+(?:\.\d+)?)/)
   if (match) return Number(match[1])
-  if (/No payroll due/.test(result.payroll.note)) return 0
-  return result.payroll.note
+  if (/No payroll due/.test(raw)) return 0
+  return raw
 }
 
 function paceLine(label, results) {

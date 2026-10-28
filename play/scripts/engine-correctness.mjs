@@ -9,6 +9,11 @@ import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import { expandMoneyText } from "../src/ui/money.js"
+
+function cashNote(text) {
+  return expandMoneyText(text, "USD")
+}
 
 const engineFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/engine.js")
 let nonce = 0
@@ -111,8 +116,8 @@ await check("month pause names the people and the amounts", async () => {
   state.monthLeft = 0.2
   advance(1)
   assert.ok(state.break, "pause card should be open")
-  assert.match(state.break.note, /Ada \(\$10\)/)
-  assert.match(state.break.note, /Ben \(\$30\)/)
+  assert.match(cashNote(state.break.note), /Ada \(\$10\)/)
+  assert.match(cashNote(state.break.note), /Ben \(\$30\)/)
   assert.doesNotMatch(state.break.note, /object Object/)
   assert.equal(state.money, 0)
 })
@@ -126,7 +131,7 @@ await check("a paid month lists who was paid", async () => {
   state.monthLeft = 0.2
   advance(1)
   assert.ok(state.break)
-  assert.match(state.break.note, /Payroll paid \$10: Ada \(\$10\)/)
+  assert.match(cashNote(state.break.note), /Payroll paid \$10: Ada \(\$10\)/)
   assert.equal(state.money, 14)
   assert.doesNotMatch(state.break.note, /object Object/)
 })
@@ -246,7 +251,7 @@ await check("a full-month employee pays the full wage", async () => {
   advance(1)
   assert.ok(state.break)
   close(state.money, 40)
-  assert.match(state.break.note, /Payroll paid \$10: Ada \(\$10\)/)
+  assert.match(cashNote(state.break.note), /Payroll paid \$10: Ada \(\$10\)/)
 })
 
 await check("a hire midway through the month pays half", async () => {
@@ -266,7 +271,7 @@ await check("a hire midway through the month pays half", async () => {
   advance(1)
   assert.ok(state.break)
   close(state.money, 95)
-  assert.match(state.break.note, /Ada \(\$5\)/)
+  assert.match(cashNote(state.break.note), /Ada \(\$5\)/)
 })
 
 await check("firing just before month end keeps pay already worked", async () => {
@@ -313,9 +318,9 @@ await check("the next hire can be flagged unpayable", async () => {
   close(state.nextHireCost, 10)
   assert.equal(state.nextHireUnpayable, true)
   assert.equal(state.payroll.nextHireUnpayable, true)
-  assert.match(state.payroll.reason, /\$10/)
-  assert.match(state.payroll.reason, /\$40/)
-  assert.match(state.payroll.reason, /\$12/)
+  assert.match(cashNote(state.payroll.reason), /\$10/)
+  assert.match(cashNote(state.payroll.reason), /\$40/)
+  assert.match(cashNote(state.payroll.reason), /\$12/)
   state.money = 40
   nameStudio("Warn")
   assert.equal(state.nextHireUnpayable, false)
@@ -983,9 +988,9 @@ await check("a $1.01 shortfall with a late intern keeps the permanent", async ()
   assert.equal(state.staff.length, 2)
   assert.equal(state.staff.some((staff) => staff.role === "permanent"), true)
   close(state.debt, 1.01)
-  assert.match(state.break.note, /Owed \$30\.40: Ada \(\$0\.40\), Ben \(\$30\)/)
-  assert.match(state.break.note, /Paid \$29\.39/)
-  assert.doesNotMatch(state.break.note, /Paid \$29\.39:/)
+  assert.match(cashNote(state.break.note), /Owed \$30\.40: Ada \(\$0\.40\), Ben \(\$30\)/)
+  assert.match(cashNote(state.break.note), /Paid \$29\.39/)
+  assert.doesNotMatch(cashNote(state.break.note), /Paid \$29\.39:/)
   assert.match(state.break.note, /Ship the next screen/)
 })
 
@@ -999,7 +1004,7 @@ await check("a $15 shortfall does not fire the permanent", async () => {
   advance(1)
   assert.equal(state.staff.length, 2)
   assert.equal(state.staff.some((staff) => staff.role === "permanent"), true)
-  assert.match(state.break.note, /Owed \$40: Ada \(\$10\), Ben \(\$30\)\. Paid \$25/)
+  assert.match(cashNote(state.break.note), /Owed \$40: Ada \(\$10\), Ben \(\$30\)\. Paid \$25/)
   assert.match(state.break.note, /Ship the next screen/)
   assert.notEqual(state.money === 0 && state.staff.length === 0, true)
 })

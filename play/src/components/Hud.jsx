@@ -18,7 +18,7 @@ import { SkModal } from "./SkModal.jsx"
 import { useClock } from "../useGame.js"
 import { TargetChip, formatClock, targetFor, weekClock } from "./guidance.jsx"
 import { Button } from "@/components/unlumen-ui/primitives/button"
-import { CurrencySwitch, formatMoney, moneyLabel, useCurrency } from "../ui/money.js"
+import { CurrencySwitch, expandMoneyText, formatMoney, moneyLabel, readMoneyToken, useCurrency } from "../ui/money.js"
 
 function Weeks() {
   useClock()
@@ -129,10 +129,12 @@ function HandMeter() {
 
 export function WeekPause() {
   const open = !!state.break
+  const { currency } = useCurrency()
   const [nudge, setNudge] = useState(false)
   useEffect(() => {
     if (!open) setNudge(false)
   }, [open])
+  const note = open ? expandMoneyText(state.break.note, currency) : ""
   return (
     <SkModal
       id="month-end"
@@ -147,7 +149,7 @@ export function WeekPause() {
           {nudge && <p className="finish-nudge" role="status">Finish this first</p>}
           <h1 id="month-end-title" className="sk-title">Month {state.monthIndex}</h1>
           <div className="sk-bezel-body">
-            <p>Four weeks are done. {state.break.note} The tree stays open.</p>
+            <p>Four weeks are done. {note} The tree stays open.</p>
             {state.break.won && <p>Selling starts a new run with one perk you already own.</p>}
           </div>
           <div className="sk-bezel-actions">
@@ -316,8 +318,9 @@ const ClientWidget = memo(function ClientWidget({ project, stamp, line, needsYou
   )
 })
 
-function payrollTip(money) {
-  return state.payroll.lateNote || ("Due when week 4 ends. A gap up to " + money(2.5) + ", one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down.")
+function payrollTip(money, currency) {
+  const late = state.payroll.lateNote ? expandMoneyText(state.payroll.lateNote, currency) : ""
+  return late || ("Due when week 4 ends. A gap up to " + money(2.5) + ", one week of intern pay, is Late. The permanent stays. Ship the next screen to pay it down.")
 }
 
 function feeTip(money) {
@@ -331,7 +334,7 @@ function PayrollMeter() {
   const due = payrollDue()
   if (!(due > 0)) return null
   return (
-    <div className="meter" data-tip={payrollTip(money)}>
+    <div className="meter" data-tip={payrollTip(money, currency)}>
       <div className="meter-k">{state.payroll.late ? "Late" : "Payroll"}</div>
       <div className={"meter-v sk-num" + (state.money + 0.001 < due ? " urgent" : "")}>{money(due)}</div>
     </div>
@@ -445,7 +448,9 @@ export function Hud() {
           <HandMeter />
         </div>
       </div>
-      {(state.payroll.lateNote || state.status) && <p className="status-line">{state.payroll.lateNote || state.status}</p>}
+      {(state.payroll.lateNote || state.status) && (
+        <p className="status-line">{expandMoneyText(state.payroll.lateNote || state.status, currency)}</p>
+      )}
       <ShipMoment />
     </header>
   )
@@ -458,9 +463,11 @@ function ShipMoment() {
   useEffect(() => {
     if (state.accepted <= seen.current) return undefined
     seen.current = state.accepted
-    const match = /(?:^Shipped | shipped )(.+?) · \$(\d+(?:\.\d+)?)/.exec(state.status || "")
-    if (!match) return undefined
-    setMoment({ client: match[1], amount: Number(match[2]) })
+    const status = state.status || ""
+    const match = /(?:^Shipped | shipped )(.+?) · /.exec(status)
+    const amount = readMoneyToken(status)
+    if (!match || amount == null) return undefined
+    setMoment({ client: match[1], amount })
     const timer = window.setTimeout(() => setMoment(null), 1500)
     return () => window.clearTimeout(timer)
   }, [state.accepted])
