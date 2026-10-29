@@ -1,0 +1,39 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="MonthBreak" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.109804, 0.098039, 0.090196, 0.55)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Card" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 180)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Center/Card"]
+layout_mode = 2
+text = "Month-end break"
+horizontal_alignment = 1
+vertical_alignment = 1

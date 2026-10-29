@@ -1,0 +1,146 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://game/scenes/main.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://game/scenes/phone.tscn" id="2_phone"]
+[ext_resource type="PackedScene" path="res://game/scenes/dock.tscn" id="3_dock"]
+[ext_resource type="PackedScene" path="res://game/scenes/editor.tscn" id="4_editor"]
+[ext_resource type="PackedScene" path="res://game/scenes/month_break.tscn" id="5_break"]
+[ext_resource type="PackedScene" path="res://game/scenes/gate.tscn" id="6_gate"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Backdrop" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.956863, 0.945098, 0.917647, 1)
+
+[node name="Layout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopBar" type="PanelContainer" parent="Layout"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+
+[node name="Row" type="HBoxContainer" parent="Layout/TopBar"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="StudioName" type="Label" parent="Layout/TopBar/Row"]
+layout_mode = 2
+text = "Name the studio"
+
+[node name="Cash" type="Label" parent="Layout/TopBar/Row"]
+layout_mode = 2
+text = "$24.00"
+
+[node name="WeekBars" type="HBoxContainer" parent="Layout/TopBar/Row"]
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="Week1" type="ColorRect" parent="Layout/TopBar/Row/WeekBars"]
+custom_minimum_size = Vector2(28, 8)
+layout_mode = 2
+color = Color(0.109804, 0.098039, 0.090196, 1)
+
+[node name="Week2" type="ColorRect" parent="Layout/TopBar/Row/WeekBars"]
+custom_minimum_size = Vector2(28, 8)
+layout_mode = 2
+color = Color(0.905882, 0.898039, 0.894118, 1)
+
+[node name="Week3" type="ColorRect" parent="Layout/TopBar/Row/WeekBars"]
+custom_minimum_size = Vector2(28, 8)
+layout_mode = 2
+color = Color(0.905882, 0.898039, 0.894118, 1)
+
+[node name="Week4" type="ColorRect" parent="Layout/TopBar/Row/WeekBars"]
+custom_minimum_size = Vector2(28, 8)
+layout_mode = 2
+color = Color(0.905882, 0.898039, 0.894118, 1)
+
+[node name="Week" type="Label" parent="Layout/TopBar/Row"]
+layout_mode = 2
+text = "Week 1 · 1:00"
+
+[node name="Spacer" type="Control" parent="Layout/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Month" type="Label" parent="Layout/TopBar/Row"]
+layout_mode = 2
+text = "Month 1 · 4:00"
+
+[node name="Stage" type="Label" parent="Layout/TopBar/Row"]
+layout_mode = 2
+text = "Stage 1"
+
+[node name="Body" type="HBoxContainer" parent="Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Canvas" type="Control" parent="Layout/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Center" type="CenterContainer" parent="Layout/Body/Canvas"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Phone" parent="Layout/Body/Canvas/Center" instance=ExtResource("2_phone")]
+layout_mode = 2
+
+[node name="Dock" parent="Layout/Body" instance=ExtResource("3_dock")]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Editor" parent="." instance=ExtResource("4_editor")]
+visible = false
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -296.0
+offset_top = -176.0
+offset_right = -16.0
+offset_bottom = -16.0
+
+[node name="MonthBreak" parent="." instance=ExtResource("5_break")]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Gate" parent="." instance=ExtResource("6_gate")]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

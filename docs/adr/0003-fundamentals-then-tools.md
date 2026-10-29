@@ -1,0 +1,3 @@
+# Fundamentals, then Figma, then Paper
+
+The early game is the basic work a designer does before a proper tool exists: fixing colour, fixing corner radius, and organising the design. A freeform editor is still the wrong first build. Figma is a later upgrade, the first real design tool. Paper (paper.design) comes after AI, and it is the upgrade that makes the work faster because agents can do the repetitive part. The increment is a change in how the work gets done, not a bigger multiplier on the same click.

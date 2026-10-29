@@ -1,0 +1,59 @@
+[gd_scene load_steps=1 format=3]
+
+[node name="Dock" type="PanelContainer"]
+custom_minimum_size = Vector2(300, 0)
+offset_right = 300.0
+offset_bottom = 400.0
+
+[node name="Sections" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Clients" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/Clients"]
+layout_mode = 2
+text = "Clients"
+
+[node name="HowToWin" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/HowToWin"]
+layout_mode = 2
+text = "How to win"
+
+[node name="Stage3" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/Stage3"]
+layout_mode = 2
+text = "Stage 3"
+
+[node name="ToShip" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/ToShip"]
+layout_mode = 2
+text = "To Ship"
+
+[node name="People" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/People"]
+layout_mode = 2
+text = "People"
+
+[node name="System" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/System"]
+layout_mode = 2
+text = "System"
+
+[node name="Tree" type="VBoxContainer" parent="Sections"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="Sections/Tree"]
+layout_mode = 2
+text = "Tree"

@@ -1,0 +1,56 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://game/scenes/gate.gd" id="1_script"]
+
+[node name="Gate" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_script")
+
+[node name="Scrim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.109804, 0.098039, 0.090196, 0.94)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+
+[node name="Column" type="VBoxContainer" parent="Center/Card"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Prompt" type="Label" parent="Center/Card/Column"]
+layout_mode = 2
+text = "Name the studio"
+
+[node name="Name" type="LineEdit" parent="Center/Card/Column"]
+layout_mode = 2
+placeholder_text = "Studio name"
+
+[node name="Hint" type="Label" parent="Center/Card/Column"]
+layout_mode = 2
+text = "Up to 28 characters."
+
+[node name="Confirm" type="Button" parent="Center/Card/Column"]
+layout_mode = 2
+text = "Continue"

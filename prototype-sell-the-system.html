@@ -1,0 +1,2595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sell the system</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; margin: 0; }
+  body {
+    background: #e4e7ee;
+    color: #1c1917;
+    font: 13px/1.35 ui-sans-serif, system-ui, sans-serif;
+  }
+  button, input { font: inherit; }
+  :focus-visible { outline: 2px solid #1c1917; outline-offset: 2px; }
+  .app {
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+  #hud {
+    position: absolute;
+    z-index: 4;
+    inset: 0 300px 0 0;
+    pointer-events: none;
+  }
+  .scorebar {
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 18px 0;
+  }
+  .score { pointer-events: auto; min-width: 0; }
+  .money {
+    color: #1c1917;
+    font-size: 34px;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(255,255,255,.6);
+  }
+  .money span { font-size: 22px; margin-right: 1px; }
+  .hud-meta {
+    pointer-events: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+    max-width: 420px;
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.86);
+    border: 1px solid rgba(28,25,23,.08);
+    box-shadow: 0 6px 16px rgba(28,25,23,.06);
+    color: #44403c;
+    font-size: 12px;
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+  }
+  .pill.timer {
+    background: #1c1917;
+    color: #f7f8fb;
+    border-color: #1c1917;
+  }
+  button.pill {
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  button.pill[aria-pressed="true"] { background: #1c1917; color: #f7f8fb; }
+  .params-open {
+    pointer-events: auto;
+    position: absolute;
+    left: 16px;
+    bottom: 16px;
+    border: 0;
+    background: transparent;
+    color: #78716c;
+    font-size: 12px;
+    font-weight: 650;
+    padding: 4px 2px;
+    cursor: pointer;
+  }
+  .params-open[aria-pressed="true"] { color: #1c1917; }
+  #status {
+    pointer-events: auto;
+    margin: 6px 0 0;
+    max-width: 360px;
+    color: #44403c;
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  .quest {
+    pointer-events: auto;
+    position: absolute;
+    top: 112px;
+    left: 16px;
+    width: 268px;
+    max-height: calc(100% - 112px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(247,248,251,.94);
+    border: 1px solid rgba(255,255,255,.8);
+    border-radius: 16px;
+    box-shadow: 0 16px 40px rgba(28,25,23,.14);
+    backdrop-filter: blur(12px);
+  }
+  .quest-scroll { overflow: auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+  h1 {
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #78716c;
+    font-weight: 650;
+  }
+  h2 {
+    margin: 0 0 4px;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #78716c;
+    font-weight: 650;
+  }
+  #queue-wrap { max-height: 72px; overflow: auto; flex: none; }
+  #req-wrap { flex: none; }
+  #every-line { margin-top: 8px; }
+  #every-line summary {
+    cursor: pointer;
+    color: #78716c;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  .ready { margin: 4px 0 8px; font-size: 14px; font-weight: 650; }
+  #manage { max-height: 220px; overflow: auto; flex: none; }
+  #manage h2 { margin: 8px 0 4px; }
+  #manage h2:first-child { margin-top: 0; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .hint { margin: 0 0 4px; color: #78716c; font-size: 11px; line-height: 1.3; }
+  .owned { margin: 0 0 4px; color: #3f6212; font-size: 12px; }
+  .qbtn, .todo {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    color: inherit;
+    border: 0;
+    border-radius: 8px;
+    padding: 4px;
+    cursor: pointer;
+  }
+  .qbtn { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: start; }
+  .qbtn .name, .todo .name { font-weight: 650; font-size: 12px; }
+  .qbtn .qtime { color: #78716c; font-size: 11px; white-space: nowrap; }
+  .qbtn.big .name { color: #1c1917; }
+  .qbtn:hover, .todo:hover { background: rgba(28,25,23,.05); }
+  .qbtn.on, .todo.on, .qbtn.on:hover, .todo.on:hover { background: rgba(28,25,23,.08); }
+  .todo {
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    column-gap: 8px;
+    row-gap: 1px;
+    align-items: start;
+  }
+  .check {
+    grid-row: 1 / span 2;
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    border: 1.5px solid rgba(28,25,23,.45);
+    border-radius: 4px;
+  }
+  .todo.done .check { background: #b7e4c7; border-color: #b7e4c7; }
+  .todo.done .check::after {
+    content: "";
+    display: block;
+    width: 8px;
+    height: 4px;
+    margin: 3px 0 0 3px;
+    border-left: 2px solid #1c1917;
+    border-bottom: 2px solid #1c1917;
+    transform: rotate(-45deg);
+  }
+  .todo .ask { color: #9f1239; font-size: 15px; font-weight: 700; line-height: 1.2; }
+  .todo.lead {
+    background: #fff;
+    border: 1px solid #1c1917;
+    padding: 8px;
+  }
+  .todo.lead .name { font-size: 14px; }
+  .todo.lead .ask { font-size: 18px; }
+  .todo.done .name { color: #3f6212; }
+  .todo.done .ask { color: #3f6212; text-decoration: none; }
+  .card-staff {
+    border: 1px solid #d5d9e2;
+    border-radius: 8px;
+    padding: 6px;
+    margin-bottom: 6px;
+    display: grid;
+    gap: 2px;
+  }
+  .who { margin: 0; font-size: 13px; font-weight: 650; }
+  .row { display: flex; gap: 6px; }
+  .row .up { flex: 1; }
+  button.up, .ship { border-radius: 8px; cursor: pointer; }
+  button.up {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    color: #1c1917;
+    border: 1px solid #d5d9e2;
+    padding: 6px 8px;
+    margin-bottom: 6px;
+  }
+  button.up strong { display: block; font-size: 13px; }
+  button.up span { display: block; color: #78716c; font-size: 11px; line-height: 1.3; }
+  button.up:disabled { opacity: .4; cursor: default; }
+  .ship {
+    flex: none;
+    width: 100%;
+    border: 0;
+    background: #1c1917;
+    color: #f7f8fb;
+    font-size: 16px;
+    font-weight: 650;
+    padding: 12px;
+    margin-top: 0;
+    border-radius: 10px;
+  }
+  #workspace {
+    position: absolute;
+    inset: 0 300px 0 0;
+    background: #e4e7ee;
+    display: flex;
+    align-items: stretch;
+    overflow: hidden;
+  }
+  #viewport {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    margin-left: 292px;
+    overflow: hidden;
+    cursor: grab;
+  }
+  #viewport.panning { cursor: grabbing; }
+  #world {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform-origin: center center;
+  }
+  .canvas { display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  #bezel { margin: 0; font-size: 12px; color: #44403c; }
+  #ribbon { margin: 0; min-height: 1.2em; color: #1c1917; font-size: 13px; font-weight: 650; }
+  .phone {
+    position: relative;
+    width: 300px;
+    height: 520px;
+    flex: none;
+    background: #111;
+    border-radius: 36px;
+    padding: 12px;
+    box-shadow: 0 24px 50px rgba(0,0,0,.28);
+    display: flex;
+  }
+  #handles { position: absolute; inset: 0; pointer-events: none; }
+  .radius-handle {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border-radius: 50%;
+    border: 2px solid #1c1917;
+    background: #fff;
+    padding: 0;
+    pointer-events: auto;
+    cursor: nwse-resize;
+    box-shadow: 0 0 0 1px #fff;
+  }
+  .screen {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .screen.on { outline: 2px solid #fff; outline-offset: -8px; box-shadow: inset 0 0 0 1px #1c1917; }
+  .el { font: inherit; cursor: pointer; }
+  .el.on { outline: 2px solid #fff; outline-offset: 2px; box-shadow: 0 0 0 1px #1c1917; }
+  .miss { box-shadow: inset 0 0 0 3px #FF3D8A; }
+  .title {
+    border: 2px solid currentColor;
+    background: transparent;
+    padding: 4px 8px;
+    align-self: flex-start;
+    max-width: 100%;
+  }
+  .card { min-height: 64px; border: 0; padding: 8px; text-align: left; }
+  .label { display: block; line-height: 1.2; }
+  .save { margin-top: auto; min-height: 40px; border: 0; font-weight: 700; }
+  .flowchip {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: #E4D2B8;
+    color: #161616;
+  }
+  .flowchip[hidden] { display: none; }
+  .flowchip.broken { background: #FF3D8A; color: #161616; }
+  .flowchip.fixed { background: #F3EDE2; color: #161616; }
+  .inspector {
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 300px;
+    overflow: auto;
+    background: #fff;
+    color: #1c1917;
+    border-left: 1px solid #e7e5e4;
+    padding: 16px 16px 24px;
+  }
+  .kicker {
+    margin: 0 0 8px;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #78716c;
+    font-weight: 650;
+  }
+  #inspector-body { display: flex; flex-direction: column; }
+  #hierarchy-wrap, #copy-wrap, #flow-wrap { order: 4; }
+  #inspector-empty p { margin: 0; color: #44403c; font-size: 14px; line-height: 1.4; }
+  #inspector-body[hidden], #inspector-empty[hidden] { display: none; }
+  .pop {
+    color: #1c1917;
+    color-scheme: light;
+  }
+  .pop :focus-visible { outline-color: #161616; }
+  .pop-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  #pop h2 {
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: #161616;
+    font-weight: 700;
+  }
+  #pop-close { border: 0; background: transparent; color: #161616; text-decoration: underline; padding: 0; cursor: pointer; font-size: 12px; }
+  #pop-asks { margin: 6px 0; font-size: 11px; line-height: 1.35; white-space: pre-wrap; }
+  .pop label, .fine { display: block; font-size: 12px; margin: 8px 0 4px; }
+  .swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #swatches[hidden] { display: none; }
+  .swatch {
+    width: auto;
+    height: auto;
+    min-height: 36px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.28);
+    padding: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: left;
+    color: #1c1917;
+  }
+  .swatch.on { border-color: #1c1917; }
+  .swatch[data-colour="paper"] { background: #F4F1EA; }
+  .swatch[data-colour="white"] { background: #FFFFFF; }
+  .swatch[data-colour="ink"] { background: #1C1917; color: #F4F1EA; }
+  .swatch[data-colour="sand"] { background: #F5E6D3; }
+  .swatch[data-colour="stone"] { background: #E7E5E4; }
+  .swatch[data-colour="hot"] { background: #FF4D6D; }
+  .swatch[data-colour="lime"] { background: #C8FF00; }
+  input[type="range"] { width: 100%; accent-color: #161616; }
+  input[type="color"] {
+    width: 100%;
+    height: 44px;
+    padding: 4px;
+    border: 1px solid #d6d3d1;
+    border-radius: 8px;
+    background: #fff;
+    cursor: pointer;
+  }
+  #buy-swatches, #buy-radius, #buy-contrast { margin-top: 8px; }
+  #contrast-wrap { margin-top: 10px; }
+  #contrast-wrap label { color: #78716c; font-weight: 500; }
+  .choices { display: flex; flex-wrap: wrap; gap: 4px; }
+  .choices button {
+    border: 1px solid rgba(22,22,22,.25);
+    background: transparent;
+    color: #161616;
+    border-radius: 6px;
+    padding: 4px 6px;
+    cursor: pointer;
+  }
+  .choices button.on { background: #161616; color: #F3EDE2; }
+  #dev {
+    position: fixed;
+    z-index: 8;
+    left: 312px;
+    bottom: 20px;
+    width: min(460px, calc(100vw - 640px));
+    max-height: min(54vh, 520px);
+    display: flex;
+    flex-direction: column;
+    background: #1c1917;
+    color: #e7e5e4;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+    overflow: hidden;
+  }
+  #dev[hidden] { display: none !important; }
+  .params-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+  }
+  .params-head h2 { margin: 0; color: #e7e5e4; letter-spacing: .06em; }
+  #dev-close {
+    border: 0;
+    background: transparent;
+    color: #e7e5e4;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 650;
+  }
+  #dev-body {
+    margin: 0;
+    padding: 12px;
+    overflow: auto;
+    font: 10px/1.35 ui-monospace, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    color: #d6d3d1;
+  }
+  .banner {
+    position: fixed;
+    z-index: 6;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    max-width: min(520px, calc(100% - 24px));
+    background: #f5e6b8;
+    color: #161616;
+    border-radius: 10px;
+    padding: 8px 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  .banner[hidden] { display: none; }
+  .banner p { margin: 0; font-size: 13px; }
+  .banner button { border: 0; background: #161616; color: #f4f1ea; border-radius: 6px; padding: 4px 8px; cursor: pointer; }
+  .req-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .req-head h2 { margin: 0; }
+  #wiki-open, #wiki-close {
+    border: 0;
+    background: transparent;
+    color: #1c1917;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 0;
+    cursor: pointer;
+  }
+  #wiki {
+    width: 220px;
+    max-height: 100%;
+    overflow: auto;
+    flex: none;
+    align-self: stretch;
+    background: #f7f8fb;
+    border-right: 1px solid #d5d9e2;
+    padding: 10px;
+  }
+  #wiki[hidden] { display: none; }
+  .wiki-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  #wiki-body { display: grid; gap: 8px; }
+  #wiki-body ul { gap: 3px; }
+  #wiki-body li { color: #44403c; font-size: 11px; line-height: 1.35; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header id="hud" aria-label="Run">
+    <div class="scorebar">
+      <div class="score">
+        <div class="money"><span>$</span><b id="money">24</b></div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="hud-meta">
+        <span class="pill timer" id="month-label">Month 45.0s</span>
+        <span class="pill" id="payroll-label">Payroll $0</span>
+        <span class="pill" id="stage">Stage 1 · big cap on</span>
+      </div>
+    </div>
+    <div class="quest">
+      <div class="quest-scroll">
+        <div id="queue-wrap">
+          <h2>List</h2>
+          <ul id="queue"></ul>
+        </div>
+        <div id="req-wrap">
+          <div class="req-head">
+            <h2>To Ship</h2>
+            <button type="button" id="wiki-open" aria-expanded="false">Wiki</button>
+          </div>
+          <ul id="reqs"></ul>
+          <details id="every-line">
+            <summary>Every line</summary>
+            <ul id="reqs-all"></ul>
+          </details>
+        </div>
+        <div id="manage"></div>
+      </div>
+      <button id="ship" class="ship" type="button">Ship · $6</button>
+    </div>
+    <button type="button" class="params-open" id="dev-open" aria-pressed="false">Parameters</button>
+  </header>
+  <main id="workspace">
+    <aside id="wiki" hidden aria-label="Wiki">
+      <div class="wiki-head">
+        <h2>Wiki</h2>
+        <button type="button" id="wiki-close">Close</button>
+      </div>
+      <div id="wiki-body"></div>
+    </aside>
+    <div id="viewport">
+      <div id="world">
+        <div class="canvas">
+          <p id="bezel"></p>
+          <p id="ribbon"></p>
+          <div class="phone" id="phone">
+            <div class="screen" id="el-background" role="button" tabindex="0" aria-label="Background">
+              <div id="flowchip" class="flowchip" hidden>Flow</div>
+              <button type="button" class="el title" id="el-title">Notes</button>
+              <button type="button" class="el card" id="el-card-a" aria-label="Card A"><span class="label">Card A</span></button>
+              <button type="button" class="el card" id="el-card-b" aria-label="Card B"><span class="label">Card B</span></button>
+              <button type="button" class="el save" id="el-save">Save note</button>
+            </div>
+            <div id="handles"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <aside id="pop" class="inspector" aria-label="Properties">
+    <div id="inspector-empty">
+      <p class="kicker">Properties</p>
+      <p>Select a part of the Screen.</p>
+    </div>
+    <div id="inspector-body" hidden>
+      <p class="kicker">Properties</p>
+      <div class="pop-head">
+        <h2 id="pop-title">Element</h2>
+        <button type="button" id="pop-close">Close</button>
+      </div>
+      <p id="pop-asks"></p>
+      <div id="colour-wrap">
+        <label for="colour-pick">Colour <b id="colour-name">Hot</b></label>
+        <p id="head-offer" class="fine" hidden></p>
+        <input id="colour-pick" type="color" value="#FF4D6D" aria-label="Colour picker">
+        <div class="swatches" id="swatches" hidden>
+          <button type="button" class="swatch" data-colour="paper">Paper</button>
+          <button type="button" class="swatch" data-colour="white">White</button>
+          <button type="button" class="swatch" data-colour="ink">Ink</button>
+          <button type="button" class="swatch" data-colour="sand">Sand</button>
+          <button type="button" class="swatch" data-colour="stone">Stone</button>
+          <button type="button" class="swatch" data-colour="hot">Hot</button>
+          <button type="button" class="swatch" data-colour="lime">Lime</button>
+        </div>
+        <button type="button" class="up" id="buy-swatches" hidden>Swatches · $12</button>
+      </div>
+      <div id="radius-wrap">
+        <p class="fine" id="radius-note">Drag a corner on the Screen.</p>
+        <label id="radius-slider-label" for="pop-radius" hidden>Radius <b id="radius-slider-val">0</b></label>
+        <input id="pop-radius" type="range" min="0" max="32" step="1" value="0" hidden>
+        <button type="button" class="up" id="buy-radius" hidden>Radius slider · $12</button>
+      </div>
+      <div id="contrast-wrap">
+        <p class="fine" id="contrast-note"></p>
+        <div id="ink-wrap" hidden>
+          <label for="ink-pick">Foreground <b id="ink-name">Hot</b></label>
+          <input id="ink-pick" type="color" value="#FF4D6D" aria-label="Foreground picker">
+        </div>
+        <label id="contrast-slider-label" for="pop-contrast" hidden>Contrast <b id="contrast-val">1.0</b></label>
+        <input id="pop-contrast" type="range" min="1" max="21" step="0.1" value="1" hidden>
+        <button type="button" class="up" id="buy-contrast" hidden>Contrast slider · $12</button>
+      </div>
+      <div id="hierarchy-wrap" hidden>
+        <p class="fine">Hierarchy</p>
+        <div class="choices">
+          <button type="button" data-h="small">Small</button>
+          <button type="button" data-h="body">Body</button>
+          <button type="button" data-h="primary">Primary</button>
+        </div>
+      </div>
+      <div id="copy-wrap" hidden>
+        <p class="fine">Copy</p>
+        <div class="choices">
+          <button type="button" data-copy="Notes">Notes</button>
+          <button type="button" data-copy="Save note">Save note</button>
+          <button type="button" data-copy="Stuff">Stuff</button>
+          <button type="button" data-copy="Submit">Submit</button>
+        </div>
+      </div>
+      <div id="flow-wrap" hidden>
+        <p class="fine" id="flow-demand"></p>
+        <p class="fine">Showing</p>
+        <div class="choices">
+          <button type="button" data-show="default">Default</button>
+          <button type="button" data-show="empty">Empty</button>
+          <button type="button" data-show="error">Error</button>
+        </div>
+        <p class="fine">Empty</p>
+        <div class="choices">
+          <button type="button" data-flag="empty" data-set="broken">Broken</button>
+          <button type="button" data-flag="empty" data-set="fixed">Fixed</button>
+        </div>
+        <p class="fine">Error</p>
+        <div class="choices">
+          <button type="button" data-flag="error" data-set="broken">Broken</button>
+          <button type="button" data-flag="error" data-set="fixed">Fixed</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <aside id="dev" hidden aria-label="Parameters">
+    <div class="params-head">
+      <h2>Parameters</h2>
+      <button type="button" id="dev-close">Close</button>
+    </div>
+    <pre id="dev-body"></pre>
+  </aside>
+</div>
+<div id="banner" class="banner" hidden>
+  <p>Won. A full month stayed in Stage 3, a big client shipped, you never touched the work, and payroll cleared.</p>
+  <button type="button" id="banner-dismiss">Dismiss</button>
+</div>
+<script>
+"use strict"
+const $ = (id) => document.getElementById(id)
+const ELEMENT_IDS = ["background", "title", "cardA", "cardB", "save"]
+const NAMES = { background: "Background", title: "Title", cardA: "Card A", cardB: "Card B", save: "Save" }
+const EL_NODES = { background: "el-background", title: "el-title", cardA: "el-card-a", cardB: "el-card-b", save: "el-save" }
+const INDUSTRIES = ["fintech", "wellness", "editorial"]
+const CLIENTS = ["Northwind", "Lumen", "Harbor", "Kindred", "Folio", "Aster", "Brass", "Sable", "Marlow", "Pebble", "Vesper", "Quill", "Hearth", "Ledger", "Nimbus"]
+const STAFF_NAMES = ["Ada", "Ben", "Cam", "Dia", "Eve", "Fox", "Gia", "Hal", "Ivy", "Jed", "Kim", "Lux"]
+const VAGUE_COLOUR = { background: "paper", title: "ink", cardA: "white", cardB: "white", save: "ink" }
+const COLOURS = {
+  paper: { hex: "#F4F1EA", name: "Paper", calm: true },
+  white: { hex: "#FFFFFF", name: "White", calm: true },
+  ink: { hex: "#1C1917", name: "Ink", calm: true },
+  sand: { hex: "#F5E6D3", name: "Sand", calm: true },
+  stone: { hex: "#E7E5E4", name: "Stone", calm: true },
+  hot: { hex: "#FF4D6D", name: "Hot", calm: false },
+  lime: { hex: "#C8FF00", name: "Lime", calm: false }
+}
+const PARAMS = {
+  onTimeSeconds: 45,
+  radiusStep: 4,
+  exactingChance: 1 / 4,
+  exactingChanceAfterToken: 1 / 2,
+  soundChance: 1 / 2,
+  contrastBest: 7,
+  contrastAcceptable: 4.5,
+  contrastBare: 3,
+  namedLines: 3
+}
+const LANG = {
+  fintech: {
+    name: "Fintech",
+    system: "Swiss Grid",
+    colour: { background: "paper", title: "ink", cardA: "white", cardB: "white", save: "ink" },
+    radius: 4,
+    contrast: 9
+  },
+  wellness: {
+    name: "Wellness",
+    system: "Warm Soft",
+    colour: { background: "sand", title: "ink", cardA: "paper", cardB: "paper", save: "ink" },
+    radius: 20,
+    contrast: 5.5
+  },
+  editorial: {
+    name: "Editorial",
+    system: "Mono Stark",
+    colour: { background: "white", title: "ink", cardA: "stone", cardB: "stone", save: "ink" },
+    radius: 0,
+    contrast: 12
+  }
+}
+const TOKEN_NAME = { colour: "Base colour", radius: "Base radius", contrast: "Base contrast" }
+const TOKEN_DETAIL = {
+  colour: "New screens use a Paper background, white cards, an ink title, and an ink save button.",
+  radius: "New screens use 16px corners.",
+  contrast: "New screens use contrast 21.0 (100%)."
+}
+const PROCESS_INFO = {
+  research: ["User Research", "New projects arrive with clear copy."],
+  wire: ["Wireframing", "New projects arrive with hierarchy set."],
+  test: ["Usability Testing", "New projects arrive with the demanded state fixed."]
+}
+const state = {
+  money: 24,
+  accepted: 0,
+  handShips: 0,
+  everHired: false,
+  handsFreeEver: false,
+  wins: 0,
+  showBanner: false,
+  monthIndex: 1,
+  monthLeft: 45,
+  arrivalLeft: 20,
+  month: { qualified: false, bigShipped: false, handTouch: false },
+  tokens: { colour: false, radius: false, contrast: false },
+  codified: { fintech: false, wellness: false, editorial: false },
+  process: { research: false, wire: false, test: false },
+  bigDone: { fintech: false, wellness: false, editorial: false },
+  staff: [],
+  nextStaffId: 1,
+  queue: [],
+  projectSeq: 0,
+  openId: null,
+  selectedEl: null,
+  status: "",
+  renderKey: "",
+  nextHireFloor: null,
+  headOffer: null,
+  headUnlocked: false,
+  wikiOpen: false,
+  tools: { swatches: false, radius: false, contrast: false }
+}
+
+function cap(value) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : "" }
+function pick(list) { return list[Math.floor(Math.random() * list.length)] }
+function shuffle(list) {
+  const copy = list.slice()
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const swap = copy[i]
+    copy[i] = copy[j]
+    copy[j] = swap
+  }
+  return copy
+}
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16)
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
+}
+function mix(fromHex, toHex, t) {
+  const from = hexToRgb(fromHex)
+  const to = hexToRgb(toHex)
+  const channel = (a, b) => Math.round(a + (b - a) * t).toString(16).padStart(2, "0")
+  return "#" + channel(from.r, to.r) + channel(from.g, to.g) + channel(from.b, to.b)
+}
+function fade(bg, ink, ratio) {
+  const t = Math.max(0, Math.min(1, (ratio - 1) / 20))
+  return mix(bg, ink, t)
+}
+function bestInk(hex) {
+  const rgb = hexToRgb(hex)
+  const luminance = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255
+  return luminance > 0.62 ? "#161616" : "#FFFFFF"
+}
+function typeSize(level) {
+  if (level === "primary") return "20px"
+  if (level === "body") return "14px"
+  return "11px"
+}
+function clampRadius(value) { return Math.min(32, Math.max(0, Math.round(Number(value)))) }
+function targetRadius(lang, elementId) {
+  return elementId === "background" ? lang.radius + PARAMS.radiusStep : lang.radius
+}
+function clampContrast(value) {
+  const snapped = Math.round(Number(value) * 10) / 10
+  return Math.min(21, Math.max(1, snapped))
+}
+function stage3Active() {
+  return state.staff.some((staff) => staff.role === "permanent") && INDUSTRIES.some((id) => state.codified[id])
+}
+function stage() {
+  if (stage3Active()) return 3
+  if (state.everHired) return 2
+  return 1
+}
+function interval() { return 20 - Math.min(state.accepted, 12) }
+function shipPay(project) {
+  if (project && project.size === "big") return stage3Active() ? 48 : 36
+  return stage3Active() ? 10 : 6
+}
+function autoPay(project) {
+  if (project.size === "big") return stage3Active() ? 48 : 36
+  return stage3Active() ? 6 : 3
+}
+function payrollDue() { return state.staff.reduce((sum, staff) => sum + staff.pay, 0) }
+function tokensUnlocked() { return state.everHired && state.accepted >= 3 }
+function focused() {
+  if (state.openId) {
+    const open = state.queue.find((project) => project.id === state.openId)
+    if (open) return open
+  }
+  return state.queue.find((project) => project.flagged) || state.queue.find((project) => project.working) || state.queue[0] || null
+}
+function describe(project) {
+  const lang = LANG[project.industry]
+  const size = project.size === "big" ? "Big" : "Small"
+  const system = project.size === "big" ? " · " + lang.system : ""
+  return project.client + " · " + lang.name + system + " · " + size
+}
+function blankElement(partial) {
+  return Object.assign({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "body", copy: "" }, partial)
+}
+function blankElements() {
+  return {
+    background: blankElement({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "body" }),
+    title: blankElement({ colour: "lime", radius: 0, contrast: 1.6, hierarchy: "primary", copy: "Notes" }),
+    cardA: blankElement({ colour: "lime", radius: 0, contrast: 1.6, hierarchy: "body", ink: "lime" }),
+    cardB: blankElement({ colour: "hot", radius: 32, contrast: 1.6, hierarchy: "body", ink: "hot" }),
+    save: blankElement({ colour: "hot", radius: 0, contrast: 1.6, hierarchy: "primary", copy: "Save note", ink: "hot" })
+  }
+}
+function makeReq(project, spec) {
+  const lang = LANG[project.industry]
+  let base = ""
+  if (spec.prop === "colour" && spec.mode === "strict") base = "Colour " + COLOURS[lang.colour[spec.element]].name
+  else if (spec.prop === "colour") base = "Calm colour"
+  else if (spec.prop === "radius" && spec.mode === "strict") base = "Radius " + targetRadius(lang, spec.element)
+  else if (spec.prop === "radius") base = "Radius 12–24"
+  else if (spec.prop === "contrast" && spec.mode === "strict") base = "Contrast ≥ " + lang.contrast.toFixed(1)
+  else if (spec.prop === "contrast") base = "Contrast ≥ 4.5"
+  else if (spec.prop === "hierarchy") base = "Hierarchy " + cap(spec.value)
+  else if (spec.prop === "copy") base = "Clear intent"
+  else if (spec.prop === "flow") base = "Fix " + cap(spec.value)
+  const group = spec.group || (spec.prop === "hierarchy" || spec.prop === "copy" ? "type" : spec.prop === "flow" ? "flow" : spec.prop)
+  return {
+    element: spec.prop === "flow" ? "background" : spec.element,
+    focus: spec.prop === "flow" ? "background" : spec.element,
+    prop: spec.prop,
+    mode: spec.mode || "ux",
+    value: spec.value || null,
+    title: spec.prop === "flow" ? "Flow" : NAMES[spec.element],
+    base,
+    group,
+    named: spec.named === true
+  }
+}
+function buildReqs(project) {
+  const mode = project.size === "big" ? "strict" : "vague"
+  const visual = []
+  ELEMENT_IDS.forEach((id) => {
+    visual.push({ element: id, prop: "colour", mode, group: "colour" })
+    visual.push({ element: id, prop: "radius", mode, group: "radius" })
+    if (id !== "background") visual.push({ element: id, prop: "contrast", mode, group: "contrast" })
+  })
+  const namedVisual = project.size === "big" ? visual : shuffle(visual).slice(0, PARAMS.namedLines)
+  const named = new Set(namedVisual)
+  const reqs = visual.map((spec) => makeReq(project, Object.assign({}, spec, { named: named.has(spec) })))
+  if (project.hasUX) {
+    reqs.push(makeReq(project, { element: "title", prop: "hierarchy", mode: "ux", value: "primary", group: "type", named: true }))
+    reqs.push(makeReq(project, { element: "save", prop: "hierarchy", mode: "ux", value: "primary", group: "type", named: true }))
+    reqs.push(makeReq(project, { element: "cardA", prop: "hierarchy", mode: "ux", value: "body", group: "type", named: true }))
+    reqs.push(makeReq(project, { element: "cardB", prop: "hierarchy", mode: "ux", value: "body", group: "type", named: true }))
+    reqs.push(makeReq(project, { element: "title", prop: "copy", mode: "ux", group: "type", named: true }))
+    reqs.push(makeReq(project, { element: "save", prop: "copy", mode: "ux", group: "type", named: true }))
+    reqs.push(makeReq(project, { element: "background", prop: "flow", mode: "ux", value: project.flow.demand, group: "flow", named: true }))
+  }
+  return reqs
+}
+function passes(project, req) {
+  if (req.prop === "flow") return req.value === "empty" ? project.flow.emptyFixed : project.flow.errorFixed
+  if (req.prop === "copy") {
+    const copy = project.elements[req.element].copy
+    return copy === "Notes" || copy === "Save note"
+  }
+  if (req.prop === "hierarchy") return project.elements[req.element].hierarchy === req.value
+  const el = project.elements[req.element]
+  const lang = LANG[project.industry]
+  const codified = state.codified[project.industry]
+  if (req.prop === "colour") {
+    if (req.mode === "strict") return el.colour === lang.colour[req.element]
+    if (codified && el.colour === lang.colour[req.element]) return true
+    return COLOURS[el.colour].calm
+  }
+  if (req.prop === "radius") {
+    const target = targetRadius(lang, req.element)
+    if (req.mode === "strict") return el.radius === target
+    if (codified && el.radius === target) return true
+    return el.radius >= 12 && el.radius <= 24
+  }
+  if (req.prop === "contrast") {
+    const ratio = state.tools.contrast ? el.contrast : paintedContrast(project, req.element)
+    if (req.mode === "strict") return ratio + 1e-6 >= lang.contrast
+    if (codified && ratio + 1e-6 >= lang.contrast) return true
+    return ratio + 1e-6 >= 4.5
+  }
+  return false
+}
+const GRADE_RANK = { best: 0, acceptable: 1, bare: 2, wrong: 3 }
+function isVisualReq(req) {
+  return req.group === "colour" || req.group === "radius" || req.group === "contrast"
+}
+function srgbChannel(channel) {
+  const s = channel / 255
+  return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4)
+}
+function relativeLuminance(hex) {
+  const rgb = hexToRgb(hex)
+  return 0.2126 * srgbChannel(rgb.r) + 0.7152 * srgbChannel(rgb.g) + 0.0722 * srgbChannel(rgb.b)
+}
+function contrastRatio(aHex, bHex) {
+  const left = relativeLuminance(aHex)
+  const right = relativeLuminance(bHex)
+  const lighter = Math.max(left, right)
+  const darker = Math.min(left, right)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+function contrastBand(ratio) {
+  if (ratio >= PARAMS.contrastBest) return "best"
+  if (ratio >= PARAMS.contrastAcceptable) return "acceptable"
+  if (ratio >= PARAMS.contrastBare) return "bare"
+  return "wrong"
+}
+function nearestSwatch(hex) {
+  const rgb = hexToRgb(hex)
+  let best = "paper"
+  let bestD = Infinity
+  Object.keys(COLOURS).forEach((id) => {
+    const colour = hexToRgb(COLOURS[id].hex)
+    const distance = (colour.r - rgb.r) ** 2 + (colour.g - rgb.g) ** 2 + (colour.b - rgb.b) ** 2
+    if (distance < bestD) {
+      bestD = distance
+      best = id
+    }
+  })
+  return best
+}
+function contrastMix(el) {
+  return state.tools.contrast ? el.contrast : 21
+}
+function surfaceHex(project, elementId) {
+  if (elementId === "title") return COLOURS[project.elements.background.colour].hex
+  return COLOURS[project.elements[elementId].colour].hex
+}
+function inkHex(project, elementId) {
+  const el = project.elements[elementId]
+  if (el.ink && COLOURS[el.ink]) return COLOURS[el.ink].hex
+  if (elementId === "title") return COLOURS[el.colour].hex
+  return bestInk(COLOURS[el.colour].hex)
+}
+function paintedContrast(project, elementId) {
+  const el = project.elements[elementId]
+  const behind = surfaceHex(project, elementId)
+  const ink = fade(behind, inkHex(project, elementId), contrastMix(el))
+  return contrastRatio(ink, behind)
+}
+function colourGrade(project, elementId) {
+  const chosen = project.elements[elementId].colour
+  if (chosen === LANG[project.industry].colour[elementId]) return "best"
+  if (COLOURS[chosen].calm) return "bare"
+  return "wrong"
+}
+function radiusGrade(project, elementId) {
+  const lang = LANG[project.industry]
+  const industryC = lang.radius
+  const industryB = targetRadius(lang, "background")
+  const components = ["title", "cardA", "cardB", "save"]
+  const componentRadii = components.map((id) => project.elements[id].radius)
+  const shared = componentRadii.every((radius) => radius === componentRadii[0])
+  const C = componentRadii[0]
+  const B = project.elements.background.radius
+  if (shared && C === industryC && B === industryB) return "best"
+  if (shared && B === C + PARAMS.radiusStep) return "acceptable"
+  const radius = project.elements[elementId].radius
+  if (elementId !== "background" && radius > B) return "wrong"
+  if (radius === 0) return "wrong"
+  if (radius < 12 || radius > 24) return "wrong"
+  return "bare"
+}
+function grade(project, elementId, prop) {
+  if (prop === "colour") return colourGrade(project, elementId)
+  if (prop === "radius") return radiusGrade(project, elementId)
+  if (prop === "contrast") {
+    if (elementId === "background") return "wrong"
+    return contrastBand(paintedContrast(project, elementId))
+  }
+  return "wrong"
+}
+function screenGrade(project) {
+  let lowest = "best"
+  ELEMENT_IDS.forEach((id) => {
+    const props = id === "background" ? ["colour", "radius"] : ["colour", "radius", "contrast"]
+    props.forEach((prop) => {
+      const reached = grade(project, id, prop)
+      if (GRADE_RANK[reached] > GRADE_RANK[lowest]) lowest = reached
+    })
+  })
+  return lowest
+}
+function clientBar(project) {
+  return project.standard === "exacting" ? "best" : "bare"
+}
+function meetsBar(reached, bar) {
+  if (reached === "wrong") return false
+  return GRADE_RANK[reached] <= GRADE_RANK[bar]
+}
+function typeFlowMet(project) {
+  return project.reqs.every((req) => (req.group !== "type" && req.group !== "flow") || passes(project, req))
+}
+function holdsShip(project, req) {
+  if (isVisualReq(req)) {
+    if (grade(project, req.element, req.prop) !== "wrong") return false
+    return project.standard === "exacting" || req.named === true
+  }
+  if (req.group === "type" || req.group === "flow") return !passes(project, req)
+  return false
+}
+function holdingLine(project) {
+  const exacting = project.standard === "exacting"
+  for (let i = 0; i < project.reqs.length; i++) {
+    const req = project.reqs[i]
+    if (isVisualReq(req)) {
+      const reached = grade(project, req.element, req.prop)
+      if (reached === "wrong" && (req.named || exacting)) return req
+    } else if ((req.group === "type" || req.group === "flow") && !passes(project, req)) {
+      return req
+    }
+  }
+  return null
+}
+function feeFor(project) {
+  if (holdingLine(project)) return null
+  const full = shipPay(project)
+  const shortFee = autoPay({ size: "small" })
+  const uxMet = typeFlowMet(project)
+  if (project.standard === "loose") {
+    const namedOk = project.reqs.every((req) => !isVisualReq(req) || !req.named || meetsBar(grade(project, req.element, req.prop), "bare"))
+    if (namedOk && uxMet) return full
+    return null
+  }
+  if (screenGrade(project) === "best" && uxMet) return full
+  return shortFee
+}
+function shipButtonLabel(project) {
+  if (!project) return "Ship"
+  const fee = feeFor(project)
+  if (fee == null) return "Ship held"
+  return "Ship · $" + fee
+}
+function isCovered(project, req) {
+  if (req.prop === "copy") return state.process.research
+  if (req.prop === "hierarchy") return state.process.wire
+  if (req.prop === "flow") return state.process.test
+  const visual = req.prop === "colour" || req.prop === "radius" || req.prop === "contrast"
+  if (visual && state.codified[project.industry]) return true
+  if (req.mode === "vague" && req.prop === "colour" && state.tokens.colour) return true
+  if (req.mode === "vague" && req.prop === "radius" && state.tokens.radius) return true
+  if (req.mode === "vague" && req.prop === "contrast" && state.tokens.contrast) return true
+  return false
+}
+function clearInk(project) {
+  ELEMENT_IDS.forEach((id) => { project.elements[id].ink = null })
+}
+function applyLanguage(project) {
+  const lang = LANG[project.industry]
+  ELEMENT_IDS.forEach((id) => {
+    project.elements[id].colour = lang.colour[id]
+    project.elements[id].radius = targetRadius(lang, id)
+    project.elements[id].contrast = 21
+  })
+  clearInk(project)
+}
+function applyVagueLook(project) {
+  ELEMENT_IDS.forEach((id) => {
+    project.elements[id].colour = VAGUE_COLOUR[id]
+    project.elements[id].radius = 16
+    project.elements[id].contrast = 21
+  })
+  clearInk(project)
+}
+function applyBrokenUX(project) {
+  project.elements.title.hierarchy = "small"
+  project.elements.save.hierarchy = "small"
+  project.elements.cardA.hierarchy = "primary"
+  project.elements.cardB.hierarchy = "small"
+  project.elements.title.copy = "Stuff"
+  project.elements.save.copy = "Submit"
+  project.flow.demand = Math.random() < 0.5 ? "empty" : "error"
+  project.flow.showing = project.flow.demand
+  project.flow.emptyFixed = false
+  project.flow.errorFixed = false
+}
+function applyPrefill(project) {
+  if (state.tokens.colour) ELEMENT_IDS.forEach((id) => { project.elements[id].colour = VAGUE_COLOUR[id] })
+  if (state.tokens.radius) ELEMENT_IDS.forEach((id) => { project.elements[id].radius = 16 })
+  if (state.tokens.contrast) ELEMENT_IDS.forEach((id) => {
+    project.elements[id].contrast = 21
+    project.elements[id].ink = null
+  })
+  if (state.codified[project.industry]) applyLanguage(project)
+  if (!project.hasUX) return
+  if (state.process.research) {
+    project.elements.title.copy = "Notes"
+    project.elements.save.copy = "Save note"
+  }
+  if (state.process.wire) {
+    project.elements.title.hierarchy = "primary"
+    project.elements.save.hierarchy = "primary"
+    project.elements.cardA.hierarchy = "body"
+    project.elements.cardB.hierarchy = "body"
+  }
+  if (state.process.test) {
+    if (project.flow.demand === "empty") project.flow.emptyFixed = true
+    if (project.flow.demand === "error") project.flow.errorFixed = true
+  }
+}
+function applyPassing(project) {
+  if (project.size === "big" || state.codified[project.industry]) applyLanguage(project)
+  else applyVagueLook(project)
+  if (!project.hasUX) return
+  project.elements.title.hierarchy = "primary"
+  project.elements.save.hierarchy = "primary"
+  project.elements.cardA.hierarchy = "body"
+  project.elements.cardB.hierarchy = "body"
+  project.elements.title.copy = "Notes"
+  project.elements.save.copy = "Save note"
+  if (project.flow.demand === "empty") project.flow.emptyFixed = true
+  if (project.flow.demand === "error") project.flow.errorFixed = true
+}
+function writeWrong(project, req) {
+  if (req.prop === "flow") {
+    if (req.value === "empty") project.flow.emptyFixed = false
+    else project.flow.errorFixed = false
+    project.flow.showing = req.value
+  } else if (req.prop === "copy") {
+    project.elements[req.element].copy = Math.random() < 0.5 ? "Stuff" : "Submit"
+  } else if (req.prop === "hierarchy") {
+    project.elements[req.element].hierarchy = req.value === "primary" ? "small" : "primary"
+  } else if (req.prop === "colour") {
+    project.elements[req.element].colour = Math.random() < 0.5 ? "hot" : "lime"
+  } else if (req.prop === "radius") {
+    project.elements[req.element].radius = 32
+  } else if (req.prop === "contrast") {
+    project.elements[req.element].contrast = 1.6
+    project.elements[req.element].ink = project.elements[req.element].colour
+  }
+  project.missNote = req.title + " · " + req.base
+  project.missElement = req.focus
+}
+function nextClient() {
+  const index = state.projectSeq - 1
+  const name = CLIENTS[index % CLIENTS.length]
+  const lap = Math.floor(index / CLIENTS.length)
+  return lap ? name + " " + (lap + 1) : name
+}
+function makeProject() {
+  const industry = pick(INDUSTRIES)
+  let size = "small"
+  if (state.accepted >= 3 && Math.random() < 0.25) size = "big"
+  const waitingBig = state.queue.filter((project) => project.size === "big").length
+  if (size === "big" && !state.handsFreeEver && waitingBig >= 1) size = "small"
+  const exactingChance = tokensUnlocked() ? PARAMS.exactingChanceAfterToken : PARAMS.exactingChance
+  const standard = Math.random() < exactingChance ? "exacting" : "loose"
+  const temper = Math.random() < PARAMS.soundChance ? "sound" : "sour"
+  const project = {
+    id: ++state.projectSeq,
+    client: nextClient(),
+    industry,
+    size,
+    standard,
+    temper,
+    onTimeLeft: PARAMS.onTimeSeconds,
+    attemptedBy: null,
+    hasUX: stage3Active(),
+    elements: blankElements(),
+    flow: { showing: "default", emptyFixed: false, errorFixed: false, demand: null },
+    reqs: [],
+    claimedBy: null,
+    staffId: null,
+    working: false,
+    flagged: false,
+    flaggedBy: "",
+    missNote: "",
+    missElement: null,
+    playerEdited: false
+  }
+  if (project.hasUX) applyBrokenUX(project)
+  applyPrefill(project)
+  project.reqs = buildReqs(project)
+  return project
+}
+function spawn(reason) {
+  const project = makeProject()
+  state.queue.push(project)
+  if (reason === "timer") state.status = "New project · " + describe(project) + "."
+  return project
+}
+function handWasHandsFree(project) {
+  if (project.playerEdited) return false
+  if (!project.reqs.length) return false
+  if (!project.reqs.every((req) => passes(project, req))) return false
+  return project.reqs.every((req) => isCovered(project, req))
+}
+function completeShip(project, method, staff) {
+  const pay = feeFor(project)
+  if (pay == null) return
+  const named = project.reqs.filter((req) => req.named)
+  const pressedFree = !project.playerEdited && named.length > 0 && named.every((req) => {
+    if (!isCovered(project, req)) return false
+    if (isVisualReq(req)) return meetsBar(grade(project, req.element, req.prop), clientBar(project))
+    return (req.group === "type" || req.group === "flow") && passes(project, req)
+  })
+  const handsFree = method === "auto" || pressedFree
+  const firstFree = handsFree && !state.handsFreeEver
+  state.money += pay
+  // On time is read here, before any later statement can zero it.
+  const onTimeLeft = project.onTimeLeft
+  const fit = screenGrade(project) === "best" && typeFlowMet(project)
+  if (fit && project.temper === "sound" && onTimeLeft > 0) {
+    if (project.attemptedBy != null) {
+      const attempter = state.staff.find((item) => item.id === project.attemptedBy)
+      if (attempter) attempter.miss = 0.2
+    } else if (!state.everHired) {
+      state.nextHireFloor = 0.2
+    }
+  }
+  if (method === "hand" && fit && project.temper === "sound") {
+    state.headUnlocked = true
+    state.headOffer = project.elements.background.colour
+  }
+  state.accepted += 1
+  if (method === "hand") state.handShips += 1
+  if (project.size === "big") {
+    state.bigDone[project.industry] = true
+    state.month.bigShipped = true
+  }
+  if (handsFree) state.handsFreeEver = true
+  if (method === "auto" && staff) staff.clean += 1
+  const who = method === "auto" && staff ? staff.name + " shipped " : "Shipped "
+  state.status = who + project.client + " · $" + pay + "."
+  if (firstFree) state.status += " Big-client cap is off."
+  state.queue = state.queue.filter((item) => item.id !== project.id)
+  if (state.openId === project.id) {
+    state.openId = null
+    state.selectedEl = null
+  }
+  if (!state.queue.length) spawn("fill")
+}
+function handShip() {
+  state.month.handTouch = true
+  const project = state.queue.find((item) => item.id === state.openId)
+  if (!project) {
+    state.status = "Select part of the Screen before you Ship."
+    commit()
+    return
+  }
+  const held = holdingLine(project)
+  if (held) {
+    state.status = "Ship held. " + (NAMES[held.element] || held.element) + " " + held.group + " is Wrong."
+    commit()
+    return
+  }
+  completeShip(project, "hand", null)
+  commit()
+}
+function releaseStaffProject(staff) {
+  if (!staff.projectId) return
+  const project = state.queue.find((item) => item.id === staff.projectId)
+  staff.projectId = null
+  staff.workLeft = 0
+  if (!project || project.staffId !== staff.id) return
+  project.staffId = null
+  project.working = false
+  if (project.claimedBy === staff.id) project.claimedBy = null
+}
+function oldestFree() {
+  const tokenOwned = state.tokens.colour || state.tokens.radius || state.tokens.contrast
+  return state.queue.find((project) => {
+    if (project.claimedBy || project.flagged || project.working) return false
+    if (project.size === "big" && !tokenOwned) return false
+    return true
+  })
+}
+function startWork(staff, project) {
+  project.attemptedBy = staff.id
+  project.working = true
+  project.claimedBy = staff.id
+  project.staffId = staff.id
+  staff.projectId = project.id
+  staff.workLeft = staff.role === "permanent" ? 4 : 8
+}
+function finishWork(staff) {
+  const project = state.queue.find((item) => item.id === staff.projectId)
+  staff.projectId = null
+  staff.workLeft = 0
+  if (!project || project.claimedBy === "player") return
+  project.working = false
+  project.staffId = null
+  project.claimedBy = null
+  applyPassing(project)
+  const open = project.reqs.filter((req) => !isCovered(project, req))
+  if (open.length && Math.random() < staff.miss) {
+    const req = open[Math.floor(Math.random() * open.length)]
+    writeWrong(project, req)
+    project.flagged = true
+    project.flaggedBy = staff.name
+    state.status = staff.name + " flagged " + project.client + ". " + project.missNote + " is wrong."
+    return
+  }
+  completeShip(project, "auto", staff)
+}
+function runWork(dt) {
+  state.staff.forEach((staff) => {
+    if (staff.projectId) {
+      staff.workLeft -= dt
+      if (staff.workLeft <= 0) finishWork(staff)
+    }
+    if (!staff.projectId) {
+      const job = oldestFree()
+      if (job) startWork(staff, job)
+    }
+  })
+}
+function runArrival(dt) {
+  if (!state.queue.length) {
+    spawn("fill")
+    return
+  }
+  state.arrivalLeft -= dt
+  if (state.arrivalLeft <= 0) {
+    spawn("timer")
+    state.arrivalLeft = interval()
+  }
+}
+function settlePayroll() {
+  const left = []
+  const pull = (role) => {
+    for (let i = state.staff.length - 1; i >= 0; i--) {
+      if (state.staff[i].role !== role) continue
+      const gone = state.staff.splice(i, 1)[0]
+      releaseStaffProject(gone)
+      return gone
+    }
+    return null
+  }
+  while (state.staff.length && payrollDue() > state.money) {
+    const role = state.staff.some((staff) => staff.role === "permanent") ? "permanent" : "intern"
+    const gone = pull(role)
+    if (!gone) break
+    left.push(gone)
+  }
+  const due = payrollDue()
+  state.money = Math.max(0, state.money - due)
+  return { paid: due, left, fullyPaid: left.length === 0 }
+}
+function refreshQualified() {
+  if (!stage3Active()) state.month.qualified = false
+}
+function endMonth() {
+  const qualified = state.month.qualified
+  const big = state.month.bigShipped
+  const hands = state.month.handTouch
+  const payroll = settlePayroll()
+  if (payroll.left.length) {
+    state.status = "Payroll short. Unpaid and gone: " + payroll.left.map((staff) => staff.name).join(", ") + ". Paid $" + payroll.paid + "."
+  } else if (payroll.paid === 0) state.status = "Month ended. No payroll due."
+  else state.status = "Payroll paid $" + payroll.paid + "."
+  if (qualified && big && !hands && payroll.fullyPaid) {
+    state.wins += 1
+    state.showBanner = true
+    state.status = "Won the month. " + state.status
+  }
+  state.monthIndex += 1
+  state.month = { qualified: stage3Active(), bigShipped: false, handTouch: false }
+  state.monthLeft = 45
+}
+function hire() {
+  if (state.handShips < 3) return
+  let pct
+  let miss
+  if (typeof state.nextHireFloor === "number") {
+    miss = state.nextHireFloor
+    pct = Math.round(miss * 100)
+    state.nextHireFloor = null
+  } else {
+    pct = 20 + Math.floor(Math.random() * 31)
+    miss = pct / 100
+  }
+  const name = STAFF_NAMES[state.nextStaffId - 1] || ("Intern " + state.nextStaffId)
+  state.staff.push({
+    id: state.nextStaffId++,
+    name,
+    role: "intern",
+    pay: 10,
+    miss,
+    clean: 0,
+    projectId: null,
+    workLeft: 0
+  })
+  state.everHired = true
+  state.status = name + " hired. Miss rate " + pct + "%. No hire fee."
+  commit()
+}
+function fire(id) {
+  const index = state.staff.findIndex((staff) => staff.id === id)
+  if (index < 0) return
+  const staff = state.staff[index]
+  releaseStaffProject(staff)
+  state.staff.splice(index, 1)
+  state.status = staff.name + " is fired. Future pay stops."
+  commit()
+}
+function promote(id) {
+  const staff = state.staff.find((item) => item.id === id)
+  if (!staff || staff.role !== "intern" || staff.clean < 3) return
+  staff.role = "permanent"
+  staff.pay = 30
+  if (staff.workLeft > 4) staff.workLeft = 4
+  state.status = staff.name + " is permanent. $30 a month, 4 second passes, no misses on covered work."
+  commit()
+}
+function buyHead() {
+  if (!state.headUnlocked || !state.headOffer || !COLOURS[state.headOffer]) return
+  const price = shipPay({ size: "small" })
+  if (state.money < price) return
+  state.money -= price
+  state.status = "Head start offers " + COLOURS[state.headOffer].name + "."
+  commit()
+}
+function buyTool(key) {
+  if (!studioOpen() || state.tools[key] || state.money < 12) return
+  state.money -= 12
+  state.tools[key] = true
+  const name = key === "swatches" ? "Swatches" : key === "radius" ? "Radius slider" : "Contrast slider"
+  state.status = name + " is on."
+  commit()
+}
+function buyToken(key) {
+  if (!tokensUnlocked() || state.tokens[key] || state.money < 12) return
+  state.money -= 12
+  state.tokens[key] = true
+  state.status = TOKEN_NAME[key] + " is on. New screens use it."
+  commit()
+}
+function buyLanguage(industry) {
+  if (!state.bigDone[industry] || state.codified[industry] || state.money < 15) return
+  state.money -= 15
+  state.codified[industry] = true
+  state.status = LANG[industry].system + " codified."
+  commit()
+}
+function buyProcess(key) {
+  if (!stage3Active() || state.process[key] || state.money < 24) return
+  state.money -= 24
+  state.process[key] = true
+  state.status = PROCESS_INFO[key][0] + " is on."
+  commit()
+}
+function openProject(project, element) {
+  if (state.openId && state.openId !== project.id) {
+    const previous = state.queue.find((item) => item.id === state.openId)
+    if (previous && previous.claimedBy === "player") previous.claimedBy = null
+  }
+  if (project.staffId) {
+    const staff = state.staff.find((item) => item.id === project.staffId)
+    if (staff) {
+      staff.projectId = null
+      staff.workLeft = 0
+    }
+  }
+  project.working = false
+  project.staffId = null
+  project.claimedBy = "player"
+  state.openId = project.id
+  state.selectedEl = element
+  state.month.handTouch = true
+  commit()
+}
+function edited(fn) {
+  const project = state.queue.find((item) => item.id === state.openId)
+  if (!project || !state.selectedEl) return
+  const el = project.elements[state.selectedEl]
+  const before = JSON.stringify(project.elements) + JSON.stringify(project.flow)
+  fn(project, el)
+  const after = JSON.stringify(project.elements) + JSON.stringify(project.flow)
+  if (before === after) return
+  project.playerEdited = true
+  state.month.handTouch = true
+  refreshWork()
+}
+function refreshWork() {
+  renderReqs()
+  renderPopup()
+  paint()
+  renderLive()
+  state.renderKey = structuralKey()
+}
+function reqGradeWord(reached) {
+  if (reached === "best") return "Best practice"
+  if (reached === "acceptable") return "Acceptable"
+  if (reached === "bare") return "Bare minimum"
+  return "Wrong"
+}
+function reqShowsMatch(project, req) {
+  const el = project.elements[req.element]
+  if (!el) return false
+  const lang = LANG[project.industry]
+  const codified = !!state.codified[project.industry]
+  if (req.prop === "colour") {
+    if (state.tokens.colour && el.colour === VAGUE_COLOUR[req.element]) return true
+    return codified && el.colour === lang.colour[req.element]
+  }
+  if (req.prop === "radius") {
+    if (state.tokens.radius && el.radius === 16) return true
+    return codified && el.radius === targetRadius(lang, req.element)
+  }
+  if (req.prop === "contrast") {
+    if (state.tokens.contrast && el.contrast === 21) return true
+    if (!codified || req.element === "background") return false
+    const painted = { elements: {} }
+    ELEMENT_IDS.forEach((id) => {
+      painted.elements[id] = { colour: lang.colour[id], contrast: 21 }
+    })
+    return Math.abs(paintedContrast(project, req.element) - paintedContrast(painted, req.element)) < 1e-6
+  }
+  return false
+}
+function nowText() {
+  return ""
+}
+function onTimeLabel(project) {
+  if (!(project.onTimeLeft > 0)) return ""
+  return " · " + Math.ceil(project.onTimeLeft) + "s"
+}
+function queueState(project) {
+  if (project.working) {
+    const staff = state.staff.find((item) => item.id === project.staffId)
+    return "Working " + (staff ? Math.max(0, staff.workLeft).toFixed(1) + "s" : "") + onTimeLabel(project)
+  }
+  if (project.id === state.openId) return (project.flagged ? "Open · flagged" : "Open") + onTimeLabel(project)
+  if (project.flagged) return "Flagged" + onTimeLabel(project)
+  return "Waiting" + onTimeLabel(project)
+}
+function elementFailing(project, id) {
+  return project.reqs.some((req) => req.focus === id && !passes(project, req))
+}
+function paintNode(node, project, id, selected) {
+  const open = state.openId === project.id
+  node.classList.toggle("on", open && selected)
+  node.classList.toggle("miss", project.flagged && elementFailing(project, id))
+}
+function paint() {
+  const project = focused()
+  const screen = $("el-background")
+  const title = $("el-title")
+  const cardA = $("el-card-a")
+  const cardB = $("el-card-b")
+  const save = $("el-save")
+  const chip = $("flowchip")
+  if (!project) {
+    $("bezel").textContent = "No project"
+    screen.style.background = "#111"
+    placeHandles()
+    return
+  }
+  $("bezel").textContent = describe(project)
+  const bg = project.elements.background
+  screen.style.background = COLOURS[bg.colour].hex
+  screen.style.borderRadius = bg.radius + "px"
+  paintNode(screen, project, "background", state.selectedEl === "background")
+  screen.setAttribute("aria-pressed", state.openId === project.id && state.selectedEl === "background" ? "true" : "false")
+  const titleEl = project.elements.title
+  title.textContent = titleEl.copy
+  title.style.color = fade(COLOURS[bg.colour].hex, inkHex(project, "title"), contrastMix(titleEl))
+  title.style.borderRadius = titleEl.radius + "px"
+  title.style.fontSize = typeSize(titleEl.hierarchy)
+  title.style.fontWeight = titleEl.hierarchy === "primary" ? "750" : "600"
+  paintNode(title, project, "title", state.selectedEl === "title")
+  ;[["cardA", cardA], ["cardB", cardB]].forEach(([id, node]) => {
+    const el = project.elements[id]
+    node.style.background = COLOURS[el.colour].hex
+    node.style.borderRadius = el.radius + "px"
+    const label = node.querySelector(".label")
+    label.textContent = NAMES[id]
+    label.style.color = fade(COLOURS[el.colour].hex, inkHex(project, id), contrastMix(el))
+    label.style.fontSize = typeSize(el.hierarchy)
+    label.style.fontWeight = el.hierarchy === "primary" ? "750" : "600"
+    paintNode(node, project, id, state.selectedEl === id)
+  })
+  const saveEl = project.elements.save
+  save.textContent = saveEl.copy
+  save.style.background = COLOURS[saveEl.colour].hex
+  save.style.color = fade(COLOURS[saveEl.colour].hex, inkHex(project, "save"), contrastMix(saveEl))
+  save.style.borderRadius = saveEl.radius + "px"
+  save.style.fontSize = typeSize(saveEl.hierarchy)
+  paintNode(save, project, "save", state.selectedEl === "save")
+  placeHandles()
+  if (!project.hasUX) {
+    chip.hidden = true
+    return
+  }
+  chip.hidden = false
+  const showing = project.flow.showing
+  const broken = (showing === "empty" && !project.flow.emptyFixed) || (showing === "error" && !project.flow.errorFixed)
+  chip.classList.toggle("broken", showing !== "default" && broken)
+  chip.classList.toggle("fixed", showing !== "default" && !broken)
+  if (showing === "default") chip.textContent = "Flow · Default"
+  else if (showing === "empty") chip.textContent = project.flow.emptyFixed ? "Empty · No notes yet" : "Empty · Broken"
+  else chip.textContent = project.flow.errorFixed ? "Error · Couldn't save" : "Error · Broken"
+}
+function renderQueue() {
+  const list = $("queue")
+  list.replaceChildren()
+  state.queue.forEach((project) => {
+    const li = document.createElement("li")
+    const btn = document.createElement("button")
+    btn.type = "button"
+    btn.className = "qbtn" + (project.size === "big" ? " big" : "") + (project.id === state.openId ? " on" : "")
+    btn.dataset.id = String(project.id)
+    btn.setAttribute("aria-pressed", project.id === state.openId ? "true" : "false")
+    const name = document.createElement("span")
+    name.className = "name"
+    name.textContent = describe(project)
+    const time = document.createElement("span")
+    time.className = "qtime"
+    time.dataset.qtime = String(project.id)
+    time.textContent = queueState(project)
+    btn.append(name, time)
+    li.appendChild(btn)
+    list.appendChild(li)
+  })
+}
+function renderReqs() {
+  const list = $("reqs")
+  list.replaceChildren()
+  const project = focused()
+  if (!project) return
+  const bar = clientBar(project)
+  const selected = state.openId === project.id ? state.selectedEl : null
+  function addHeading(text) {
+    const li = document.createElement("li")
+    const heading = document.createElement("h2")
+    heading.textContent = text
+    li.appendChild(heading)
+    list.appendChild(li)
+  }
+  function addRow(req, kind, parent, lead, withGroup) {
+    const li = document.createElement("li")
+    const btn = document.createElement("button")
+    btn.type = "button"
+    const elementId = req.element
+    let detail = ""
+    let showCheck = false
+    let checked = false
+    if (kind === "visual") {
+      const reached = grade(project, req.element, req.prop)
+      detail = reqGradeWord(reached)
+      if (reqShowsMatch(project, req)) detail += " Match"
+      showCheck = req.named === true
+      if (showCheck) checked = meetsBar(reached, bar)
+    } else {
+      showCheck = req.named === true
+      checked = passes(project, req)
+      if (req.prop === "hierarchy") detail = "Hierarchy"
+      else if (req.prop === "copy") detail = "Copy"
+    }
+    btn.className = "todo" + (showCheck && checked ? " done" : "") + (selected === elementId ? " on" : "") + (lead ? " lead" : "")
+    btn.dataset.focus = elementId
+    if (showCheck) {
+      btn.setAttribute("role", "checkbox")
+      btn.setAttribute("aria-checked", checked ? "true" : "false")
+      const check = document.createElement("span")
+      check.className = "check"
+      check.setAttribute("aria-hidden", "true")
+      btn.appendChild(check)
+    } else {
+      btn.style.gridTemplateColumns = "minmax(0, 1fr)"
+    }
+    const groupName = req.group === "colour" ? "Colour" : req.group === "radius" ? "Radius" : req.group === "contrast" ? "Contrast" : req.group === "type" ? "Type" : "Flow"
+    const name = document.createElement("span")
+    name.className = "name"
+    const who = req.prop === "flow" ? "Flow" : NAMES[elementId]
+    name.textContent = withGroup ? who + " · " + groupName : who
+    btn.appendChild(name)
+    if (detail) {
+      const ask = document.createElement("span")
+      ask.className = "ask"
+      ask.textContent = detail
+      btn.appendChild(ask)
+    }
+    li.appendChild(btn)
+    parent.appendChild(li)
+  }
+  const blocking = project.reqs.filter((req) => holdsShip(project, req))
+  if (!blocking.length) {
+    const ready = document.createElement("li")
+    ready.className = "ready"
+    ready.textContent = "Ready to Ship."
+    list.appendChild(ready)
+  } else {
+    const groups = []
+    ELEMENT_IDS.forEach((id) => {
+      const open = blocking.filter((req) => (req.focus || req.element) === id)
+      if (open.length) groups.push({ id, open })
+    })
+    groups.forEach((group, index) => {
+      const li = document.createElement("li")
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.className = "todo" + (selected === group.id ? " on" : "") + (index === 0 ? " lead" : "")
+      btn.dataset.focus = group.id
+      btn.style.gridTemplateColumns = "minmax(0, 1fr)"
+      const name = document.createElement("span")
+      name.className = "name"
+      name.textContent = NAMES[group.id]
+      const ask = document.createElement("span")
+      ask.className = "ask"
+      ask.textContent = group.open.map((req) => {
+        const label = req.group === "colour" ? "Colour" : req.group === "radius" ? "Radius" : req.group === "contrast" ? "Contrast" : req.prop === "flow" ? "Flow" : "Type"
+        const word = isVisualReq(req) ? reqGradeWord(grade(project, req.element, req.prop)) : "Open"
+        return label + " " + word
+      }).join(" · ")
+      btn.append(name, ask)
+      li.appendChild(btn)
+      list.appendChild(li)
+    })
+  }
+  const rest = $("reqs-all")
+  if (rest) {
+    rest.replaceChildren()
+    ;[["colour", "Colour"], ["radius", "Radius"], ["contrast", "Contrast"]].forEach(([group, label]) => {
+      const rows = project.reqs.filter((req) => req.group === group)
+      if (!rows.length) return
+      const li = document.createElement("li")
+      const heading = document.createElement("h2")
+      heading.textContent = label
+      li.appendChild(heading)
+      rest.appendChild(li)
+      rows.forEach((req) => addRow(req, "visual", rest, false, false))
+    })
+  }
+  if (stage3Active() && rest) {
+    const typeRows = project.reqs.filter((req) => req.group === "type")
+    if (typeRows.length) {
+      const li = document.createElement("li")
+      const heading = document.createElement("h2")
+      heading.textContent = "Type"
+      li.appendChild(heading)
+      rest.appendChild(li)
+      typeRows.forEach((req) => addRow(req, "met", rest, false, false))
+    }
+    project.reqs.filter((req) => req.group === "flow").forEach((req) => addRow(req, "met", rest, false, false))
+  }
+}
+function upButton(title, detail, data, disabled) {
+  const button = document.createElement("button")
+  button.type = "button"
+  button.className = "up"
+  button.disabled = !!disabled
+  Object.keys(data).forEach((key) => { button.dataset[key] = data[key] })
+  const strong = document.createElement("strong")
+  strong.textContent = title
+  button.appendChild(strong)
+  if (detail) {
+    const span = document.createElement("span")
+    span.textContent = detail
+    button.appendChild(span)
+  }
+  return button
+}
+function hint(text) {
+  const node = document.createElement("p")
+  node.className = "hint"
+  node.textContent = text
+  return node
+}
+function ownedLine(text) {
+  const node = document.createElement("p")
+  node.className = "owned"
+  node.textContent = text
+  return node
+}
+function sectionTitle(text) {
+  const node = document.createElement("h2")
+  node.textContent = text
+  return node
+}
+function renderManage() {
+  const root = $("manage")
+  const scroll = root.scrollTop
+  root.replaceChildren()
+  if (!studioOpen()) {
+    root.hidden = true
+    return
+  }
+  root.hidden = false
+  root.appendChild(sectionTitle("Team"))
+  if (!state.staff.length) root.appendChild(hint("No one on payroll."))
+  state.staff.forEach((staff) => {
+    const card = document.createElement("div")
+    card.className = "card-staff"
+    const who = document.createElement("p")
+    who.className = "who"
+    const pct = Math.round(staff.miss * 100)
+    const role = staff.role === "permanent" ? "Permanent" : "Intern"
+    who.textContent = staff.name + " · " + role
+    const meta = document.createElement("p")
+    meta.className = "hint"
+    const miss = staff.role === "permanent" ? "0% covered · " + pct + "% open" : pct + "% miss"
+    const seconds = staff.role === "permanent" ? 4 : 8
+    meta.textContent = "$" + staff.pay + "/mo · " + miss + " · " + seconds + "s · clean " + staff.clean
+    const timer = document.createElement("p")
+    timer.className = "hint"
+    timer.dataset.timer = String(staff.id)
+    timer.textContent = "Idle"
+    const row = document.createElement("div")
+    row.className = "row"
+    const fireButton = upButton("Fire", "", { action: "fire", id: String(staff.id) }, false)
+    fireButton.setAttribute("aria-label", "Fire " + staff.name)
+    row.appendChild(fireButton)
+    if (staff.role === "intern") {
+      const promoteButton = upButton(staff.clean >= 3 ? "Promote" : "Promote " + staff.clean + "/3", "", { action: "promote", id: String(staff.id) }, staff.clean < 3)
+      promoteButton.setAttribute("aria-label", "Promote " + staff.name)
+      row.appendChild(promoteButton)
+    }
+    card.append(who, meta, timer, row)
+    root.appendChild(card)
+  })
+  if (state.handShips >= 3) {
+    root.appendChild(upButton("Hire intern", "No hire fee. $10 a month. Miss rate is rolled from 20% to 50%.", { action: "hire" }, false))
+  } else {
+    root.appendChild(hint("Intern unlocks after 3 hand ships (" + state.handShips + "/3)."))
+  }
+  if (state.headUnlocked && state.headOffer && COLOURS[state.headOffer]) {
+    const price = shipPay({ size: "small" })
+    root.appendChild(upButton(
+      "Head start · $" + price,
+      COLOURS[state.headOffer].name + " for the background. You still set it.",
+      { action: "head" },
+      state.money < price
+    ))
+  }
+  root.appendChild(sectionTitle("Design system"))
+  if (!tokensUnlocked()) root.appendChild(hint("Tokens unlock after an intern is hired and 3 accepted ships."))
+  Object.keys(TOKEN_NAME).forEach((key) => {
+    if (state.tokens[key]) root.appendChild(ownedLine(TOKEN_NAME[key] + " owned"))
+    else if (tokensUnlocked()) root.appendChild(upButton(TOKEN_NAME[key] + " · $12", TOKEN_DETAIL[key], { action: "token", token: key }, state.money < 12))
+  })
+  root.appendChild(sectionTitle("Languages"))
+  const languageReady = INDUSTRIES.some((id) => state.bigDone[id] || state.codified[id])
+  if (!languageReady) root.appendChild(hint("Ship a big client to codify that industry."))
+  INDUSTRIES.forEach((id) => {
+    const lang = LANG[id]
+    if (state.codified[id]) root.appendChild(ownedLine(lang.system + " codified"))
+    else if (state.bigDone[id]) {
+      root.appendChild(upButton(
+        "Codify " + lang.system + " · $15",
+        "Future " + lang.name + " work arrives in this language, and those values pass vague checks.",
+        { action: "codify", industry: id },
+        state.money < 15
+      ))
+    }
+  })
+  root.appendChild(sectionTitle("Design process"))
+  if (!stage3Active()) root.appendChild(hint("User research, wireframing, and usability testing unlock in Stage 3."))
+  Object.keys(PROCESS_INFO).forEach((key) => {
+    if (state.process[key]) root.appendChild(ownedLine(PROCESS_INFO[key][0] + " owned"))
+    else if (stage3Active()) root.appendChild(upButton(PROCESS_INFO[key][0] + " · $24", PROCESS_INFO[key][1], { action: "process", process: key }, state.money < 24))
+  })
+  root.scrollTop = scroll
+}
+function renderPopup() {
+  const project = state.queue.find((item) => item.id === state.openId)
+  const body = $("inspector-body")
+  const empty = $("inspector-empty")
+  if (!project || !state.selectedEl) {
+    empty.hidden = false
+    body.hidden = true
+    return
+  }
+  empty.hidden = true
+  body.hidden = false
+  const el = project.elements[state.selectedEl]
+  $("pop-title").textContent = NAMES[state.selectedEl]
+  const mine = project.reqs.filter((req) => req.focus === state.selectedEl)
+  $("pop-asks").textContent = mine.length
+    ? mine.map((req) => (passes(project, req) ? "Pass" : "Open") + " · " + req.base).join("\n")
+    : "Nothing on this element is judged."
+  $("colour-name").textContent = COLOURS[el.colour].name + " · " + reqGradeWord(grade(project, state.selectedEl, "colour"))
+  if (document.activeElement !== $("colour-pick")) $("colour-pick").value = COLOURS[el.colour].hex
+  const sellTools = studioOpen()
+  $("swatches").hidden = !state.tools.swatches
+  $("buy-swatches").hidden = !sellTools || state.tools.swatches
+  $("buy-swatches").disabled = state.money < 12
+  $("pop-radius").hidden = !state.tools.radius
+  $("radius-slider-label").hidden = !state.tools.radius
+  $("buy-radius").hidden = !sellTools || state.tools.radius
+  $("buy-radius").disabled = state.money < 12
+  const hasContrast = state.selectedEl !== "background"
+  const slider = state.tools.contrast && hasContrast
+  $("ink-wrap").hidden = !hasContrast || state.selectedEl === "title" || state.tools.contrast
+  $("pop-contrast").hidden = !slider
+  $("contrast-slider-label").hidden = !slider
+  $("buy-contrast").hidden = !sellTools || state.tools.contrast
+  $("buy-contrast").disabled = state.money < 12
+  const contrastWord = state.selectedEl === "background" ? "" : " · " + reqGradeWord(grade(project, state.selectedEl, "contrast"))
+  if (state.selectedEl === "background") $("contrast-note").textContent = "The title sits on this colour."
+  else if (state.selectedEl === "title") $("contrast-note").textContent = (state.tools.contrast ? "The slider mixes this colour into the Background." : "Contrast is this colour on the Background. Change either one.") + contrastWord
+  else $("contrast-note").textContent = (state.tools.contrast ? "The slider mixes the foreground into this fill." : "Contrast is the foreground on this fill. Change either colour.") + contrastWord
+  const inkId = el.ink && COLOURS[el.ink] ? el.ink : null
+  $("ink-name").textContent = inkId ? COLOURS[inkId].name : "Auto"
+  if (document.activeElement !== $("ink-pick")) $("ink-pick").value = inkId ? COLOURS[inkId].hex : bestInk(COLOURS[el.colour].hex)
+  const offer = $("head-offer")
+  const showOffer = state.selectedEl === "background" && state.headOffer && COLOURS[state.headOffer]
+  offer.hidden = !showOffer
+  offer.textContent = showOffer ? "Head start · " + COLOURS[state.headOffer].name : ""
+  document.querySelectorAll(".swatch").forEach((button) => {
+    button.classList.toggle("on", button.dataset.colour === el.colour)
+  })
+  const lead = project.reqs.find((req) => req.focus === state.selectedEl && holdsShip(project, req))
+  const first = lead ? lead.prop : "colour"
+  const order = first === "radius"
+    ? ["radius-wrap", "colour-wrap", "contrast-wrap"]
+    : first === "contrast"
+      ? ["contrast-wrap", "colour-wrap", "radius-wrap"]
+      : ["colour-wrap", "radius-wrap", "contrast-wrap"]
+  order.forEach((id, index) => { $(id).style.order = String(index + 1) })
+  $("radius-note").textContent = "Drag a corner on the Screen. Radius " + el.radius + " · " + reqGradeWord(grade(project, state.selectedEl, "radius")) + "."
+  $("radius-slider-val").textContent = String(el.radius)
+  if (document.activeElement !== $("pop-radius")) $("pop-radius").value = String(el.radius)
+  const contrastShown = state.tools.contrast ? el.contrast : paintedContrast(project, state.selectedEl)
+  $("contrast-val").textContent = contrastShown.toFixed(1)
+  if (document.activeElement !== $("pop-contrast")) $("pop-contrast").value = String(el.contrast)
+  const ux = project.hasUX
+  $("hierarchy-wrap").hidden = !(ux && state.selectedEl !== "background")
+  $("copy-wrap").hidden = !(ux && (state.selectedEl === "title" || state.selectedEl === "save"))
+  $("flow-wrap").hidden = !ux
+  document.querySelectorAll("#hierarchy-wrap button").forEach((button) => {
+    const on = button.dataset.h === el.hierarchy
+    button.classList.toggle("on", on)
+    button.setAttribute("aria-pressed", on ? "true" : "false")
+  })
+  document.querySelectorAll("#copy-wrap button").forEach((button) => {
+    const on = button.dataset.copy === el.copy
+    button.classList.toggle("on", on)
+    button.setAttribute("aria-pressed", on ? "true" : "false")
+  })
+  if (ux) {
+    $("flow-demand").textContent = "This client needs " + cap(project.flow.demand) + " fixed."
+    document.querySelectorAll("[data-show]").forEach((button) => {
+      const on = button.dataset.show === project.flow.showing
+      button.classList.toggle("on", on)
+      button.setAttribute("aria-pressed", on ? "true" : "false")
+    })
+    document.querySelectorAll("[data-flag]").forEach((button) => {
+      const fixed = button.dataset.flag === "empty" ? project.flow.emptyFixed : project.flow.errorFixed
+      const on = button.dataset.set === "fixed" ? fixed : !fixed
+      button.classList.toggle("on", on)
+      button.setAttribute("aria-pressed", on ? "true" : "false")
+    })
+  }
+}
+function positionPop() {
+  return
+  const pop = $("pop")
+  if (pop.hidden || !state.selectedEl) return
+  const phone = $("phone").getBoundingClientRect()
+  const dev = $("dev").getBoundingClientRect()
+  const hud = $("hud").getBoundingClientRect()
+  const width = pop.offsetWidth
+  const height = pop.offsetHeight
+  const gap = 10
+  let left = phone.right + gap
+  if (left + width > dev.left - gap) left = phone.left - width - gap
+  if (left < hud.right + gap) left = Math.max(gap, dev.left - gap - width)
+  let top = phone.top
+  const maxTop = window.innerHeight - height - gap
+  if (top > maxTop) top = Math.max(gap, maxTop)
+  pop.style.left = Math.round(left) + "px"
+  pop.style.top = Math.round(top) + "px"
+}
+function structuralKey() {
+  return JSON.stringify({
+    money: state.money,
+    accepted: state.accepted,
+    handShips: state.handShips,
+    everHired: state.everHired,
+    handsFreeEver: state.handsFreeEver,
+    wins: state.wins,
+    showBanner: state.showBanner,
+    openId: state.openId,
+    selectedEl: state.selectedEl,
+    wikiOpen: state.wikiOpen,
+    tools: state.tools,
+    headUnlocked: state.headUnlocked,
+    headOffer: state.headOffer,
+    monthIndex: state.monthIndex,
+    month: state.month,
+    tokens: state.tokens,
+    codified: state.codified,
+    process: state.process,
+    bigDone: state.bigDone,
+    staff: state.staff.map((staff) => [staff.id, staff.role, staff.pay, staff.miss, staff.clean, staff.projectId]),
+    queue: state.queue.map((project) => [project.id, project.flagged, project.working, project.claimedBy, project.missElement, project.flow, project.elements, project.reqs.map((req) => passes(project, req))])
+  })
+}
+function wikiLines(title, lines) {
+  const block = document.createElement("section")
+  const heading = document.createElement("h2")
+  heading.textContent = title
+  const list = document.createElement("ul")
+  lines.forEach((text) => {
+    const item = document.createElement("li")
+    item.textContent = text
+    list.appendChild(item)
+  })
+  block.append(heading, list)
+  return block
+}
+function studioOpen() { return state.handShips >= 1 }
+function renderWiki() {
+  const panel = $("wiki")
+  const opener = $("wiki-open")
+  if (!studioOpen()) state.wikiOpen = false
+  if (opener) {
+    opener.hidden = !studioOpen()
+    opener.setAttribute("aria-expanded", state.wikiOpen ? "true" : "false")
+  }
+  panel.hidden = !state.wikiOpen
+  if (!state.wikiOpen) return
+  const body = $("wiki-body")
+  body.replaceChildren()
+  body.appendChild(wikiLines("Colour", [
+    "Industry colour is Best practice.",
+    "Another calm swatch is Bare minimum.",
+    "Hot and Lime are Wrong.",
+    "There is no Acceptable colour."
+  ]))
+  body.appendChild(wikiLines("Radius", [
+    "The Industry pair is Best practice (component radius, background = component + " + PARAMS.radiusStep + ").",
+    "Any other shared pair stepped by " + PARAMS.radiusStep + " is Acceptable, including outside 12–24.",
+    "Otherwise a component radius greater than the background, a radius outside 12–24, or a lone 0, is Wrong, and the rest of that broken set is Bare minimum.",
+    "Editorial " + LANG.editorial.radius + " inside " + (LANG.editorial.radius + PARAMS.radiusStep) + " is Best practice."
+  ]))
+  body.appendChild(wikiLines("Contrast", [
+    "Contrast is painted ink, not the slider.",
+    "At least " + PARAMS.contrastBest + " is Best practice.",
+    "At least " + PARAMS.contrastAcceptable + " and under " + PARAMS.contrastBest + " is Acceptable.",
+    "At least " + PARAMS.contrastBare + " and under " + PARAMS.contrastAcceptable + " is Bare minimum.",
+    "Under " + PARAMS.contrastBare + " is Wrong."
+  ]))
+  const project = focused()
+  if (!project) return
+  const lang = LANG[project.industry]
+  const cardA = COLOURS[lang.colour.cardA].name
+  const cardB = COLOURS[lang.colour.cardB].name
+  body.appendChild(wikiLines(lang.name, [
+    "Background " + COLOURS[lang.colour.background].name,
+    "Cards " + (cardA === cardB ? cardA : cardA + " and " + cardB),
+    "Title " + COLOURS[lang.colour.title].name,
+    "Save " + COLOURS[lang.colour.save].name,
+    "Component radius " + lang.radius,
+    "Background radius " + (lang.radius + PARAMS.radiusStep)
+  ]))
+}
+function render() {
+  renderQueue()
+  renderReqs()
+  renderWiki()
+  renderManage()
+  renderPopup()
+  paint()
+  positionPop()
+  state.renderKey = structuralKey()
+}
+function line(label, value) { return String(label).padEnd(18, " ") + value }
+function telemetry() {
+  const rows = [
+    "PARAMETERS",
+    line("month / work", "45s · 8s intern · 4s perm"),
+    line("arrival", "20-min(ships,12)s · min 8"),
+    line("pay small", "hand 6/10 · auto 3/6"),
+    line("pay big", "$36 / $48 stage 3"),
+    line("payroll", "intern $10 · perm $30"),
+    line("costs", "$12 tok · $15 lang · $24 ux"),
+    line("gates", "hire 3 hand · promote 3"),
+    line("big roll", "after 3 · 1 in 4 · cap 1"),
+    line("clients", "exacting 1/4 then 1/2 · sound 1/2"),
+    line("small brief", PARAMS.namedLines + " named lines"),
+    line("on time", PARAMS.onTimeSeconds + "s from arrival"),
+    line("rough exacting", "auto fee 3/6"),
+    line("radius step", "components + " + PARAMS.radiusStep + " background"),
+    line("contrast grades", PARAMS.contrastBest + " / " + PARAMS.contrastAcceptable + " / " + PARAMS.contrastBare),
+    "",
+    "LIVE",
+    line("money", "$" + state.money),
+    line("month", "#" + state.monthIndex + " · " + Math.max(0, state.monthLeft).toFixed(1) + "s left"),
+    line("next payroll", "$" + payrollDue()),
+    line("arrival", Math.max(0, state.arrivalLeft).toFixed(1) + "s · every " + interval() + "s"),
+    line("accepted", String(state.accepted)),
+    line("hand ships", String(state.handShips)),
+    line("stage", String(stage()) + (stage3Active() ? " · stage 3 on" : " · stage 3 off")),
+    line("big cap", state.handsFreeEver ? "off" : "on"),
+    line("hands-free", state.handsFreeEver ? "yes" : "no"),
+    line("waiting big", String(state.queue.filter((project) => project.size === "big").length)),
+    line("queue", String(state.queue.length)),
+    line("win stage3", state.month.qualified ? "held all month" : "not held"),
+    line("win big", state.month.bigShipped ? "shipped" : "not yet"),
+    line("win hands", state.month.handTouch ? "touched" : "none"),
+    line("win payroll", "clears at month end"),
+    line("wins", String(state.wins)),
+    "",
+    "DESIGN SYSTEM",
+    line("base colour", state.tokens.colour ? "owned" : "no"),
+    line("base radius", state.tokens.radius ? "owned" : "no"),
+    line("base contrast", state.tokens.contrast ? "owned" : "no"),
+    line("swatches", state.tools.swatches ? "owned" : "$12"),
+    line("radius slider", state.tools.radius ? "owned" : "$12"),
+    line("contrast slider", state.tools.contrast ? "owned" : "$12")
+  ]
+  INDUSTRIES.forEach((id) => {
+    const owned = state.codified[id] ? "codified" : state.bigDone[id] ? "ready $15" : "locked"
+    rows.push(line(LANG[id].system, owned))
+  })
+  rows.push(line("user research", state.process.research ? "owned" : "no"))
+  rows.push(line("wireframing", state.process.wire ? "owned" : "no"))
+  rows.push(line("usability test", state.process.test ? "owned" : "no"))
+  rows.push("")
+  rows.push("TEAM")
+  if (!state.staff.length) rows.push("(none)")
+  state.staff.forEach((staff) => {
+    const pct = Math.round(staff.miss * 100)
+    const miss = staff.role === "permanent" ? "0% covered / " + pct + "% open" : pct + "%"
+    const work = (staff.role === "permanent" ? 4 : 8) + "s"
+    const job = staff.projectId ? "job " + Math.max(0, staff.workLeft).toFixed(1) + "s" : "idle"
+    rows.push(staff.name + "  " + staff.role + "  $" + staff.pay + "  miss " + miss + "  work " + work + "  clean " + staff.clean + "  " + job)
+  })
+  rows.push("")
+  rows.push("ELEMENTS")
+  const project = focused()
+  if (!project) rows.push("(none)")
+  else {
+    rows.push(line("project", project.client + " " + project.size + " " + LANG[project.industry].name))
+    rows.push(line("view", state.openId === project.id ? "open" : "preview"))
+    rows.push(line("ux", project.hasUX ? "yes" : "no"))
+    ELEMENT_IDS.forEach((id) => {
+      const el = project.elements[id]
+      const copy = id === "title" || id === "save" ? ' "' + el.copy + '"' : ""
+      rows.push(line(NAMES[id], el.colour + " r" + el.radius + " c" + el.contrast.toFixed(1) + " " + el.hierarchy + copy))
+    })
+    const flow = project.flow
+    rows.push(line("flow", flow.showing + " · empty " + (flow.emptyFixed ? "fixed" : "broken") + " · error " + (flow.errorFixed ? "fixed" : "broken")))
+  }
+  return rows.join("\n")
+}
+function ribbonText(project) {
+  if (!project) return "No project"
+  if (project.working) {
+    const staff = state.staff.find((item) => item.id === project.staffId)
+    return (staff ? staff.name : "Staff") + " working · " + (staff ? Math.max(0, staff.workLeft).toFixed(1) : "0") + "s"
+  }
+  if (project.flagged && state.openId !== project.id) return "Flagged · " + (project.missNote || "needs a fix")
+  if (state.openId === project.id) return project.flagged ? "Open · flagged" : "Open"
+  return "Select a part"
+}
+function renderLive() {
+  $("money").textContent = String(state.money)
+  $("month-label").textContent = "Month " + Math.max(0, state.monthLeft).toFixed(1) + "s"
+  const due = payrollDue()
+  $("payroll-label").textContent = "Payroll $" + due + (due > 0 && state.money < due ? " short" : "")
+  $("stage").textContent = "Stage " + stage() + " · big cap " + (state.handsFreeEver ? "off" : "on")
+  $("status").textContent = state.status
+  const project = focused()
+  $("ship").textContent = shipButtonLabel(project)
+  $("ribbon").textContent = ribbonText(project)
+  state.staff.forEach((staff) => {
+    const node = document.querySelector('[data-timer="' + staff.id + '"]')
+    if (!node) return
+    if (!staff.projectId) node.textContent = "Idle"
+    else {
+      const job = state.queue.find((item) => item.id === staff.projectId)
+      node.textContent = (job ? job.client : "Job") + " · " + Math.max(0, staff.workLeft).toFixed(1) + "s"
+    }
+  })
+  document.querySelectorAll("[data-qtime]").forEach((node) => {
+    const item = state.queue.find((project) => String(project.id) === node.getAttribute("data-qtime"))
+    if (item) node.textContent = queueState(item)
+  })
+  const scroller = $("dev-body")
+  const top = scroller.scrollTop
+  scroller.textContent = telemetry()
+  scroller.scrollTop = top
+  $("banner").hidden = !state.showBanner
+}
+function commit() {
+  const key = structuralKey()
+  if (key !== state.renderKey) render()
+  renderLive()
+}
+function tick(dt) {
+  runWork(dt)
+  runArrival(dt)
+  state.monthLeft -= dt
+  for (const project of state.queue) {
+    if (project.onTimeLeft > 0) project.onTimeLeft = Math.max(0, project.onTimeLeft - dt)
+  }
+  refreshQualified()
+  if (state.monthLeft <= 0) endMonth()
+  commit()
+}
+
+const view = { z: 1, x: 0, y: 0, stretch: 0, springing: false }
+const ZMIN = 0.55
+const ZMAX = 2.4
+function applyView() {
+  const world = $("world")
+  if (!world) return
+  const sx = view.z * (1 + view.stretch)
+  world.style.transform = "translate(-50%, -50%) translate(" + view.x + "px, " + view.y + "px) scale(" + sx + ", " + view.z + ")"
+}
+function resetView() {
+  view.z = 1
+  view.x = 0
+  view.y = 0
+  view.stretch = 0
+  applyView()
+}
+let springTimer = 0
+function scheduleSpring() {
+  clearTimeout(springTimer)
+  springTimer = setTimeout(() => {
+    if (view.stretch > 0.2 && neighborProject(1)) popView(1)
+    else if (view.stretch < -0.2 && neighborProject(-1)) popView(-1)
+    else springStretch()
+  }, 180)
+}
+function springStretch() {
+  if (view.springing) return
+  view.springing = true
+  const step = () => {
+    view.stretch *= 0.8
+    if (Math.abs(view.stretch) < 0.01) {
+      view.stretch = 0
+      view.springing = false
+      applyView()
+      return
+    }
+    applyView()
+    requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+function neighborProject(dir) {
+  if (!state.staff.length) return null
+  const ring = []
+  const mine = state.queue.find((project) => project.claimedBy === "player") || focused()
+  if (mine) ring.push(mine)
+  state.staff.forEach((staff) => {
+    const project = state.queue.find((item) => item.id === staff.projectId || item.staffId === staff.id)
+    if (project && ring.every((item) => item.id !== project.id)) ring.push(project)
+  })
+  if (ring.length < 2) return null
+  const current = focused()
+  let index = ring.findIndex((project) => current && project.id === current.id)
+  if (index < 0) index = 0
+  const next = ring[(index + dir + ring.length) % ring.length]
+  if (!next || (current && next.id === current.id)) return null
+  return next
+}
+function popView(dir) {
+  const next = neighborProject(dir)
+  view.stretch = 0
+  view.springing = false
+  if (!next) {
+    springStretch()
+    return
+  }
+  resetView()
+  openProject(next, null)
+}
+function placeHandles() {
+  const layer = $("handles")
+  if (!layer) return
+  const project = state.queue.find((item) => item.id === state.openId)
+  if (!project || !state.selectedEl) {
+    layer.replaceChildren()
+    return
+  }
+  const node = $(EL_NODES[state.selectedEl])
+  const phone = $("phone")
+  if (!node || !phone) return
+  let x = 0
+  let y = 0
+  let el = node
+  while (el && el !== phone) {
+    x += el.offsetLeft
+    y += el.offsetTop
+    el = el.offsetParent
+  }
+  const w = node.offsetWidth
+  const h = node.offsetHeight
+  const inset = Math.min(project.elements[state.selectedEl].radius, w / 2, h / 2)
+  const corners = {
+    nw: [x + inset, y + inset],
+    ne: [x + w - inset, y + inset],
+    sw: [x + inset, y + h - inset],
+    se: [x + w - inset, y + h - inset]
+  }
+  const names = Object.keys(corners)
+  let handles = [...layer.querySelectorAll(".radius-handle")]
+  if (handles.length !== names.length) {
+    layer.replaceChildren()
+    handles = names.map((corner) => {
+      const handle = document.createElement("button")
+      handle.type = "button"
+      handle.className = "radius-handle"
+      handle.dataset.corner = corner
+      handle.setAttribute("aria-label", "Corner radius")
+      layer.appendChild(handle)
+      return handle
+    })
+  }
+  names.forEach((corner, index) => {
+    handles[index].dataset.corner = corner
+    handles[index].style.left = corners[corner][0] + "px"
+    handles[index].style.top = corners[corner][1] + "px"
+  })
+}
+function radiusFromCorner(node, corner, clientX, clientY) {
+  const rect = node.getBoundingClientRect()
+  const x = (clientX - rect.left) / rect.width * node.offsetWidth
+  const y = (clientY - rect.top) / rect.height * node.offsetHeight
+  const alongX = corner.indexOf("w") >= 0 ? x : node.offsetWidth - x
+  const alongY = corner.indexOf("n") >= 0 ? y : node.offsetHeight - y
+  return clampRadius(Math.min(alongX, alongY))
+}
+let radiusDrag = null
+$("phone").addEventListener("pointerdown", (event) => {
+  const handle = event.target.closest(".radius-handle")
+  if (!handle || !state.selectedEl) return
+  event.preventDefault()
+  event.stopPropagation()
+  radiusDrag = { corner: handle.dataset.corner, pointerId: event.pointerId }
+  $("phone").setPointerCapture(event.pointerId)
+})
+$("phone").addEventListener("pointermove", (event) => {
+  if (!radiusDrag || event.pointerId !== radiusDrag.pointerId) return
+  const node = $(EL_NODES[state.selectedEl])
+  if (!node) return
+  const radius = radiusFromCorner(node, radiusDrag.corner, event.clientX, event.clientY)
+  edited((project, el) => { el.radius = radius })
+})
+function endRadiusDrag(event) {
+  if (!radiusDrag || event.pointerId !== radiusDrag.pointerId) return
+  radiusDrag = null
+}
+$("phone").addEventListener("pointerup", endRadiusDrag)
+$("phone").addEventListener("pointercancel", endRadiusDrag)
+let pan = null
+$("viewport").addEventListener("pointerdown", (event) => {
+  if (event.target.closest(".radius-handle, button, .screen")) return
+  pan = { id: event.pointerId, x: event.clientX, y: event.clientY, ox: view.x, oy: view.y }
+  $("viewport").classList.add("panning")
+  $("viewport").setPointerCapture(event.pointerId)
+})
+$("viewport").addEventListener("pointermove", (event) => {
+  if (!pan || event.pointerId !== pan.id) return
+  view.x = pan.ox + event.clientX - pan.x
+  view.y = pan.oy + event.clientY - pan.y
+  applyView()
+})
+function endPan(event) {
+  if (!pan || event.pointerId !== pan.id) return
+  pan = null
+  $("viewport").classList.remove("panning")
+}
+$("viewport").addEventListener("pointerup", endPan)
+$("viewport").addEventListener("pointercancel", endPan)
+$("viewport").addEventListener("wheel", (event) => {
+  event.preventDefault()
+  const viewport = $("viewport")
+  const rect = viewport.getBoundingClientRect()
+  const cx = event.clientX - rect.left - rect.width / 2
+  const cy = event.clientY - rect.top - rect.height / 2
+  if (!(event.ctrlKey || event.metaKey)) {
+    view.x -= event.deltaX
+    view.y -= event.deltaY
+    applyView()
+    return
+  }
+  const next = view.z * Math.exp(-event.deltaY * 0.0016)
+  if (next < ZMIN) {
+    view.z = ZMIN
+    view.stretch = Math.min(0.4, view.stretch + (ZMIN - next))
+    applyView()
+    if (view.stretch > 0.2 && neighborProject(1)) popView(1)
+    else scheduleSpring()
+    return
+  }
+  if (next > ZMAX) {
+    view.z = ZMAX
+    view.stretch = Math.max(-0.4, view.stretch - (next - ZMAX))
+    applyView()
+    if (view.stretch < -0.2 && neighborProject(-1)) popView(-1)
+    else scheduleSpring()
+    return
+  }
+  const wx = (cx - view.x) / view.z
+  const wy = (cy - view.y) / view.z
+  view.z = next
+  view.x = cx - wx * next
+  view.y = cy - wy * next
+  view.stretch = 0
+  applyView()
+}, { passive: false })
+$("queue").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-id]")
+  if (!button) return
+  event.stopPropagation()
+  const project = state.queue.find((item) => item.id === Number(button.dataset.id))
+  if (project) {
+    resetView()
+    openProject(project, null)
+  }
+})
+$("req-wrap").addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-focus]")
+  if (!button) return
+  event.stopPropagation()
+  const project = focused()
+  if (!project) return
+  openProject(project, button.dataset.focus)
+})
+$("manage").addEventListener("click", (event) => {
+  const button = event.target.closest("button")
+  if (!button || button.disabled) return
+  const id = Number(button.dataset.id)
+  if (button.dataset.action === "hire") hire()
+  else if (button.dataset.action === "head") buyHead()
+  else if (button.dataset.action === "fire") fire(id)
+  else if (button.dataset.action === "promote") promote(id)
+  else if (button.dataset.action === "token") buyToken(button.dataset.token)
+  else if (button.dataset.action === "codify") buyLanguage(button.dataset.industry)
+  else if (button.dataset.action === "process") buyProcess(button.dataset.process)
+})
+$("ship").addEventListener("click", () => handShip())
+$("wiki-open").addEventListener("click", (event) => {
+  event.stopPropagation()
+  state.wikiOpen = true
+  commit()
+})
+$("wiki-close").addEventListener("click", (event) => {
+  event.stopPropagation()
+  state.wikiOpen = false
+  commit()
+})
+$("el-background").addEventListener("click", (event) => {
+  if (event.target.closest("button")) return
+  const project = focused()
+  if (project) openProject(project, "background")
+})
+$("el-background").addEventListener("keydown", (event) => {
+  if (event.target !== $("el-background")) return
+  if (event.key !== "Enter" && event.key !== " ") return
+  event.preventDefault()
+  const project = focused()
+  if (project) openProject(project, "background")
+})
+;["title", "cardA", "cardB", "save"].forEach((id) => {
+  $(EL_NODES[id]).addEventListener("click", (event) => {
+    event.stopPropagation()
+    const project = focused()
+    if (project) openProject(project, id)
+  })
+})
+document.querySelectorAll(".swatch").forEach((button) => {
+  button.addEventListener("click", () => edited((project, el) => { el.colour = button.dataset.colour }))
+})
+$("colour-pick").addEventListener("input", (event) => edited((project, el) => { el.colour = nearestSwatch(event.target.value) }))
+$("ink-pick").addEventListener("input", (event) => edited((project, el) => { el.ink = nearestSwatch(event.target.value) }))
+$("pop-radius").addEventListener("input", (event) => edited((project, el) => {
+  if (!state.tools.radius) return
+  el.radius = clampRadius(event.target.value)
+}))
+$("pop-contrast").addEventListener("input", (event) => edited((project, el) => {
+  if (!state.tools.contrast) return
+  el.contrast = clampContrast(event.target.value)
+}))
+$("buy-swatches").addEventListener("click", (event) => { event.stopPropagation(); buyTool("swatches") })
+$("buy-radius").addEventListener("click", (event) => { event.stopPropagation(); buyTool("radius") })
+$("buy-contrast").addEventListener("click", (event) => { event.stopPropagation(); buyTool("contrast") })
+document.querySelectorAll("#hierarchy-wrap button").forEach((button) => {
+  button.addEventListener("click", () => edited((project, el) => {
+    if (!project.hasUX || state.selectedEl === "background") return
+    el.hierarchy = button.dataset.h
+  }))
+})
+document.querySelectorAll("#copy-wrap button").forEach((button) => {
+  button.addEventListener("click", () => edited((project, el) => {
+    if (!project.hasUX) return
+    if (state.selectedEl !== "title" && state.selectedEl !== "save") return
+    el.copy = button.dataset.copy
+  }))
+})
+document.querySelectorAll("[data-show]").forEach((button) => {
+  button.addEventListener("click", () => edited((project) => {
+    if (!project.hasUX) return
+    project.flow.showing = button.dataset.show
+  }))
+})
+document.querySelectorAll("[data-flag]").forEach((button) => {
+  button.addEventListener("click", () => edited((project) => {
+    if (!project.hasUX) return
+    const fixed = button.dataset.set === "fixed"
+    if (button.dataset.flag === "empty") project.flow.emptyFixed = fixed
+    else project.flow.errorFixed = fixed
+  }))
+})
+$("pop-close").addEventListener("click", () => {
+  state.selectedEl = null
+  commit()
+})
+$("dev-open").addEventListener("click", (event) => {
+  event.stopPropagation()
+  const open = $("dev").hidden
+  $("dev").hidden = !open
+  $("dev-open").setAttribute("aria-pressed", open ? "true" : "false")
+})
+$("dev-close").addEventListener("click", (event) => {
+  event.stopPropagation()
+  $("dev").hidden = true
+  $("dev-open").setAttribute("aria-pressed", "false")
+})
+$("banner-dismiss").addEventListener("click", () => {
+  state.showBanner = false
+  commit()
+})
+document.addEventListener("click", (event) => {
+  const target = event.target
+  if (!target || !target.isConnected) return
+  if (target.closest("#pop, #phone, #hud, #dev, #banner, #wiki")) return
+  if (!state.selectedEl) return
+  state.selectedEl = null
+  commit()
+})
+window.addEventListener("resize", () => { if (state.selectedEl) positionPop() })
+
+globalThis.state = state
+function boot() {
+  spawn("start")
+  state.arrivalLeft = interval()
+  state.status = "Pick a colour. Drag a corner for the radius. Contrast follows the two colours."
+  commit()
+  applyView()
+  let last = performance.now()
+  const frame = (now) => {
+    const dt = Math.min(0.25, (now - last) / 1000)
+    last = now
+    if (dt > 0) tick(dt)
+    requestAnimationFrame(frame)
+  }
+  requestAnimationFrame(frame)
+}
+boot()
+</script>
+</body>
+</html>
