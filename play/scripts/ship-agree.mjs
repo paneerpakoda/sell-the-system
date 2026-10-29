@@ -5,6 +5,7 @@
 import assert from "node:assert/strict"
 import path from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import { expandMoneyText } from "../src/ui/money.js"
 
 const engineFile = path.join(path.dirname(fileURLToPath(import.meta.url)), "../src/engine.js")
 
@@ -90,7 +91,7 @@ for (let seed = 0; seed < 50; seed++) {
                 assert.ok(check.label.includes(check.reason))
               } else {
                 assert.equal(typeof check.fee, "number")
-                assert.match(check.label, new RegExp("\\$" + check.fee + "(?:\\b|\\.)"))
+                assert.match(expandMoneyText(check.label, "USD"), new RegExp("\\$" + check.fee + "(?:\\b|\\.)"))
               }
               const other = clients.find((item) => item.id !== openId)
               const otherCheck = api.shipCheck(other.id)

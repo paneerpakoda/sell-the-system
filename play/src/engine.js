@@ -925,7 +925,10 @@ function shipHeldLabel(project, problems) {
       return screen + " · " + (NAMES[problem.req.element] || "Part") + " contrast (" + shown + ", needs 3)"
     }
     if (problem.req.prop === "colour") return screen + " · " + (NAMES[problem.req.element] || "Part") + " colour"
-    if (problem.req.prop === "radius") return screen + " · " + (NAMES[problem.req.element] || "Part") + " radius"
+    if (problem.req.prop === "radius") {
+      const target = targetRadius(LANG[project.industry], problem.req.element)
+      return screen + " · " + (NAMES[problem.req.element] || "Part") + " radius (target " + target + ")"
+    }
     if (problem.req.prop === "copy") return screen + " · " + (NAMES[problem.req.element] || "Part") + " copy"
     return screen + " · " + (NAMES[problem.req.element] || problem.req.title || "Part")
   })
