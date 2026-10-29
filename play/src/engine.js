@@ -905,7 +905,7 @@ function problemReason(project, problem) {
   if (problem.req.prop === "radius") {
     const target = targetRadius(LANG[project.industry], problem.req.element)
     const current = project.elements[problem.req.element] ? project.elements[problem.req.element].radius : "?"
-    return "Ship held: set " + part + " radius to " + target + " (now " + current + ")"
+    return "Ship held: set " + part + " radius to " + target + " (now " + current + ", target " + target + ")"
   }
   return screen + " · " + part + " " + reasonProp(problem.req)
 }
@@ -914,21 +914,22 @@ function shipHeldLabel(project, problems) {
   if (problems.length === 1) {
     const one = problems[0]
     if (one.req.prop === "radius") return problemReason(project, one)
-    return "Ship held: " + problemFix(project, one)
+    return "Ship held · " + one.screen.name + " · " + problemFix(project, one)
   }
   const names = problems.slice(0, 3).map((problem) => {
+    const screen = problem.screen.name
     if (problem.req.prop === "contrast") {
       const id = problem.req.element === "background" ? "title" : problem.req.element
       const ratio = paintedContrast(project, id)
       const shown = (Math.round(ratio * 10) / 10).toFixed(1)
-      return (NAMES[problem.req.element] || "Part") + " contrast (" + shown + ", needs 3)"
+      return screen + " · " + (NAMES[problem.req.element] || "Part") + " contrast (" + shown + ", needs 3)"
     }
-    if (problem.req.prop === "colour") return (NAMES[problem.req.element] || "Part") + " colour"
-    if (problem.req.prop === "radius") return (NAMES[problem.req.element] || "Part") + " radius"
-    return NAMES[problem.req.element] || problem.req.title || "Part"
+    if (problem.req.prop === "colour") return screen + " · " + (NAMES[problem.req.element] || "Part") + " colour"
+    if (problem.req.prop === "radius") return screen + " · " + (NAMES[problem.req.element] || "Part") + " radius"
+    if (problem.req.prop === "copy") return screen + " · " + (NAMES[problem.req.element] || "Part") + " copy"
+    return screen + " · " + (NAMES[problem.req.element] || problem.req.title || "Part")
   })
-  const extra = problems.length > 3 ? problems.length : names.length
-  return extra + " things to fix: " + names.join(", ")
+  return "Ship held · " + problems.length + " things to fix: " + names.join(", ")
 }
 function clientById(clientId) {
   if (clientId == null) return null
