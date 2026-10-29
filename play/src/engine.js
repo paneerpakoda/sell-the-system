@@ -958,6 +958,8 @@ export function shipCheck(clientId) {
   const label = held
     ? (problems.length ? shipHeldLabel(project, problems) : "Ship held · " + reason)
     : "Ship · " + moneyToken(fee)
+  // ship-agree requires label to contain reason; keep them in sync for held ships.
+  if (held && problems.length) reason = label.replace(/^Ship held(?: · |: )/, "")
   return { held, reason, fee, label, problems }
 }
 function shipButtonLabel(project) {
