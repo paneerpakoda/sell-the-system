@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { useView } from "../useGame.js"
+import { modalOpen } from "../modalGate.js"
 import {
   COLOURS,
   clampRadius,
@@ -8,8 +9,6 @@ import {
   paintedContrast,
   focused,
   inkHex,
-  NAMES,
-  openParts,
   openProject,
   openScreen,
   takeScreen,
@@ -19,19 +18,17 @@ import {
   selectionIds,
   setRadius,
   panBy,
+  setZoom,
   state,
   typeSize,
   view,
+  resetView,
   zoomAt
 } from "../engine.js"
 
-const CORNERS = ["nw", "ne", "sw", "se"]
+const SELECT_ORDER = ["background", "title", "cardA", "cardB", "save"]
 
-function leadElement(project, screen, fallback) {
-  const parts = openParts(project)
-  const hit = parts.find((group) => group.screenId === screen.id) || parts[0]
-  return hit ? hit.id : fallback
-}
+const CORNERS = ["nw", "ne", "sw", "se"]
 
 function openEditor(project, screen, elementId) {
   openScreen(project, screen.id)
@@ -62,6 +59,35 @@ function flowClass(project) {
   return fixed ? " fixed" : " broken"
 }
 
+function typingTarget(event) {
+  return event.target.closest?.("input, textarea, [contenteditable='true']")
+}
+
+function swallowClick() {
+  const stop = (event) => {
+    event.stopPropagation()
+    event.preventDefault()
+    window.removeEventListener("click", stop, true)
+  }
+  window.addEventListener("click", stop, true)
+}
+
+function MoveIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M8 1.5v13M1.5 8h13M8 1.5 6.2 3.3M8 1.5l1.8 1.8M8 14.5 6.2 12.7M8 14.5l1.8-1.8M1.5 8l1.8-1.8M1.5 8l1.8 1.8M14.5 8l-1.8-1.8M14.5 8l-1.8 1.8" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function HandIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M6.2 7.2V3.8a1 1 0 0 1 2 0V7M8.2 6.6V3.2a1 1 0 0 1 2 0v4.2M10.2 6.4V4.4a1 1 0 0 1 2 0v5.2c0 2.2-1.5 4-3.8 4H7.4c-1.6 0-2.6-.7-3.3-1.8L2.6 9.6a1 1 0 0 1 1.5-1.3l1.1 1.2V4.6a1 1 0 0 1 2 0v2.6" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function radiusFromCorner(node, corner, clientX, clientY) {
   const rect = node.getBoundingClientRect()
   const x = ((clientX - rect.left) / rect.width) * node.offsetWidth
@@ -77,6 +103,10 @@ export function Screen() {
   const phoneRef = useRef(null)
   const nodes = useRef({})
   const drag = useRef(null)
+  const space = useRef(false)
+  const [tool, setTool] = useState("move")
+  const [panning, setPanning] = useState(false)
+  const [spaceDown, setSpaceDown] = useState(false)
   const project = focused()
 
   useEffect(() => {
@@ -92,6 +122,106 @@ export function Screen() {
     }
     node.addEventListener("wheel", onWheel, { passive: false })
     return () => node.removeEventListener("wheel", onWheel)
+  }, [project && project.id])
+
+  const zoomToNode = (node) => {
+    const viewportNode = viewport.current
+    if (!node || !viewportNode) return
+    const vr = viewportNode.getBoundingClientRect()
+    const nr = node.getBoundingClientRect()
+    if (nr.width < 2 || nr.height < 2) return
+    const nodeCx = nr.left + nr.width / 2 - (vr.left + vr.width / 2)
+    const nodeCy = nr.top + nr.height / 2 - (vr.top + vr.height / 2)
+    panBy(-nodeCx, -nodeCy)
+    const fit = Math.min((vr.width - 140) / (nr.width / view.z), (vr.height - 140) / (nr.height / view.z))
+    setZoom(Number.isFinite(fit) ? fit : 1)
+  }
+  const zoomToNodeRef = useRef(zoomToNode)
+  zoomToNodeRef.current = zoomToNode
+
+  useEffect(() => {
+    const onKeyDown = (event) => {
+      if (typingTarget(event) || modalOpen()) return
+      if (event.code === "Space") {
+        if (event.target.closest?.("button, a, [role='button']")) return
+        event.preventDefault()
+        if (!event.repeat) {
+          space.current = true
+          setSpaceDown(true)
+        }
+        return
+      }
+      if (event.metaKey || event.ctrlKey) {
+        if (event.key === "=" || event.key === "+") {
+          event.preventDefault()
+          setZoom(view.z * 1.25)
+        } else if (event.key === "-") {
+          event.preventDefault()
+          setZoom(view.z / 1.25)
+        }
+        return
+      }
+      if (event.altKey) return
+      if (event.key === "Escape" && state.selectedEl) {
+        const current = focused()
+        if (!current) return
+        event.preventDefault()
+        openProject(current, null)
+        return
+      }
+      if (event.key === "v" || event.key === "V") {
+        setTool("move")
+        return
+      }
+      if (event.key === "h" || event.key === "H") {
+        setTool("hand")
+        return
+      }
+      if (event.shiftKey && event.code === "Digit1") {
+        event.preventDefault()
+        resetView()
+        return
+      }
+      if (event.shiftKey && event.code === "Digit0") {
+        event.preventDefault()
+        setZoom(1)
+        return
+      }
+      if (event.shiftKey && event.code === "Digit2") {
+        event.preventDefault()
+        const id = state.selectedEl
+        const node = !id || id === "background" ? phoneRef.current : nodes.current[id]
+        zoomToNodeRef.current(node || phoneRef.current)
+        return
+      }
+      if (event.key === "Tab") {
+        if (event.target.closest?.(".dock, .inspector, .topbar, .editor-chrome, .gate")) return
+        const current = focused()
+        if (!current) return
+        event.preventDefault()
+        const index = SELECT_ORDER.indexOf(state.selectedEl)
+        const dir = event.shiftKey ? -1 : 1
+        const nextIndex = index < 0 ? (dir > 0 ? 0 : SELECT_ORDER.length - 1) : (index + dir + SELECT_ORDER.length) % SELECT_ORDER.length
+        openProject(current, SELECT_ORDER[nextIndex])
+      }
+    }
+    const onKeyUp = (event) => {
+      if (event.code !== "Space") return
+      space.current = false
+      setSpaceDown(false)
+    }
+    const clearSpace = () => {
+      space.current = false
+      setSpaceDown(false)
+    }
+    window.addEventListener("keydown", onKeyDown, true)
+    window.addEventListener("keyup", onKeyUp, true)
+    window.addEventListener("blur", clearSpace)
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true)
+      window.removeEventListener("keyup", onKeyUp, true)
+      window.removeEventListener("blur", clearSpace)
+    }
   }, [project && project.id])
 
   const transform = `translate(-50%, -50%) translate(${view.x}px, ${view.y}px) scale(${view.z * (1 + view.stretch)}, ${view.z})`
@@ -159,27 +289,84 @@ export function Screen() {
     window.addEventListener("pointercancel", end)
   }
 
+  const startPan = (event) => {
+    event.preventDefault()
+    setPanning(true)
+    let lastX = event.clientX
+    let lastY = event.clientY
+    let moved = false
+    const pointerId = event.pointerId
+    const move = (ev) => {
+      if (ev.pointerId !== pointerId) return
+      const dx = ev.clientX - lastX
+      const dy = ev.clientY - lastY
+      if (Math.abs(dx) + Math.abs(dy) > 2) moved = true
+      panBy(dx, dy)
+      lastX = ev.clientX
+      lastY = ev.clientY
+    }
+    const end = (ev) => {
+      if (ev.pointerId !== pointerId) return
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", end)
+      window.removeEventListener("pointercancel", end)
+      setPanning(false)
+      if (moved) swallowClick()
+    }
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", end)
+    window.addEventListener("pointercancel", end)
+  }
+
+  const hand = tool === "hand" || spaceDown
+
   return (
     <div
-      className="viewport"
+      className={"viewport tool-" + tool + (hand ? " tool-hand" : "") + (panning ? " panning" : "")}
       ref={viewport}
+      onPointerDownCapture={(event) => {
+        if (event.button !== 1 && tool !== "hand" && !space.current) return
+        if (event.target.closest?.(".editor-chrome")) return
+        event.stopPropagation()
+        startPan(event)
+      }}
       onPointerDown={(event) => {
         if (event.target !== viewport.current) return
-        let lastX = event.clientX
-        let lastY = event.clientY
+        if (event.button === 1 || tool === "hand" || space.current) return
+        const pointerId = event.pointerId
+        const startX = event.clientX
+        const startY = event.clientY
+        let moved = false
         const move = (ev) => {
-          panBy(ev.clientX - lastX, ev.clientY - lastY)
-          lastX = ev.clientX
-          lastY = ev.clientY
+          if (ev.pointerId !== pointerId) return
+          if (Math.abs(ev.clientX - startX) + Math.abs(ev.clientY - startY) > 3) moved = true
         }
-        const end = () => {
+        const end = (ev) => {
+          if (ev.pointerId !== pointerId) return
           window.removeEventListener("pointermove", move)
           window.removeEventListener("pointerup", end)
+          window.removeEventListener("pointercancel", end)
+          if (!moved) openProject(project, null)
         }
         window.addEventListener("pointermove", move)
         window.addEventListener("pointerup", end)
+        window.addEventListener("pointercancel", end)
       }}
     >
+      <div className="editor-chrome tool-rail" role="toolbar" aria-label="Tools">
+        <button type="button" aria-pressed={tool === "move"} data-tip="Move. Click a layer. V" onClick={() => setTool("move")}>
+          <MoveIcon />
+        </button>
+        <button type="button" aria-pressed={tool === "hand"} data-tip="Hand. Drag the canvas. H, or hold Space" onClick={() => setTool("hand")}>
+          <HandIcon />
+        </button>
+      </div>
+      <div className="editor-chrome zoom-bar" role="group" aria-label="Zoom">
+        <button type="button" aria-label="Zoom out" data-tip="Zoom out" onClick={() => setZoom(view.z / 1.25)}>−</button>
+        <button type="button" className="zoom-pct" data-tip="Zoom to 100%. Shift 0" onClick={() => setZoom(1)}>{Math.round(view.z * 100)}%</button>
+        <button type="button" aria-label="Zoom in" data-tip="Zoom in" onClick={() => setZoom(view.z * 1.25)}>+</button>
+        <button type="button" data-tip="Zoom to fit. Shift 1" onClick={() => resetView()}>Fit</button>
+      </div>
       <div className="world" style={{ transform }}>
         <div className="frames">
           {(project.screens && project.screens.length ? project.screens : [activeScreen(project)]).map((screen, index) => {
@@ -190,7 +377,7 @@ export function Screen() {
             return (
               <div key={screen.id} className={"figma-frame" + (live ? " on" : "") + (locked ? " locked" : "")} style={{ left: index * 490 }}>
                 <div className="frame-head">
-                  <button type="button" className="frame-name" data-tip={locked ? "This frame is locked. Take over to edit it." : "Open this frame in the editor."} onClick={() => openEditor(project, screen, leadElement(project, screen, "title"))}>
+                  <button type="button" className={"frame-name" + (live && picked.has("background") ? " on" : "")} data-tip={locked ? "This frame is locked. Take over to edit it." : "Select this frame."} onClick={() => openEditor(project, screen, "background")}>
                     {screen.name}
                     <span>{screenOwnerName(screen)}</span>
                   </button>
@@ -198,17 +385,12 @@ export function Screen() {
                     <button type="button" className="takeover" data-tip="Pull this frame back. The intern stops." onClick={() => takeScreen(project, screen.id)}>Take over</button>
                   )}
                 </div>
-                <div className="layer-jumps">
-                  {["title", "cardA", "cardB", "save"].map((id) => (
-                    <button key={id} type="button" className={live && picked.has(id) ? "on" : ""} onClick={() => openEditor(project, screen, id)}>{NAMES[id]}</button>
-                  ))}
-                </div>
                 <div
-                  className="frame-body"
+                  className={"frame-body" + (live && picked.has("background") ? " is-selected" : "")}
                   ref={(el) => { if (live) { phoneRef.current = el; nodes.current.background = el } }}
                   onPointerDown={live && mine ? onPhonePointerDown : undefined}
                   style={{ background: COLOURS[art.background.colour].hex, borderRadius: art.background.radius }}
-                  onClick={() => openEditor(project, screen, leadElement(project, screen, "background"))}
+                  onClick={() => openEditor(project, screen, "background")}
                 >
                   {locked && (
                     <p className="frame-lock">{ownerFirst(screen)} has this frame. Take over to open it in the editor. They stop, and the frame comes back to you.</p>

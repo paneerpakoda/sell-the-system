@@ -2,9 +2,7 @@
 
 Incremental game about running a design agency. Vite + React.
 
-The source stays in this private repo. The game auto-deploys from main to https://sell-the-system.vercel.app/
-
-This branch is the round 6 preview. Main stays the previous build until this pull request is merged.
+The repo is public. Main is round 9. The game deploys from main to GitHub Pages: https://paneerpakoda.github.io/sell-the-system/
 
     cd play && npm install && npm run dev
 

@@ -1,11 +1,12 @@
 import { Button } from "@/components/unlumen-ui/primitives/button"
-import { memo, useState } from "react"
+import { memo, useEffect, useState } from "react"
 import { SkModal } from "./SkModal.jsx"
 import {
   buyLanguage,
   buyProcess,
   buyToken,
   buyTool,
+  dismissKitNote,
   listStamp,
   openProject,
   projectWatch,
@@ -198,6 +199,7 @@ function cleanProgressDetail(step) {
 }
 
 function StageProgress() {
+  const [open, setOpen] = useState(false)
   const steps = stageSteps()
   const pct = Math.round(steps.reduce((sum, step) => sum + step.fill, 0) / steps.length * 100)
   const next = steps.find((step) => !step.done)
@@ -231,33 +233,48 @@ function StageProgress() {
     { id: "test", label: "Test", detail: steps[4].done ? "Unlocked" : "Opens with Stage 3", fill: steps[4].fill, done: steps[4].done, tip: steps[4].text }
   ]
   return (
-    <section className="block stage-progress sk-panel">
+    <section className={"block stage-progress sk-panel" + (open ? " open" : " collapsed")}>
       <header className="block-head sk-panel-head">
-        <h2>Stage {stage()}</h2>
-        <span className="stage-pct">{pct}%</span>
+        <button
+          type="button"
+          className="stage-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <h2>Stage {stage()}</h2>
+          <span className="stage-toggle-meta">
+            <span className="stage-pct">{pct}%</span>
+            <span className="stage-toggle-chevron" aria-hidden="true">{open ? "▾" : "▸"}</span>
+          </span>
+        </button>
       </header>
-      <p className="stage-next">{nextTitle}</p>
-      {needsProcess && <p className="stage-next">Hands-off needs process steps.</p>}
-      <ol className="stage-ladder" aria-label={nextTitle}>
-        {marks.map((mark) => {
-          const isNext = next && next.id === mark.id
-          const amount = Math.round(mark.fill * 100)
-          return (
-            <li
-              key={mark.id}
-              className={"stage-rung" + (mark.done ? " done" : "") + (isNext ? " next" : "")}
-              data-tip={mark.tip}
-            >
-              <span className="stage-rung-mark" aria-hidden="true">{mark.done ? "✓" : isNext ? "→" : "·"}</span>
-              <div className="stage-rung-copy">
-                <strong>{mark.label}</strong>
-                <span>{mark.detail}</span>
-                <span className="stage-rung-bar" aria-hidden="true"><i style={{ width: amount + "%" }} /></span>
-              </div>
-            </li>
-          )
-        })}
-      </ol>
+      {!open && <p className="stage-next stage-next-compact">{nextTitle}</p>}
+      {open && (
+        <>
+          <p className="stage-next">{nextTitle}</p>
+          {needsProcess && <p className="stage-next">Hands-off needs process steps.</p>}
+          <ol className="stage-ladder" aria-label={nextTitle}>
+            {marks.map((mark) => {
+              const isNext = next && next.id === mark.id
+              const amount = Math.round(mark.fill * 100)
+              return (
+                <li
+                  key={mark.id}
+                  className={"stage-rung" + (mark.done ? " done" : "") + (isNext ? " next" : "")}
+                  data-tip={mark.tip}
+                >
+                  <span className="stage-rung-mark" aria-hidden="true">{mark.done ? "✓" : isNext ? "→" : "·"}</span>
+                  <div className="stage-rung-copy">
+                    <strong>{mark.label}</strong>
+                    <span>{mark.detail}</span>
+                    <span className="stage-rung-bar" aria-hidden="true"><i style={{ width: amount + "%" }} /></span>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+        </>
+      )}
     </section>
   )
 }
@@ -351,12 +368,15 @@ function upgradeRows() {
 function StudioKit() {
   const { currency } = useCurrency()
   const money = (value) => formatMoney(value, { currency })
-  const [open, setOpen] = useState(false)
   const shop = upgradeRows()
   const owned = systemOwned()
   const next = shop[0] || null
   const badge = shop.length
-  if (!shop.length && !owned.length) return null
+  const [open, setOpen] = useState(badge > 0)
+  useEffect(() => {
+    if (badge > 0 || state.kitNote) setOpen(true)
+  }, [badge, state.kitNote])
+  if (!shop.length && !owned.length && !state.kitNote) return null
   return (
     <section className="block studio-kit sk-panel">
       <header className="block-head sk-panel-head">
@@ -405,6 +425,13 @@ function StudioKit() {
                 <span className="kit-buy-cost">{money(next.cost)}</span>
               </button>
               {state.money < next.cost && <p className="kit-need">Need {money(next.cost)}</p>}
+            </div>
+          )}
+          {state.kitNote && (
+            <div className="kit-flash" role="status">
+              <strong>{state.kitNote.title}</strong>
+              <p>{state.kitNote.body}</p>
+              <button type="button" className="kit-flash-ok" onClick={() => dismissKitNote()}>Got it</button>
             </div>
           )}
           {shop.length > 1 && (

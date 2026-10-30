@@ -114,6 +114,7 @@ const state = {
   status: "",
   saveNote: "",
   tabNote: "",
+  kitNote: null,
   renderKey: "",
   nextHireFloor: null,
   headOffer: null,
@@ -124,9 +125,11 @@ const state = {
   notices: [],
   seen: {},
   fork: null,
+  forkClosed: false,
   midgame: null,
   midgameClosed: false,
   event: null,
+  eventClosed: false,
   eventSeen: false,
   lastIndustry: null,
   sold: 0,
@@ -190,12 +193,25 @@ function teach(id, title, body) {
   state.seen[id] = true
   state.notices.push({ id, title, body })
 }
+// Shop follow-ups stay in the Studio kit drawer — no mid-screen modal chase.
+function kitTeach(id, title, body) {
+  if (state.seen[id]) return
+  state.seen[id] = true
+  state.kitNote = { id, title, body }
+}
+export function dismissKitNote() {
+  state.kitNote = null
+  commit()
+}
 function teachProcess() {
   if (!stage3Active()) return
   teach("process", "Design process", "You remember the work before the screen. New briefs include UX.")
 }
 export function dismissNotice() {
   state.notices.shift()
+  commit()
+}
+export function refreshUi() {
   commit()
 }
 export function nameStudio(name) {
@@ -239,7 +255,12 @@ function typeSize(level) {
   if (level === "body") return "20px"
   return "15px"
 }
-function clampRadius(value) { return Math.min(32, Math.max(0, Math.round(Number(value)))) }
+function clampRadius(value) {
+  if (value === "" || value == null) return 0
+  const n = Number(value)
+  if (!Number.isFinite(n)) return 0
+  return Math.min(32, Math.max(0, Math.round(n)))
+}
 function targetRadius(lang, elementId) {
   return elementId === "background" ? lang.radius + PARAMS.radiusStep : lang.radius
 }
@@ -2016,8 +2037,8 @@ function buyTool(key) {
   state.tools[key] = true
   const names = { swatches: "Swatches", radius: "Radius variable", contrast: "Contrast slider", components: "Components", styles: "Colour styles" }
   state.status = (names[key] || key) + " is on."
-  if (key === "components") teach("radius-offer", "Radius variable", "One number for every corner. You remember the frame being 4 larger.")
-  if (key === "radius") teach("styles-offer", "Colour styles", "The fills hold. An intern does not miss them.")
+  if (key === "components") kitTeach("radius-offer", "Radius variable", "Next in the kit: one number for every corner. The frame is 4 larger.")
+  if (key === "radius") kitTeach("styles-offer", "Colour styles", "Next in the kit: fills hold, and an intern does not miss them.")
   commit()
 }
 function buyToken(key) {
@@ -2406,15 +2427,18 @@ export function panBy(dx, dy) {
   view.y += dy
   notifyView()
 }
-export function zoomAt(deltaY, cx, cy) {
-  const next = Math.min(ZMAX, Math.max(ZMIN, view.z * Math.exp(-deltaY * 0.0016)))
+export function setZoom(next, cx = 0, cy = 0) {
+  const z = Math.min(ZMAX, Math.max(ZMIN, next))
   const wx = (cx - view.x) / view.z
   const wy = (cy - view.y) / view.z
-  view.z = next
-  view.x = cx - wx * next
-  view.y = cy - wy * next
+  view.z = z
+  view.x = cx - wx * z
+  view.y = cy - wy * z
   view.stretch = 0
   notifyView()
+}
+export function zoomAt(deltaY, cx, cy) {
+  setZoom(view.z * Math.exp(-deltaY * 0.0016), cx, cy)
 }
 export function openScreen(project, screenId) {
   if (!project) return
@@ -2545,6 +2569,9 @@ function structuralStamp() {
     state.month.smallShipped || 0,
     state.midgame || "",
     state.midgameClosed ? 1 : 0,
+    state.eventClosed ? 1 : 0,
+    state.forkClosed ? 1 : 0,
+    state.fork || "",
     state.everHired ? 1 : 0,
     state.wikiOpen ? 1 : 0,
     state.headUnlocked ? 1 : 0,
@@ -2600,8 +2627,19 @@ function readLock() {
 function lockIsFresh(lock) {
   return !!lock && Date.now() - lock.at < LOCK_MS
 }
+function stopLockHeartbeat() {
+  if (!lockTimer) return
+  clearInterval(lockTimer)
+  lockTimer = null
+}
+function startLockHeartbeat() {
+  stopLockHeartbeat()
+  lockTimer = setInterval(writeLock, 1000)
+  if (lockTimer && typeof lockTimer.unref === "function") lockTimer.unref()
+}
 function writeLock() {
-  if (typeof localStorage === "undefined") return
+  // A yielded tab must not keep heartbeating, or "Use this tab" loses the fight.
+  if (state.tabNote || typeof localStorage === "undefined") return
   try {
     localStorage.setItem(LOCK_KEY, JSON.stringify({ tabId: ourTabId(), at: Date.now() }))
   } catch (error) {
@@ -2617,6 +2655,7 @@ function claimTab() {
   const lock = readLock()
   if (lock && lock.tabId !== ourTabId() && lockIsFresh(lock)) {
     state.tabNote = "This game is open in another tab"
+    stopLockHeartbeat()
     return false
   }
   state.tabNote = ""
@@ -2624,13 +2663,15 @@ function claimTab() {
   return true
 }
 function takeThisTab() {
-  writeLock()
   state.tabNote = ""
+  writeLock()
+  startLockHeartbeat()
   finishBoot()
   commit()
 }
 function dismissTabLock() {
   // Close keeps this tab idle; the other tab keeps the lock.
+  stopLockHeartbeat()
   commit()
 }
 function wantsFreshStart() {
@@ -2649,6 +2690,7 @@ function watchOtherTabs() {
     if (event.key && event.key !== LOCK_KEY) return
     const lock = readLock()
     if (lock && lock.tabId !== ourTabId() && lockIsFresh(lock)) {
+      stopLockHeartbeat()
       if (!state.tabNote) {
         state.tabNote = "This game is open in another tab"
         notify()
@@ -2742,6 +2784,7 @@ export function restartGame() {
   state.status = "Started over."
   state.saveNote = ""
   state.tabNote = tabNote
+  state.kitNote = null
   state.nextHireFloor = null
   state.headOffer = null
   state.headUnlocked = false
@@ -2751,14 +2794,17 @@ export function restartGame() {
   state.notices = []
   state.seen = {}
   state.fork = null
+  state.forkClosed = false
   state.midgame = null
   state.midgameClosed = false
   state.event = null
+  state.eventClosed = false
   state.eventSeen = false
   state.lastIndustry = null
   state.sold = 0
   state.specialty = null
   state.stage3Warn = null
+  state.kitNote = null
   state.debt = 0
   state.hireMiss = null
   spawn("start")
@@ -2839,12 +2885,11 @@ function finishBoot() {
   if (typeof window !== "undefined") {
     window.addEventListener("pagehide", () => {
       saveNow()
+      stopLockHeartbeat()
       releaseLock()
     })
   }
-  if (lockTimer) clearInterval(lockTimer)
-  lockTimer = setInterval(writeLock, 1000)
-  if (lockTimer && typeof lockTimer.unref === "function") lockTimer.unref()
+  startLockHeartbeat()
   if (!frameRunning && typeof requestAnimationFrame === "function") {
     frameRunning = true
     let last = performance.now()
@@ -3109,13 +3154,16 @@ export function sellAgency() {
   state.tools = { swatches: false, radius: false, contrast: false, components: !!keptTool, styles: false }
   state.notices = []
   state.fork = null
+  state.forkClosed = false
   state.midgame = null
   state.midgameClosed = false
   state.event = null
+  state.eventClosed = false
   state.eventSeen = false
   state.lastIndustry = keptLang
   state.specialty = null
   state.stage3Warn = null
+  state.kitNote = null
   state.sold = sold
   state.wins = wins
   spawn("fill")

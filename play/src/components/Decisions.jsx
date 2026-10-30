@@ -5,10 +5,10 @@ import {
   chooseMidgame,
   confirmStage3Warn,
   deferStage3Warn,
-  dismissNotice,
   gameFlags,
   LANG,
   processStepFacts,
+  refreshUi,
   state,
   takeBig,
   turnDownBig
@@ -21,7 +21,7 @@ const SPECIALIST = "New clients stay in one industry, so a language comes faster
 const GENERALIST = "Clients keep mixing across industries. A language takes longer, because big clients are spread out."
 
 function publish() {
-  if (state.notices.length === 0) dismissNotice()
+  refreshUi()
 }
 
 function industryName() {

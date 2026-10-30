@@ -14,6 +14,8 @@ import {
   LANG,
   NAMES,
   openProject,
+  openScreen,
+  selectionIds,
   state,
 } from "../engine.js"
 import { guidingFirst } from "./guidance.jsx"
@@ -24,6 +26,56 @@ const SWATCHES = ["paper", "white", "ink", "sand", "stone", "hot", "lime"]
 const ORDER = ["colour", "radius", "contrast"]
 const RADIUS_STOPS = [0, 4, 8, 12, 16, 20]
 const RADIUS_PARTS = ["cardA", "cardB", "save"]
+
+const LAYER_ORDER = ["save", "cardB", "cardA", "title"]
+
+function openLayer(project, screen, elementId) {
+  openScreen(project, screen.id)
+  if (screen.owner && screen.owner !== "player") return
+  openProject(project, elementId)
+}
+
+function LayersPanel({ project }) {
+  if (!project) return null
+  const screens = project.screens && project.screens.length ? project.screens : [activeScreen(project)].filter(Boolean)
+  const liveId = activeScreen(project) && activeScreen(project).id
+  const selected = state.openId === project.id ? state.selectedEl : null
+  const picked = new Set(selected ? selectionIds() : [])
+  return (
+    <section className="layers-panel" aria-label="Layers">
+      <header className="fig-head"><h3>Layers</h3></header>
+      {screens.map((screen) => {
+        const live = screen.id === liveId
+        const locked = !!(screen.owner && screen.owner !== "player")
+        return (
+          <div key={screen.id} className={"layer-frame" + (live ? " on" : "")}>
+            <button
+              type="button"
+              className={"layer-row frame" + (live && picked.has("background") ? " on" : "")}
+              onClick={() => openLayer(project, screen, "background")}
+            >
+              <span>{screen.name}</span>
+              {locked && <em>Locked</em>}
+            </button>
+            <ul>
+              {LAYER_ORDER.map((id) => (
+                <li key={id}>
+                  <button
+                    type="button"
+                    className={"layer-row" + (live && picked.has(id) ? " on" : "")}
+                    onClick={() => openLayer(project, screen, id)}
+                  >
+                    {NAMES[id]}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
 
 function RadiusSlider({ project }) {
   const track = useRef(null)
@@ -85,6 +137,65 @@ function scrubRadius(event, start, fromBackground) {
   }
   window.addEventListener("pointermove", move)
   window.addEventListener("pointerup", end)
+}
+
+// Figma-like: draft text while typing so clearing does not snap back to "0" / "05".
+function RadiusField({ value, wide, pulse, variable, fromBackground, onScrub }) {
+  const [draft, setDraft] = useState(String(value))
+  const [focused, setFocused] = useState(false)
+  useEffect(() => {
+    if (!focused) setDraft(String(value))
+  }, [value, focused])
+  const commitDraft = () => {
+    setFocused(false)
+    const trimmed = draft.trim()
+    if (trimmed === "") {
+      setRadius(0, fromBackground)
+      setDraft("0")
+      return
+    }
+    const parsed = Number(trimmed)
+    if (!Number.isFinite(parsed)) {
+      setDraft(String(value))
+      return
+    }
+    setRadius(parsed, fromBackground)
+  }
+  return (
+    <label className={"fig-field" + (wide ? " wide" : "") + (pulse ? " guide-pulse" : "")}>
+      <button type="button" className="scrub" aria-label="Scrub corner radius" onPointerDown={onScrub}>
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 11.5V6.5a4 4 0 0 1 4-4h5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
+      </button>
+      {variable && <span className="var-name">radius</span>}
+      <input
+        className="num"
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={focused ? draft : String(value)}
+        aria-label={variable ? "Radius variable" : "Corner radius"}
+        onFocus={() => {
+          setFocused(true)
+          setDraft(String(value))
+        }}
+        onChange={(event) => {
+          const raw = event.target.value.replace(/[^\d]/g, "").slice(0, 2)
+          const next = raw.replace(/^0+(?=\d)/, "")
+          setDraft(next)
+          if (next === "") return
+          const parsed = Number(next)
+          if (Number.isFinite(parsed)) setRadius(parsed, fromBackground)
+        }}
+        onBlur={commitDraft}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault()
+            event.currentTarget.blur()
+          }
+        }}
+      />
+    </label>
+  )
 }
 
 function Brief({ project }) {
@@ -208,6 +319,7 @@ export function Inspector() {
         {drawerButton}
         <div className="inspector-rail">
           <StickyTodos />
+          {atPc && <LayersPanel project={project} />}
           {atPc && <Brief project={project} />}
         </div>
       </aside>
@@ -254,21 +366,14 @@ export function Inspector() {
           <b className={tone(radiusWord)}>{radiusWord}</b>
         </header>
         <p className="fig-sub">{radiusHint(project, id)}</p>
-        <label className={"fig-field" + (state.tools.radius ? " wide" : "") + (guide === "radius" ? " guide-pulse" : "")}>
-          <button type="button" className="scrub" aria-label="Scrub corner radius" onPointerDown={(event) => scrubRadius(event, radiusValue, id === "background" && state.tools.radius)}>
-            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2.5 11.5V6.5a4 4 0 0 1 4-4h5" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" /></svg>
-          </button>
-          {state.tools.radius && <span className="var-name">radius</span>}
-          <input
-            className="num"
-            type="number"
-            min="0"
-            max="32"
-            value={radiusValue}
-            aria-label={state.tools.radius ? "Radius variable" : "Corner radius"}
-            onChange={(event) => setRadius(event.target.value, id === "background" && state.tools.radius)}
-          />
-        </label>
+        <RadiusField
+          value={radiusValue}
+          wide={!!state.tools.radius}
+          pulse={guide === "radius"}
+          variable={!!state.tools.radius}
+          fromBackground={id === "background" && state.tools.radius}
+          onScrub={(event) => scrubRadius(event, radiusValue, id === "background" && state.tools.radius)}
+        />
         {state.tools.radius && <RadiusSlider project={project} />}
       </section>
     ),
@@ -306,11 +411,13 @@ export function Inspector() {
           <h2 data-tip={component ? "Both choices take this edit." : undefined}>{component ? "Choice" : NAMES[id]}</h2>
           <button type="button" className="icon-x" aria-label="Close" onClick={() => openProject(project, null)}>×</button>
         </div>
+        {id === "background" && <p className="fig-sub">390 × 844</p>}
         {project.hasUX && id === "background" && project.flow && project.flow.demand && <FlowSection project={project} />}
         {project.hasUX && id !== "background" && <TypeSection project={project} id={id} el={el} />}
         {ORDER.map((key) => sections[key]).filter(Boolean)}
       </div>
       <div className="inspector-rail">
+        {atPc && <LayersPanel project={project} />}
         <StickyTodos />
         <Brief project={project} />
       </div>

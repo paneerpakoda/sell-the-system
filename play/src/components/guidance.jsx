@@ -121,7 +121,7 @@ export function undoForkChoice() {
   state.specialty = null
   state.forkClosed = false
   state.status = "Choice undone. Specialist keeps new clients in one industry. Generalist keeps the mix."
-  if (state.notices.length === 0) dismissNotice()
+  engine.refreshUi()
 }
 
 export function weekClock(into) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-10-30 — round 9 canvas
+
+The laptop editor pans, zooms, and selects like a design tool. Move and Hand sit on the canvas. The right panel lists layers and keeps fill, radius, and contrast. The client screen’s layout stays fixed.
+
+The repo is public. The live game is GitHub Pages at https://paneerpakoda.github.io/sell-the-system/, deployed from main. Round 9 is on main.
+
 ## 2026-10-25 — round 6 batch 6
 
 The nine-seed specialty check is confirmed. Specialist months are all 2. Generalist months are 3, 3, 3, 2, 5, none, 2, 3, none. The median gap is 1. Seed 53 had stopped shipping because three flagged clients were in an industry the studio had not codified, and the vague palette did not clear an Exacting brief. Painting those clients to the industry look lets that seed win in month 5. Seeds 67 and 97 still do not win by month 42.

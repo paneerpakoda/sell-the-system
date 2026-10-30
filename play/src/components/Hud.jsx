@@ -188,32 +188,48 @@ const CLOCK_STEPS = [
 ]
 
 function ClockStepVisual({ kind }) {
+  // Miniature copies of the real HUD / contract widgets — not abstract icons.
   if (kind === "client") {
+    const r = 18
+    const c = 2 * Math.PI * r
     return (
-      <div className="clock-viz client" aria-hidden="true">
-        <svg viewBox="0 0 72 72" width="72" height="72">
-          <circle cx="36" cy="36" r="28" className="clock-viz-track" />
-          <circle cx="36" cy="36" r="28" className="clock-viz-arc" pathLength="100" />
-        </svg>
-        <span>5:00</span>
+      <div className="clock-viz clock-viz-live client" aria-hidden="true">
+        <div className="contract-clock clock-viz-contract">
+          <svg width="48" height="48" viewBox="0 0 48 48">
+            <circle className="timer-track" cx="24" cy="24" r={r} />
+            <circle className="timer-value" cx="24" cy="24" r={r} strokeDasharray={c} strokeDashoffset={0} />
+          </svg>
+          <div className="contract-clock-copy">
+            <span className="contract-clock-k">Client</span>
+            <span className="contract-clock-v">5:00 · Starts at Start job</span>
+          </div>
+        </div>
       </div>
     )
   }
   if (kind === "week") {
     return (
-      <div className="clock-viz week" aria-hidden="true">
-        {[0, 1, 2, 3].map((index) => (
-          <i key={index} className={index === 0 ? "on" : ""}>
-            <b style={{ width: index === 0 ? "55%" : "0%" }} />
-          </i>
-        ))}
+      <div className="clock-viz clock-viz-live week" aria-hidden="true">
+        <div className="meter weeks clock-viz-meter">
+          <div className="meter-k">Week</div>
+          <div className="meter-v">1 / 4</div>
+          <div className="week-bars" aria-hidden="true">
+            {[0, 1, 2, 3].map((index) => (
+              <i key={index} className={index === 0 ? "on" : ""}>
+                <b style={{ width: index === 0 ? "40%" : "0%" }} />
+              </i>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
   return (
-    <div className="clock-viz month" aria-hidden="true">
-      <span className="clock-viz-num">1</span>
-      <span className="clock-viz-time">4:00</span>
+    <div className="clock-viz clock-viz-live month" aria-hidden="true">
+      <div className="meter month-meter clock-viz-meter">
+        <div className="meter-k">Month</div>
+        <div className="meter-v">1 · 4:00</div>
+      </div>
     </div>
   )
 }
@@ -450,6 +466,7 @@ export function Hud() {
         <div className="money-hero">
           <div className="money" aria-label={Math.abs(state.money) >= 100000 ? moneyLabel(state.money, currency) : undefined}>{money(state.money, { compact: true })}</div>
           <CurrencySwitch />
+          <MoneyCoach />
         </div>
       </div>
       <div className="topbar-side topbar-right" aria-label="Growth">
@@ -463,6 +480,34 @@ export function Hud() {
       )}
       <ShipMoment />
     </header>
+  )
+}
+
+function MoneyCoach() {
+  const [show, setShow] = useState(() => !state.seen.money)
+  useEffect(() => {
+    if (!show || !state.studioName || state.tabNote) {
+      document.body.removeAttribute("data-money-coach")
+      return undefined
+    }
+    document.body.setAttribute("data-money-coach", "1")
+    return () => document.body.removeAttribute("data-money-coach")
+  }, [show, state.studioName, state.tabNote])
+  if (!show || !state.studioName || state.tabNote) return null
+  return (
+    <div className="money-coach" role="status">
+      <p><b>Studio money</b> — your score. Ships pay in; payroll takes out. Switch ₹ / $ anytime.</p>
+      <button
+        type="button"
+        className="money-coach-ok"
+        onClick={() => {
+          state.seen.money = true
+          setShow(false)
+        }}
+      >
+        Got it
+      </button>
+    </div>
   )
 }
 
